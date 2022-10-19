@@ -1,0 +1,634 @@
+<?php
+
+/**
+ * @file
+ * Custom installation for Alshaya Search.
+ */
+
+use Drupal\search_api\Entity\Index;
+use Drupal\user\Entity\Role;
+use Drupal\alshaya_config\AlshayaConfigManager;
+use Drupal\facets\Entity\FacetSource;
+
+/**
+ * Implements hook_update_N().
+ *
+ * Remove unwanted facet config translations.
+ */
+function alshaya_search_update_8034() {
+  /** @var \Drupal\facets\FacetManager\DefaultFacetManager $service */
+  $facet_manager = \Drupal::service('facets.manager');
+  $facetsources = FacetSource::loadMultiple();
+  foreach ($facetsources as $facetsource) {
+    // Get all the facets of a facetsource.
+    $facets = $facet_manager->getFacetsByFacetSourceId($facetsource->getName());
+    foreach ($facets as $facet) {
+      // Get config name of facet.
+      $config_name = $facet->getConfigDependencyName();
+      $langcodes = \Drupal::languageManager()->getLanguages();
+      $langcodesList = array_keys($langcodes);
+      foreach ($langcodesList as $langCode) {
+        // Making sure we delete all config translations to avoid warnings.
+        // Check CORE-19138 for more info.
+        if ($langCode != 'en') {
+          $config_translation = \Drupal::languageManager()->getLanguageConfigOverride($langCode, $config_name);
+          if (!$config_translation->isNew()) {
+            $config_translation->delete();
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update promotion field type.
+ */
+function alshaya_search_update_8033() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $alshayaConfigManager */
+  $alshayaConfigManager = \Drupal::service('alshaya_config.manager');
+  $alshayaConfigManager->updateConfigs(
+    ['search_api.index.acquia_search_index'],
+    'alshaya_search',
+    'optional',
+    AlshayaConfigManager::MODE_MERGE
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable hierarchy for category facet.
+ */
+function alshaya_search_update_8032() {
+  alshaya_config_install_configs(
+    ['facets.facet.category_facet_search'],
+    'alshaya_search',
+    'optional'
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Change path of search page of acquia_search.
+ */
+function alshaya_search_update_8031() {
+  if (\Drupal::moduleHandler()->moduleExists('acquia_search')) {
+    \Drupal::service('alshaya_config.manager')
+      ->updateConfigs(
+        ['views.view.acquia_search'],
+        'acquia_search',
+        'optional',
+        AlshayaConfigManager::MODE_MERGE
+      );
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Uninstall obsolete module alshaya_search_acquia_search.
+ */
+function alshaya_search_update_8030() {
+  \Drupal::service('module_installer')->uninstall(['alshaya_search_acquia_search']);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Cleanup all configurations related to textbox display for facets.
+ */
+function alshaya_search_update_8029() {
+  $facets = \Drupal::entityQuery('node')
+    ->condition('type', 'my_custom_type')->execute();
+  /** @var \Drupal\facets\FacetInterface $facet_storage */
+  $facet_storage = \Drupal::service('entity_type.manager')->getStorage('facets_facet');
+
+  foreach ($facets as $facet_id) {
+    $facet = $facet_storage->load($facet_id);
+    $facet->unsetThirdPartySetting('alshaya_search', 'display_textbox');
+    $facet->unsetThirdPartySetting('alshaya_search', 'display_textbox_item_count');
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding class to search product list view.
+ */
+function alshaya_search_update_8028() {
+  alshaya_config_install_configs(['views.view.search'], 'alshaya_search',
+    'optional');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add child skus to solr search index.
+ */
+function alshaya_search_update_8027() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $alshayaConfigManager */
+  $alshayaConfigManager = \Drupal::service('alshaya_config.manager');
+  $alshayaConfigManager->updateConfigs(
+    ['search_api.index.acquia_search_index'],
+    'alshaya_search',
+    'optional',
+    AlshayaConfigManager::MODE_MERGE
+  );
+  // Save acquia_search_index to flag all products for re-index.
+  _alshaya_search_api_reindex(['acquia_search_index']);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add stock quantity field to solr search index.
+ */
+function alshaya_search_update_8026() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $alshayaConfigManager */
+  $alshayaConfigManager = \Drupal::service('alshaya_config.manager');
+  $alshayaConfigManager->updateConfigs(
+    ['search_api.index.acquia_search_index'],
+    'alshaya_search',
+    'optional',
+    AlshayaConfigManager::MODE_MERGE
+  );
+  // Save acquia_search_index to flag all products for re-index.
+  $index = Index::load('acquia_search_index');
+  $index->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Updating solr search index to run on cron and content update/create.
+ */
+function alshaya_search_update_8025() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $alshayaConfigManager */
+  $alshayaConfigManager = \Drupal::service('alshaya_config.manager');
+  $alshayaConfigManager->updateConfigs(['search_api.index.acquia_search_index'], 'alshaya_search', 'optional', AlshayaConfigManager::MODE_MERGE);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Re-create promotion facets using label field.
+ */
+function alshaya_search_update_8024() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $alshayaConfigManager */
+  $alshayaConfigManager = \Drupal::service('alshaya_config.manager');
+
+  // Add promotion label to index.
+  $alshayaConfigManager->updateConfigs(['search_api.index.acquia_search_index'], 'alshaya_search', 'optional', AlshayaConfigManager::MODE_MERGE);
+
+  $index = Index::load('acquia_search_index');
+  $index->save();
+
+  // Update promotion facet config to display promotion label.
+  alshaya_config_install_configs(['facets.facet.promotions'], 'alshaya_search', 'optional');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add config for placeholder text.
+ */
+function alshaya_search_update_8023() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $alshayaConfigManager */
+  $alshayaConfigManager = \Drupal::service('alshaya_config.manager');
+
+  $alshayaConfigManager->updateConfigs(
+    ['alshaya_search.settings'],
+    'alshaya_search',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+
+  // Add translation.
+  \Drupal::languageManager()->getLanguageConfigOverride('ar', 'alshaya_search.settings')
+    ->set('search_field_placeholder', 'بحث')
+    ->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding promotion filter to SRP.
+ */
+function alshaya_search_update_8022() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $alshayaConfigManager */
+  $alshayaConfigManager = \Drupal::service('alshaya_config.manager');
+
+  $alshayaConfigManager->updateConfigs(['search_api.index.acquia_search_index'], 'alshaya_search', 'optional', AlshayaConfigManager::MODE_MERGE);
+
+  $index = Index::load('acquia_search_index');
+  $index->save();
+
+  // Create facet & add facet block to PLP.
+  alshaya_config_install_configs(['facets.facet.promotions'], 'alshaya_search', 'optional');
+  alshaya_config_install_configs(['block.block.promotions'], 'alshaya_search', 'optional');
+
+  // Update PLP facet summary to render selected promotion facets.
+  $filter_bar = \Drupal::configFactory()->getEditable('facets_summary.facets_summary.filter_bar');
+  $facets = $filter_bar->get('facets');
+  $facets['promotions'] = [
+    'checked' => 1,
+    'label' => 'Promotions',
+    'separator' => ', ',
+    'show_count' => 1,
+    'weight' => 0,
+  ];
+  $filter_bar->set('facets', $facets);
+  $filter_bar->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Replace updated search settings with existing one.
+ */
+function alshaya_search_update_8021() {
+  \Drupal::service('alshaya_config.manager')
+    ->updateConfigs(
+      ['alshaya_search.settings'],
+      'alshaya_search',
+      'install'
+    );
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function alshaya_search_update_8020() {
+  \Drupal::service('alshaya_config.manager')
+    ->updateConfigs(
+      ['alshaya_search.settings'],
+      'alshaya_search',
+      'install',
+      AlshayaConfigManager::MODE_ADD_MISSING_RECURSIVE
+    );
+
+  $sort_options_labels_ar = [
+    // Search_api_relevance ASC.
+    ['label' => ''],
+    // Relevance.
+    ['label' => 'التطابق'],
+    // Name A to Z.
+    ['label' => 'الاسم من أ إلى ي'],
+    // Name Z to A.
+    ['label' => 'الاسم من ي إلى أ'],
+    // Price Low to High.
+    ['label' => 'السعر من الأدنى إلى الأعلى'],
+    // Price High to Low.
+    ['label' => 'السعر من الأعلى إلى الأدنى'],
+    // Created ASC.
+    ['label' => ''],
+    // New In.
+    ['label' => 'جديدنا'],
+  ];
+
+  $sort_options_labels = \Drupal::languageManager()->getLanguageConfigOverride('ar', 'alshaya_search.settings');
+  $sort_options_labels->set('sort_options_labels', $sort_options_labels_ar);
+  $sort_options_labels->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update search_api_autocomplete permission.
+ */
+function alshaya_search_update_8019() {
+  user_role_grant_permissions(Role::ANONYMOUS_ID, ['use search_api_autocomplete for search']);
+  user_role_grant_permissions(Role::AUTHENTICATED_ID, ['use search_api_autocomplete for search']);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update search_api_autocomplete settings after module update.
+ */
+function alshaya_search_update_8018() {
+  alshaya_config_install_configs(['search_api_autocomplete.search.search'], 'alshaya_search');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update search_api_autocomplete settings, since the module update
+ * doesn't provide an update path.
+ */
+function alshaya_search_update_8017() {
+  alshaya_config_delete_configs(['search_api_autocomplete.search_api_autocomplete.search_api_views_search']);
+  alshaya_config_install_configs(['search_api_autocomplete.search.search'], 'alshaya_search');
+
+  // Allow anonymous and authenticated users to use autocomplete.
+  user_role_grant_permissions(Role::ANONYMOUS_ID, ['use search_api_autocomplete for search']);
+  user_role_grant_permissions(Role::AUTHENTICATED_ID, ['use search_api_autocomplete for search']);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Updating category facet configs to attach hide term processor.
+ */
+function alshaya_search_update_8016() {
+  alshaya_config_install_configs(['facets.facet.category'], 'alshaya_search');
+  alshaya_config_install_configs(['facets.facet.plp_category_facet'], 'alshaya_product');
+  alshaya_config_install_configs(['facets.facet.category_promotion'], 'alshaya_acm_promotion', 'optional');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Updating category facet configs.
+ */
+function alshaya_search_update_8015() {
+  alshaya_config_install_configs(['facets.facet.category'], 'alshaya_search');
+  alshaya_config_install_configs(['facets.facet.plp_category_facet'], 'alshaya_product');
+  alshaya_config_install_configs(['facets.facet.category_promotion'], 'alshaya_acm_promotion', 'optional');
+  alshaya_config_install_configs(['search_api.index.acquia_search_index'], 'alshaya_search');
+  alshaya_config_install_configs(['facets_summary.facets_summary.filter_bar_plp'], 'alshaya_product', 'optional');
+  alshaya_config_install_configs(['facets_summary.facets_summary.filter_bar'], 'alshaya_search');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Change sort order for facets to raw value.
+ */
+function alshaya_search_update_8014() {
+  $facets_config_promotion = [
+    'facets.facet.category_promotion',
+    'facets.facet.promotion_brand_facet',
+    'facets.facet.promotion_collection_facet',
+    'facets.facet.promotion_color_facet',
+    'facets.facet.promotion_size_facet',
+  ];
+  alshaya_config_install_configs($facets_config_promotion, 'alshaya_acm_promotion', 'optional');
+
+  $facets_config_alshaya_product = [
+    'facets.facet.plp_category_facet',
+    'facets.facet.skus_sku_reference_brand',
+    'facets.facet.skus_sku_reference_collection',
+    'facets.facet.skus_sku_reference_color',
+    'facets.facet.skus_sku_reference_size',
+  ];
+
+  alshaya_config_install_configs($facets_config_alshaya_product, 'alshaya_product');
+
+  $facets_config_alshaya_search = [
+    'facets.facet.brand',
+    'facets.facet.category',
+    'facets.facet.collection',
+    'facets.facet.color',
+    'facets.facet.size',
+  ];
+  alshaya_config_install_configs($facets_config_alshaya_search, 'alshaya_search');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Expand only one category at a time.
+ * Revert hide taxonomy term from menu processor for category facets.
+ */
+function alshaya_search_update_8013() {
+  alshaya_config_install_configs(['facets.facet.category'], 'alshaya_search');
+  alshaya_config_install_configs(['facets.facet.category_promotion'], 'alshaya_acm_promotion', 'optional');
+  alshaya_config_install_configs(['search_api.index.acquia_search_index'], 'alshaya_search');
+}
+
+/**
+ * Implements hook_post_update_NAME().
+ *
+ * Re-save index to create required tables.
+ *
+ * We do this in post update hook as it doesn't work together with config update
+ * in normal hook_update.
+ */
+function alshaya_search_post_update_8012(&$sandbox) {
+  _alshaya_search_resave_indexes();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Updated facets config.
+ */
+function alshaya_search_update_8012() {
+  $config_facets_alshaya_search = [
+    'search_api.index.acquia_search_index',
+    'facets.facet.category',
+    'facets_summary.facets_summary.filter_bar',
+  ];
+
+  // Add index for category data to SOLR index & create facets, facet summary.
+  alshaya_config_install_configs($config_facets_alshaya_search, 'alshaya_search');
+
+  // Update alshaya product index to reflect category field.
+  alshaya_config_install_configs(['search_api.index.product'], 'alshaya_product');
+
+  $config_facets_acm_promotion = [
+    'facets.facet.category_promotion',
+    'facets_summary.facets_summary.filter_bar_promotions',
+  ];
+
+  // Create facets, facet summary for promotion facets.
+  alshaya_config_install_configs($config_facets_acm_promotion, 'alshaya_acm_promotion', 'optional');
+
+  $config_block = [
+    'block.block.category',
+    'block.block.promotioncategoryfacet',
+  ];
+
+  // Place category filter blocks on search & promotion pages.
+  alshaya_config_install_configs($config_block, 'alshaya_transac', 'optional');
+
+  // Get current default theme.
+  $current_theme = \Drupal::config('system.theme')->get('default');
+
+  // Move blocks to current default theme.
+  if (!empty($current_theme)) {
+    alshaya_block_move_blocks_theme_to_theme($current_theme, 'alshaya_white_label');
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Updated facets config.
+ */
+function alshaya_search_update_8011() {
+  $configs = [
+    'facets.facet.size',
+    'facets.facet.collection',
+    'facets_summary.facets_summary.filter_bar',
+  ];
+
+  alshaya_config_install_configs($configs, 'alshaya_search');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Refactor search and facets config.
+ */
+function alshaya_search_update_8010() {
+  if (isset($_ENV['AH_SITE_NAME'])) {
+    // Enable alshaya_search_acquia_search to ensure config are overridden to
+    // use solr on cloud.
+    \Drupal::service('module_installer')->install(['alshaya_search_acquia_search']);
+  }
+  else {
+    // Enable alshaya_search_local_search to ensure config are overridden to
+    // use solr in local.
+    \Drupal::service('module_installer')->install(['alshaya_search_local_search']);
+  }
+
+  $configs = [
+    'search_api.server.acquia_search_server',
+    'search_api.index.acquia_search_index',
+    'views.view.search',
+  ];
+
+  alshaya_config_install_configs($configs, 'alshaya_search');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update search views cache to tag based.
+ */
+function alshaya_search_update_8009() {
+  alshaya_config_install_configs(['views.view.search'], 'alshaya_search');
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function alshaya_search_update_8008() {
+  $configs = [
+    'views.view.term_search',
+  ];
+  alshaya_config_install_configs($configs, 'alshaya_search');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Re-save index to ensure created field is added to index.
+ * This was missing in update 8005.
+ */
+function alshaya_search_update_8006() {
+  $index = Index::load('acquia_search_index');
+
+  // Update index options to index only on cron and 1000 per batch.
+  $index->setOption('index_directly', FALSE);
+  $index->setOption('cron_limit', 1000);
+
+  // Save index to reflect new created field.
+  $index->save();
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function alshaya_search_update_8005() {
+  $configs = [
+    'search_api.index.acquia_search_index',
+  ];
+
+  alshaya_config_install_configs($configs, 'alshaya_search');
+
+  // Enable sort options on SRP page.
+  $sort_options = [
+    'name_1',
+    'final_price',
+  ];
+  $config = \Drupal::configFactory()->getEditable('alshaya_search.settings');
+  $config->set('sort_options', $sort_options)->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update facets config.
+ */
+function alshaya_search_update_8004() {
+  $configs = [
+    'facets.facet.brand',
+  ];
+
+  alshaya_config_install_configs($configs, 'alshaya_search');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add field for stock in index.
+ */
+function alshaya_search_update_8003() {
+  $config = \Drupal::configFactory()->getEditable('search_api.index.acquia_search_index');
+
+  $config->set('field_settings.stock', [
+    'label' => 'Stock',
+    'datasource_id' => 'entity:node',
+    'property_path' => 'field_skus:entity:stock',
+    'type' => 'integer',
+    'dependencies' => [
+      'config' => [
+        'field.storage.node.field_skus',
+      ],
+      'module' => [
+        'acq_sku',
+      ],
+    ],
+  ]);
+
+  $config->save();
+
+  $index = Index::load('acquia_search_index');
+
+  // Re-index all items.
+  $index->reindex();
+
+  // Save index to reflect new stock field.
+  $index->save();
+
+  // Revert the view.
+  $reverter = \Drupal::service('config_update.config_update');
+  $reverter->revert('view', 'search');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update index type for color and brand.
+ */
+function alshaya_search_update_8002() {
+  $solr_search_index_color = \Drupal::configFactory()->getEditable('search_api.index.acquia_search_index');
+  $solr_search_index_color->set('field_settings.color.type', 'string')->save();
+  $solr_search_index_color->set('field_settings.brand.type', 'string')->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Remove the faulty sort config creating notices in AR.
+ */
+function alshaya_search_update_8001() {
+  \Drupal::languageManager()->getLanguageConfigOverride('ar', 'views.view.search')->delete();
+  _alshaya_search_translate_search_view_config();
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_search_install() {
+  // Allow anonymous and authenticated users to use autocomplete.
+  user_role_grant_permissions(Role::ANONYMOUS_ID, ['use search_api_autocomplete for search']);
+  user_role_grant_permissions(Role::AUTHENTICATED_ID, ['use search_api_autocomplete for search']);
+}

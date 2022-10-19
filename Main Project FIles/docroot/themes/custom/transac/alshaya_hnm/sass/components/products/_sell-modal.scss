@@ -1,0 +1,57 @@
+// Theming modal window for the cross-sell and up sell
+.acq-content-product-modal {
+  .content {
+    &__main {
+      @include breakpoint($desktop) {
+        width: 60%;
+      }
+    }
+
+    &__sidebar {
+      @include breakpoint($desktop) {
+        width: 38%;
+      }
+    }
+  }
+
+  .c-products__item__label {
+    font-family: $hnm-regular;
+    color: $hnm-black-three;
+  }
+
+  .full-prod-link {
+    font-family: $hnm-bold;
+    color: $pdp_modal_full_prodlink;
+
+    @include if-ltr {
+      @include icon(arrow-#{$right}, after);
+
+      &::after {
+        font-size: 1rem;
+        line-height: 1.8rem;
+      }
+    }
+
+    @include if-rtl {
+      @include icon(arrow-#{$right}, before);
+
+      &::before {
+        font-size: 1rem;
+        line-height: 1.8rem;
+      }
+    }
+  }
+
+  .field--name-field-skus .sku-base-form button[type="submit"] {
+    font-family: $hnm-bold;
+    line-height: 1;
+    margin-top: 2rem;
+    padding-#{$left}: 2.938rem;
+  }
+
+  .sku-base-form .ajax-progress-throbber {
+    .message {
+      font-family: $hnm-regular;
+    }
+  }
+}

@@ -1,0 +1,24 @@
+services:
+  cache.alshaya_product_configurations:
+    class: Drupal\Core\Cache\CacheBackendInterface
+    tags:
+      - { name: cache.bin, default_backend: cache.backend.permanent_database }
+    factory: cache_factory:get
+    arguments: [alshaya_product_configurations]
+
+  alshaya_color_split.manager:
+    class: Drupal\alshaya_color_split\AlshayaColorSplitManager
+    arguments:
+      - '@alshaya_acm_product.skumanager'
+      - '@entity_type.manager'
+      - '@alshaya_product_options.helper'
+      - '@alshaya_product_options.swatches'
+      - '@request_stack'
+
+  alshaya_color_split.product_updated_event:
+    class: Drupal\alshaya_color_split\EventSubscriber\ProductUpdatedEventSubscriber
+    arguments:
+      - '@alshaya_color_split.manager'
+      - '@cache_tags.invalidator'
+    tags:
+      - { name: event_subscriber }

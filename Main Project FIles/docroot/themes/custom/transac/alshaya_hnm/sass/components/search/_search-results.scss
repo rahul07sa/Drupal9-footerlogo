@@ -1,0 +1,85 @@
+.alias--search {
+  .block-page-title-block {
+    @include breakpoint($only-mobile) {
+      h1 {
+        text-transform: inherit;
+      }
+    }
+  }
+}
+
+.facets-soft-limit-link {
+  margin-bottom: 0.875rem;
+}
+
+.ui-autocomplete {
+  li.ui-menu-item {
+    padding: 0.59375rem 0.4375rem;
+
+    &:not(:last-child) {
+      border-bottom-color: transparent;
+    }
+
+    &:hover {
+      background-color: $autocomplete_hover;
+    }
+
+    a {
+      font-family: $hnm-regular;
+    }
+  }
+}
+
+.c-header__region {
+  .block-views-exposed-filter-blocksearch-page .ui-autocomplete {
+    @include breakpoint($only-mobile) {
+      top: 6.375rem !important;
+
+      html[lang=ar] & {
+        top: 6.375rem !important;
+      }
+    }
+
+    @include breakpoint($tablet) {
+      width: 10.125rem !important;
+      left: auto !important;
+      top: auto !important;
+      border: none;
+    }
+  }
+}
+
+.search-api-autocomplete-suggestion {
+  @include arabic-letter-spacing;
+
+  font-size: 0.875rem;
+  line-height: 1.36;
+  letter-spacing: 0.5px;
+  padding-#{$left}: 0;
+}
+
+.alshaya_search_mainimage {
+  display: block;
+}
+
+.alshaya_search_slider {
+  width: 100%;
+
+  .lslide {
+    img {
+      min-height: unset;
+    }
+  }
+}
+
+.region__content {
+  .filter-menu-label {
+    li.clear-all-fake {
+      border: 1px solid $plp_filterbar_clearall_border;
+      font-size: 0.75rem;
+      padding: 0.4375rem 0.78125rem 0.4375rem 0.84375rem;
+      font-family: $hnm-bold;
+      text-transform: uppercase;
+    }
+  }
+}

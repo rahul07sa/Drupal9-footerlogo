@@ -1,0 +1,622 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the alshaya_mobile_app module.
+ */
+
+use Drupal\Core\Site\Settings;
+use Drupal\alshaya_config\AlshayaConfigManager;
+use Drupal\consumers\Entity\Consumer;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\user\Entity\User;
+use Drupal\user\Entity\Role;
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add algolia category carousel settings.
+ */
+function alshaya_mobile_app_update_9402() {
+  // Import config to set "category_carousel_return_products" key.
+  \Drupal::service('alshaya_config.manager')->updateConfigs(
+    ['alshaya_mobile_app.settings'],
+    'alshaya_mobile_app',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update the value for the listing_ignore_algolia_data.
+ */
+function alshaya_mobile_app_update_9401() {
+  $config = \Drupal::configFactory()->getEditable('alshaya_mobile_app.settings');
+  $config->set('listing_ignore_algolia_data', TRUE)->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new Deeplink V3 and Magazine Detail V3 APIs.
+ */
+function alshaya_mobile_app_update_8082() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs([
+    'rest.resource.deeplink_v3',
+    'rest.resource.magazine_detail_page_v3',
+  ],
+    'alshaya_mobile_app',
+    'install'
+  );
+  \Drupal::configFactory()->getEditable('user.role.anonymous')->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new API to expose Product configuration.
+ */
+function alshaya_mobile_app_update_8081() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(['rest.resource.product_general_settings'],
+    'alshaya_mobile_app',
+    'install'
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * [6.5.0] Add new Product Exclude Linked,
+ * Skus Product List resource and
+ * Deeplink Resource v2.
+ */
+function alshaya_mobile_app_update_8080() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs([
+    'rest.resource.product_exclude_linked_v2',
+    'rest.resource.skus_product_list_v2',
+    'rest.resource.deeplink_v2',
+  ],
+    'alshaya_mobile_app',
+    'install'
+  );
+
+  \Drupal::configFactory()->getEditable('user.role.anonymous')->save();
+  \Drupal::configFactory()->getEditable('user.role.authenticated')->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * [6.2.0] Delete the cart_promotions resource config.
+ */
+function alshaya_mobile_app_update_8079() {
+  // Deleting the cart_promotions rest config.
+  \Drupal::configFactory()->getEditable('rest.resource.cart_promotions')->delete();
+  // Disable the resource related permissions.
+  $role = Role::load('anonymous');
+  if ($role->hasPermission('restful get cart_promotions')) {
+    $role->revokePermission('restful get cart_promotions');
+  }
+  $role->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * [5.18.0] Reindexing items for updating swatch URLs from relative to absolute.
+ */
+function alshaya_mobile_app_update_8078() {
+  // Re-index only on brands where we have swatches for plp.
+  if (!empty(\Drupal::config('alshaya_acm_product.display_settings')->get('swatches.plp'))) {
+    \Drupal::service('alshaya_acm_product.product_queue_utility')->queueAllProducts();
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable options-list config.
+ */
+function alshaya_mobile_app_update_8077() {
+  // Install options-list config.
+  \Drupal::service('alshaya_config.manager')->updateConfigs(
+    ['rest.resource.options_list'],
+    'alshaya_mobile_app',
+    'install',
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Set the default value for the max_product_limit.
+ */
+function alshaya_mobile_app_update_8076() {
+  $config = \Drupal::configFactory()->getEditable('alshaya_mobile_app.settings');
+  $config->set('max_product_limit', 24)->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new API to get dropdown/option values from webform.
+ */
+function alshaya_mobile_app_update_8075() {
+  \Drupal::service('alshaya_config.manager')->updateConfigs(
+    ['rest.resource.webform_options_list'],
+    'alshaya_mobile_app'
+  );
+
+  // Re-save config to import override config with updated permissions.
+  \Drupal::configFactory()->getEditable('user.role.anonymous')->save();
+  \Drupal::configFactory()->getEditable('user.role.authenticated')->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Delete existing value for "Dy Banner (mobile app)" field and use the default
+ * value from config.
+ */
+function alshaya_mobile_app_update_8074() {
+  // Import config to set "dy_plp_banner_name" key.
+  \Drupal::service('alshaya_config.manager')->updateConfigs(
+    ['alshaya_mobile_app.settings'],
+    'alshaya_mobile_app',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+
+  // Delete all existing value for "Dy Banner (mobile app)".
+  /** @var \Drupal\Core\Database\Connection $connection */
+  $connection = \Drupal::database();
+
+  $field_storage = FieldStorageConfig::loadByName('taxonomy_term', 'field_dy_banner');
+  if ($field_storage) {
+    $connection->delete('taxonomy_term__field_dy_banner')
+      ->condition('field_dy_banner_value', '', '<>')
+      ->execute();
+
+    $connection->delete('taxonomy_term_revision__field_dy_banner')
+      ->condition('field_dy_banner_value', '', '<>')
+      ->execute();
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add store finder in URL mapping.
+ */
+function alshaya_mobile_app_update_8073() {
+  \Drupal::service('alshaya_config.manager')->updateConfigs(
+    ['alshaya_mobile_app.settings'],
+    'alshaya_mobile_app'
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new API to get all custom blocks for a path.
+ * Add store finder in URL mapping.
+ */
+function alshaya_mobile_app_update_8072() {
+  \Drupal::service('alshaya_config.manager')->updateConfigs(
+    ['alshaya_mobile_app.settings', 'rest.resource.blocks_for_path'],
+    'alshaya_mobile_app'
+  );
+
+  // Re-save config to import override config with updated permissions.
+  \Drupal::configFactory()->getEditable('user.role.anonymous')->save();
+  \Drupal::configFactory()->getEditable('user.role.authenticated')->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new API to allow resetting user password.
+ */
+function alshaya_mobile_app_update_8071() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $configManager */
+  $configManager = \Drupal::service('alshaya_config.manager');
+
+  $configManager->updateConfigs(
+    ['rest.resource.user_reset_password'],
+    'alshaya_mobile_app'
+  );
+
+  $configManager->updateConfigs(
+    ['user.role.mobile_app_consumer'],
+    'alshaya_mobile_app',
+    'install',
+    AlshayaConfigManager::MODE_REPLACE_KEY,
+    ['replace_keys' => ['permissions']]
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding new rest resources to return the list of attributes for
+ * list of SKU's passed.
+ */
+function alshaya_mobile_app_update_8070() {
+  \Drupal::service('alshaya_config.manager')->updateConfigs(
+    ['rest.resource.skus_product_list'],
+    'alshaya_mobile_app'
+  );
+
+  // Re-save config to import override config with updated permissions.
+  \Drupal::configFactory()->getEditable('user.role.anonymous')->save();
+  \Drupal::configFactory()->getEditable('user.role.authenticated')->save();
+
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Updates arabic translation strings for Link More - Magazine.
+ */
+function alshaya_mobile_app_update_8069() {
+  $strings = [
+    'READ H&M MAGAZINE' => [
+      'ar' => 'اقرأ مجلة اتش آند ام',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add rest end point for magazine listing.
+ */
+function alshaya_mobile_app_update_8068() {
+  $configs = [
+    'rest.resource.magazine_teasers',
+  ];
+
+  \Drupal::service('alshaya_config.manager')->updateConfigs($configs, 'alshaya_mobile_app');
+
+  // Re-save config to import override config with updated permissions.
+  \Drupal::configFactory()->getEditable('user.role.anonymous')->save();
+  \Drupal::configFactory()->getEditable('user.role.authenticated')->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add rest end point for magazine block.
+ */
+function alshaya_mobile_app_update_8066() {
+  $configs = [
+    'rest.resource.magazine_block',
+  ];
+
+  \Drupal::service('alshaya_config.manager')->updateConfigs($configs, 'alshaya_mobile_app');
+
+  // Re-save config to import override config with updated permissions.
+  \Drupal::configFactory()->getEditable('user.role.anonymous')->save();
+  \Drupal::configFactory()->getEditable('user.role.authenticated')->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add rest end point for magazine content  type.
+ */
+function alshaya_mobile_app_update_8065() {
+  \Drupal::service('alshaya_config.manager')->updateConfigs(
+    ['rest.resource.magazine_detail_page'],
+    'alshaya_mobile_app'
+  );
+
+  // Re-save config to import override config with updated permissions.
+  \Drupal::configFactory()->getEditable('user.role.anonymous')->save();
+  \Drupal::configFactory()->getEditable('user.role.authenticated')->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add config for static page mappings.
+ */
+function alshaya_mobile_app_update_8012() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(['alshaya_mobile_app.settings'], 'alshaya_mobile_app');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding new rest resources to return the linked and unliked product details
+ * of the given sku.
+ */
+function alshaya_mobile_app_update_8011() {
+  \Drupal::service('alshaya_config.manager')->updateConfigs(
+    [
+      'rest.resource.product_exclude_linked',
+      'rest.resource.product_linked_skus',
+    ],
+    'alshaya_mobile_app'
+  );
+
+  // Re-save config to import override config with updated permissions.
+  \Drupal::configFactory()->getEditable('user.role.anonymous')->save();
+  \Drupal::configFactory()->getEditable('user.role.authenticated')->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new resource to return stock data.
+ */
+function alshaya_mobile_app_update_8010() {
+  \Drupal::service('alshaya_config.manager')->updateConfigs(
+    ['rest.resource.stock'],
+    'alshaya_mobile_app'
+  );
+
+  // Re-save config to import override config with updated permissions.
+  \Drupal::configFactory()->getEditable('user.role.anonymous')->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new field 'pdp_click_collect_available_in_store' for MAPP.
+ */
+function alshaya_mobile_app_update_8009() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $alshaya_config_manager */
+  $alshaya_config_manager = \Drupal::service('alshaya_config.manager');
+  $alshaya_config_manager->updateConfigs(
+    ['alshaya_mobile_app.settings'],
+    'alshaya_mobile_app',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+
+  // Translate 'pdp_click_collect_available_in_store' value to Arabic.
+  \Drupal::languageManager()->getLanguageConfigOverride('ar', 'alshaya_mobile_app.settings')
+    ->set('pdp_click_collect_available_in_store', '1-2 أيام')
+    ->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new resource to return all cart promotions.
+ */
+function alshaya_mobile_app_update_8008() {
+  \Drupal::service('alshaya_config.manager')->updateConfigs(
+    ['rest.resource.cart_promotions'],
+    'alshaya_mobile_app'
+  );
+
+  // Re-save config to import override config with updated permissions.
+  \Drupal::configFactory()->getEditable('user.role.anonymous')->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new resource to return all the stores.
+ * Enable module for app links.
+ */
+function alshaya_mobile_app_update_8007() {
+  \Drupal::service('alshaya_config.manager')->updateConfigs(
+    ['rest.resource.stores_finder_collection'],
+    'alshaya_mobile_app'
+  );
+
+  // Re-save config to import override config with updated permissions.
+  \Drupal::configFactory()->getEditable('user.role.anonymous')->save();
+  \Drupal::configFactory()->getEditable('user.role.authenticated')->save();
+
+  \Drupal::service('module_installer')->install(['mobile_app_links']);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Rework error message endpoint to static texts.
+ * Update payment-methods endpoint to use cookie.
+ * Add user get status endpoint.
+ */
+function alshaya_mobile_app_update_8005() {
+  // Delete config so that plugin not found error is not thrown.
+  \Drupal::configFactory()->getEditable('rest.resource.alshaya_error_messages')->delete();
+
+  // Install new config.
+  \Drupal::service('alshaya_config.manager')
+    ->updateConfigs(
+      ['rest.resource.alshaya_static_texts',
+        'rest.resource.payment_methods',
+        'rest.resource.user_get_status',
+      ],
+      'alshaya_mobile_app',
+      'install'
+    );
+
+  \Drupal::service('alshaya_config.manager')
+    ->updateConfigs(
+      ['user.role.mobile_app_consumer'],
+      'alshaya_mobile_app',
+      'install',
+      AlshayaConfigManager::MODE_REPLACE_KEY,
+      ['replace_keys' => ['permissions']]
+    );
+
+  // Resave config to import override config with updated permissions.
+  \Drupal::configFactory()->getEditable('user.role.anonymous')->save();
+  \Drupal::configFactory()->getEditable('user.role.authenticated')->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update all GET endpoints to use cookie instead of oauth.
+ */
+function alshaya_mobile_app_update_8004() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $configManager = \Drupal::service('alshaya_config.manager');
+
+  $configManager->updateConfigs(
+      [
+        'rest.resource.advanced_page',
+        'rest.resource.categories',
+        'rest.resource.category_product_list',
+        'rest.resource.deeplink',
+        'rest.resource.delivery_methods',
+        'rest.resource.product',
+        'rest.resource.promotion_product_list',
+        'rest.resource.promotions',
+        'rest.resource.search_page_product_list',
+        'rest.resource.simple_page',
+        'rest.resource.social_media_links',
+        'rest.resource.stores_finder',
+      ],
+      'alshaya_mobile_app'
+    );
+
+  $configManager->updateConfigs(
+    [
+      'rest.resource.knet_finalize_request',
+      'rest.resource.knet_init_request',
+    ],
+    'alshaya_mobile_app',
+    'optional'
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add rest end point for payment-methods.
+ */
+function alshaya_mobile_app_update_8003() {
+  \Drupal::service('alshaya_config.manager')
+    ->updateConfigs(
+      ['rest.resource.payment_methods'],
+      'alshaya_mobile_app',
+      'install'
+    );
+
+  // Resave config to import override config with updated permissions.
+  \Drupal::configFactory()->getEditable('user.role.anonymous')->save();
+  \Drupal::configFactory()->getEditable('user.role.authenticated')->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Grant Get permissions to authenticated users.
+ */
+function alshaya_mobile_app_update_8002() {
+  // Resave config to import override config with updated permissions.
+  \Drupal::configFactory()->getEditable('user.role.authenticated')->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Create webform submit, user_registration_mail and user_forgot_password_mail
+ * end points.
+ */
+function alshaya_mobile_app_update_8001() {
+  \Drupal::service('module_installer')->install(['webform_rest']);
+
+  _alshaya_mobile_app_create_user();
+  _alshaya_mobile_app_create_consumer();
+
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  \Drupal::service('alshaya_config.manager')
+    ->updateConfigs(
+      [
+        'rest.resource.webform_rest_submit',
+        'rest.resource.user_registration_mail',
+        'rest.resource.user_forgot_password_mail',
+        'user.role.mobile_app_consumer',
+      ],
+      'alshaya_mobile_app'
+    );
+
+  // Resave config to import override config with updated permissions.
+  \Drupal::configFactory()->getEditable('user.role.anonymous')->save();
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_mobile_app_install() {
+  \Drupal::configFactory()->getEditable('user.role.anonymous')->save();
+  \Drupal::configFactory()->getEditable('user.role.authenticated')->save();
+
+  _alshaya_mobile_app_create_user();
+  _alshaya_mobile_app_create_consumer();
+
+  // Translate 'pdp_click_collect_available_in_store' value to Arabic.
+  \Drupal::languageManager()->getLanguageConfigOverride('ar', 'alshaya_mobile_app.settings')
+    ->set('pdp_click_collect_available_in_store', '1-2 أيام')
+    ->save();
+}
+
+/**
+ * Wrapper function create mobile app user if not exists.
+ */
+function _alshaya_mobile_app_create_user() {
+  $user = user_load_by_name(Settings::get('alshaya_mobile_app_user_username'));
+
+  if ($user instanceof User) {
+    \Drupal::logger('alshaya_mobile_app')->warning('User already created with name @name.', [
+      '@name' => Settings::get('alshaya_mobile_app_user_username'),
+    ]);
+    return;
+  }
+
+  // Create a user that will be used by Mobile APP Consumers.
+  $user = User::create();
+  $user->setPassword(Settings::get('alshaya_mobile_app_user_password'));
+  $user->enforceIsNew();
+  $user->setEmail(Settings::get('alshaya_mobile_app_user_email'));
+  $user->setUsername(Settings::get('alshaya_mobile_app_user_username'));
+  $user->activate();
+  $user->addRole('mobile_app_consumer');
+  $user->save();
+}
+
+/**
+ * Wrapper function create alshaya mobile app consumer if not exists.
+ */
+function _alshaya_mobile_app_create_consumer() {
+  /** @var \Drupal\Core\Entity\EntityRepositoryInterface $repository */
+  $repository = \Drupal::service('entity.repository');
+  $consumer = $repository->loadEntityByUuid('consumer', Settings::get('alshaya_mobile_app_soauth_client_uuid'));
+
+  if ($consumer instanceof Consumer) {
+    \Drupal::logger('alshaya_mobile_app')->warning('Consumer already created for uuid @uuid.', [
+      '@uuid' => Settings::get('alshaya_mobile_app_soauth_client_uuid'),
+    ]);
+    return;
+  }
+
+  // Add Simple Oauth - Consumer client.
+  $client = Consumer::create([
+    'uuid' => Settings::get('alshaya_mobile_app_soauth_client_uuid'),
+    'label' => 'Alshaya Mobile App Consumer',
+    'secret' => Settings::get('alshaya_mobile_app_soauth_client_secret'),
+    'roles' => ['mobile_app_consumer'],
+  ]);
+  $client->save();
+}

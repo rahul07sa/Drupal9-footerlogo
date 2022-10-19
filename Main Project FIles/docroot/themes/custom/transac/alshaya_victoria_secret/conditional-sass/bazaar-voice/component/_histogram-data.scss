@@ -1,0 +1,16 @@
+#reviews-section {
+  .histogram-data-section {
+    .rating-wrapper {
+      .overall-summary-title,
+      .no-review-title {
+        font-family: $vs-bentonsans-medium;
+      }
+
+      .button-wrapper {
+        .write-review-button {
+          border-radius: rem(3);
+        }
+      }
+    }
+  }
+}

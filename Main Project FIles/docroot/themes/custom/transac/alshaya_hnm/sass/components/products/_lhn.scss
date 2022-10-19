@@ -1,0 +1,42 @@
+.block-alshaya-category-lhn-block {
+  // L2.
+  > ul > li {
+    > .lhn-2 {
+      font-family: $hnm-bold;
+      text-transform: capitalize;
+      font-size: 1rem;
+      margin-bottom: 0.25rem;
+      color: $lhn_default_text;
+      line-height: 2;
+    }
+  }
+
+  ul {
+    li {
+      line-height: 1;
+      font-size: 0.8125rem;
+
+      a {
+        text-transform: none;
+        line-height: 2;
+        color: $lhn_default_text;
+
+        &.lhn-3 {
+          &.active {
+            color: $lhn_link_hover_active;
+            font-family: $hnm-regular;
+          }
+        }
+
+        &.active {
+          font-family: $hnm-demibold;
+        }
+
+        &:hover {
+          text-decoration: underline;
+          color: $lhn_link_hover_active;
+        }
+      }
+    }
+  }
+}

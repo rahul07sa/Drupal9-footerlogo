@@ -1,0 +1,96 @@
+<?php
+
+/**
+ * @file
+ * Module file.
+ */
+
+use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\Core\Field\FieldFilteredMarkup;
+use Drupal\alshaya_pdp_layouts\Event\PreprocessMagazineEvent;
+
+/**
+ * Set dynamic allowed values for the select pdp layout field.
+ *
+ * @param \Drupal\field\Entity\FieldStorageConfig $definition
+ *   The field definition.
+ * @param \Drupal\Core\Entity\ContentEntityInterface|null $entity
+ *   The entity being created if applicable.
+ * @param bool $cacheable
+ *   Boolean indicating if the results are cacheable.
+ *
+ * @return array
+ *   An array of possible key and value options.
+ *
+ * @see options_allowed_values()
+ */
+function alshaya_pdp_layouts_allowed_values_function(FieldStorageConfig $definition, ContentEntityInterface $entity = NULL, $cacheable) {
+  $alshaya_pdp_layouts = \Drupal::service('plugin.manager.alshaya_pdp_layouts');
+  $layouts = $alshaya_pdp_layouts->getDefinitions();
+  $pdp_layout_options = [];
+  foreach ($layouts as $key => $value) {
+    $pdp_layout_options[$key] = $value['label']->__toString();
+  }
+
+  return $pdp_layout_options;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function alshaya_pdp_layouts_form_alter(&$form, $form_state, $form_id) {
+  if (in_array($form_id, [
+    'node_acq_product_edit_form',
+    'node_acq_product_form',
+    'node_rcs_product_edit_form',
+    'node_rcs_product_form',
+  ]
+  )) {
+    $product_settings_form = \Drupal::config('alshaya_acm_product.settings');
+    $global_layout = $product_settings_form->get('pdp_layout');
+    // Adding a description to show the inherit settings for PDP layout.
+    $form['field_select_pdp_layout']['widget']['#description'] = FieldFilteredMarkup::create(t('Inherit layout will apply the layout selected globally: @global_layout', ['@global_layout' => $global_layout]));
+    // Changing the label of the none option.
+    $form['field_select_pdp_layout']['widget']['#options']['_none'] = t('Inherit');
+  }
+}
+
+/**
+ * Implements allowed values callback.
+ *
+ * Add pdp_layout options from plugin definitions.
+ */
+function alshaya_pdp_layouts_pdp_layout_values() {
+  $pdp_layout_options = [];
+  $pdp_layout_options['inherit'] = 'Inherit Site Config';
+  $config = \Drupal::config('alshaya_acm_product.settings');
+  // Prepare PDP layout select options.
+  $pdp_layout_options += $config->get('pdp_layout_options');
+  $alshaya_pdp_layouts = \Drupal::service('plugin.manager.alshaya_pdp_layouts');
+  $layouts = $alshaya_pdp_layouts->getDefinitions();
+  foreach ($layouts as $key => $value) {
+    $pdp_layout_options[$key] = $value['label']->__toString();
+  }
+  return $pdp_layout_options;
+}
+
+/**
+ * Implements hook_preprocess_alshaya_magazine().
+ */
+function alshaya_pdp_layouts_preprocess_alshaya_magazine(&$vars) {
+  $event = new PreprocessMagazineEvent($vars);
+
+  $event_dispatcher = \Drupal::service('event_dispatcher');
+  $event_dispatcher->dispatch(PreprocessMagazineEvent::EVENT_NAME, $event);
+  $vars = $event->getVariables();
+}
+
+/**
+ * Implements hook_alshaya_context_key_from_layout_alter().
+ */
+function alshaya_pdp_layouts_alshaya_context_key_from_layout_alter(string &$context_key, string $pdp_layout) {
+  $alshaya_pdp_layouts = \Drupal::service('plugin.manager.alshaya_pdp_layouts');
+  $plugin_manager = $alshaya_pdp_layouts->createInstance($pdp_layout, []);
+  $context_key = $plugin_manager->getCotextFromPdpLayout($context_key, $pdp_layout);
+}

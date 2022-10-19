@@ -1,0 +1,9 @@
+.alshaya-social {
+  .social-network-text {
+    text-transform: lowercase;
+
+    &::first-letter {
+      text-transform: uppercase;
+    }
+  }
+}

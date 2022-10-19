@@ -1,0 +1,169 @@
+.magv2 {
+  &-content {
+    @include breakpoint($only-mobile) {
+      padding: 0 1.25rem;
+      background: $magv2-content-bg;
+    }
+
+    @include breakpoint($tablet) {
+      width: 65%;
+      float: #{$left};
+    }
+
+    @include breakpoint($desktop) {
+      width: 72%;
+    }
+
+    &.sticky-element {
+      position: fixed !important;
+      top: 0;
+      #{$left}: 1.875rem;
+
+      @include breakpoint($tablet) {
+        &.sticky-element {
+          max-width: calc((100% - 3.75rem) * 0.65);
+        }
+      }
+
+      @include breakpoint($desktop) {
+        &.sticky-element {
+          max-width: calc((100% - 3.75rem) * 0.72);
+        }
+      }
+
+      @include breakpoint($desktop-HiDPI) {
+        &.sticky-element {
+          #{$left}: calc((100% - 86.25rem) / 2);
+          max-width: calc(86.25rem * 0.72);
+        }
+      }
+
+      &.contain {
+        position: absolute !important;
+        bottom: 0;
+        top: auto;
+        #{$left}: 0 !important;
+
+        @include breakpoint($tablet) {
+          max-width: 65%;
+        }
+
+        @include breakpoint($desktop) {
+          max-width: 72%;
+        }
+      }
+    }
+  }
+
+  &-sidebar {
+    font-family: $alshaya-thin;
+
+    @include breakpoint($only-mobile) {
+      padding: 0 1.25rem 1.25rem;
+      background-color: $pdp_background;
+    }
+
+    @include breakpoint($tablet) {
+      width: 35%;
+      float: $right;
+      padding-#{$left}: 1.25rem;
+      padding-bottom: 3rem;
+    }
+
+    @include breakpoint($desktop) {
+      width: 28%;
+    }
+  }
+}
+
+.magazine-layout-v2 {
+  .c-pdp.l-one--w {
+    @include breakpoint($tablet) {
+      padding: 0 1.875rem;
+    }
+
+    @include breakpoint($desktop) {
+      max-width: 90rem;
+    }
+  }
+
+  #pdp-layout {
+    @include breakpoint($only-mobile) {
+      background: $pdp_background;
+      margin-top: -2.0625rem;
+    }
+  }
+
+  .magv2 {
+    &-main-contain {
+      position: relative;
+      overflow: auto;
+      overflow-x: hidden;
+    }
+
+    &-sidebar {
+      &.sticky-element {
+        #{$right}: 1.875rem;
+        position: fixed;
+        top: 0;
+
+        &.contain {
+          position: absolute;
+          bottom: 0;
+          top: auto;
+          #{$right}: 0 !important;
+
+          @include breakpoint($tablet) {
+            max-width: 35%;
+          }
+
+          @include breakpoint($desktop) {
+            max-width: 28%;
+          }
+        }
+      }
+
+      @include breakpoint($tablet) {
+        &.sticky-element {
+          max-width: calc((100% - 3.75rem) * 0.35);
+        }
+      }
+
+      @include breakpoint($desktop) {
+        &.sticky-element {
+          max-width: calc((100% - 3.75rem) * 0.28);
+        }
+      }
+
+      @include breakpoint($desktop-HiDPI) {
+        &.sticky-element {
+          #{$right}: calc((100% - 86.25rem) / 2);
+          max-width: calc(86.25rem * 0.28);
+        }
+      }
+
+      .out-of-stock {
+        display: block;
+        margin: 0 0 1rem;
+        background-color: $magv2-out-of-stock-bg;
+        font-size: 0.875rem;
+        vertical-align: middle;
+        text-align: center;
+        padding: 0.6rem 1.5rem;
+        color: $magv2-out-of-stock-text;
+
+        @include breakpoint($desktop) {
+          display: inline-block;
+        }
+      }
+    }
+
+    &-header-wrapper {
+      @include breakpoint($tablet) {
+        max-width: 90rem;
+        margin: 0 auto;
+        padding: 0.90625rem 1.875rem;
+      }
+    }
+  }
+}

@@ -1,0 +1,85 @@
+@mixin slug-modal-padding() {
+  @include breakpoint($tablet) {
+    padding: calc((100vh - 36rem) / 2) calc((100vw - 45rem) / 2) !important;
+  }
+
+  @include breakpoint($desktop) {
+    padding: calc((100vh - 34.75rem) / 2) calc((100vw - 64.13rem) / 2) !important;
+  }
+}
+
+.slug-banner-modal.ui-dialog {
+  height: 100% !important;
+  width: 100% !important;
+  top: 0 !important;
+  left: 0 !important;
+  background: rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  z-index: 1000;
+
+  @include slug-modal-padding;
+
+  .path--user & {
+    width: 100% !important;
+
+    @include slug-modal-padding;
+  }
+
+  #drupal-modal {
+    background: $modal_bg;
+    padding: 1.5em;
+    overflow: scroll;
+    height: 100% !important;
+    max-height: 100% !important;
+
+    .path--user &,
+    .path--cart & {
+      height: 100% !important;
+      max-height: 100% !important;
+    }
+  }
+
+  .ui-dialog-titlebar {
+    padding: 0;
+    overflow: visible;
+
+    .ui-dialog-title {
+      @include u-visibility(none);
+    }
+
+    .ui-dialog-titlebar-close {
+      @include icon(close) {
+        font-size: 1.875rem;
+        position: absolute;
+        #{$right}: 0;
+        top: 0;
+      }
+
+      position: absolute;
+      #{$right}: 0;
+      #{$left}: auto;
+      top: 50%;
+      width: 1.875rem;
+      margin: 0;
+      height: 1.875rem;
+      border: none;
+      z-index: 9;
+      font-size: 0;
+      color: $modal_close_icon;
+      background-color: $modal_close_bg;
+      border-radius: 0;
+      outline: solid transparent;
+      text-indent: inherit;
+
+      &::after {
+        display: none;
+      }
+    }
+  }
+}
+
+.slug-banner-modal-link.use-ajax {
+  + .ajax-progress-throbber {
+    @include fullPageLoader;
+  }
+}

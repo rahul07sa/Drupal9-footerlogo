@@ -1,0 +1,21 @@
+.c-content__slider {
+  .paragraph-banner.slick-slider {
+    .slick-list {
+      width: auto;
+      #{$left}: inherit;
+      min-height: auto;
+
+      @include breakpoint($tablet) {
+        width: auto;
+        min-height: auto;
+        #{$left}: inherit;
+      }
+
+      @include breakpoint($desktop) {
+        width: auto;
+        min-height: auto;
+        #{$left}: inherit;
+      }
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{%
+  set classes = [
+  'node',
+  'node--type-' ~ node.bundle|clean_class,
+  view_mode ? 'node--view-mode-' ~ view_mode|clean_class,
+  'c-front__node',
+  ]
+  %}
+
+ <article {{ attributes.addClass(classes) }}>
+
+    <style type="text/css">
+      {{ node.field_css.value }}
+    </style>
+    <div class="c-content">
+
+      {% if content.field_banner %}
+      <div class="c-content__banner">
+        {{ content.field_banner }}
+      </div>
+      {% endif %}
+
+      <div class="banner-container">
+        {% if content.field_video_banner %}
+        <div class="c-content__banner video_banner c-content__container">
+          <div class="video_banner_content">
+            {{ content.field_video_banner }}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if content.field_slider %}
+        <div class="c-content__slider">
+          {{ content.field_slider }}
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="c-content__container clearfix">
+        {{ content.field_block }}
+        {{ content.body }}
+
+        {{ content.field_delivery_banner }}
+        {{ content.field_promo_blocks }}
+      </div>
+    </div>
+  </article>

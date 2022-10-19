@@ -1,0 +1,15 @@
+alshaya_search.srp_sort_settings_form:
+  path: '/admin/commerce/config/listing-pages/srp-sort-settings'
+  defaults:
+    _form: '\Drupal\alshaya_search\Form\AlshayaSrpSortSettingsForm'
+    _title: 'SRP Sort Settings'
+  requirements:
+    _permission: 'access commerce administration pages'
+
+alshaya_search.srp_sort_label_settings_form:
+  path: '/admin/commerce/config/listing-pages/srp-sort-settings/label'
+  defaults:
+    _form: '\Drupal\alshaya_search\Form\AlshayaSrpSortLabelSettingsForm'
+    _title: 'SRP Sort Settings'
+  requirements:
+    _permission: 'access commerce administration pages'

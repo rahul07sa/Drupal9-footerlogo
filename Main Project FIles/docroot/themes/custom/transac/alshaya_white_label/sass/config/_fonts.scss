@@ -1,0 +1,153 @@
+// Define Fonts
+$base_theme_fonts_directory_path: '/themes/custom/transac/alshaya_white_label/fonts';
+
+$aura-regular: 'PTSans', 'Almarai-Regular', 'Arial';
+$aura-bold: 'PTSans-Bold', 'Almarai-Bold', 'Arial';
+
+$aura-arabic-regular: 'PTSans', 'Almarai-Regular', 'Arial';
+$aura-arabic-bold: 'PTSans-Bold', 'Almarai-Bold', 'Arial';
+
+$aura-caption-regular: 'PTSans-Caption-Regular','Almarai-Regular', 'Arial';
+$aura-caption-bold: 'PTSans-Caption-bold', 'Almarai-Regular', 'Arial';
+
+// Check alshaya_white_label/font-face for font-face declarations.
+// Font Family
+$alshaya-bold: 'Mothercare', 'Arial';
+$alshaya-bold-nodir: 'Mothercare', 'Arial';
+
+$alshaya-thin: 'MothercareThin', 'Arial';
+$alshaya-thin-nodir: 'MothercareThin', 'Arial';
+
+$alshaya-arabic-bold: 'Cairo-bold', 'Mothercare', 'Arial';
+$alshaya-arabic-bold-nodir: 'Cairo-bold', 'Mothercare', 'Arial';
+
+$alshaya-arabic-thin: 'Cairo-300', 'MothercareThin', 'Arial';
+$alshaya-arabic-thin-nodir: 'Cairo-300', 'MothercareThin', 'Arial';
+
+$alshaya-icons: 'alshaya-icons';
+$arial: 'arialmt', 'arial', 'sans-serif';
+$arial-nodir: 'arialmt', 'arial', 'sans-serif';
+$open-sans: "Open Sans", 'Cairo', 'Arial';
+$body_font: $arial;
+
+// campaign-plp-style-1 font family.
+$campaign-plp-style-1-font: $alshaya-bold;
+$campaign-plp-style-1-arabic-font: $alshaya-arabic-bold;
+
+// Postpay font family
+$postpay-font: 'GreycliffCF-Bold','MothercareThin', 'Arial';
+$postpay-arabic-font: $alshaya-arabic-bold;
+
+// Icon Fonts
+$icons: (
+  bell: "\e006",
+  marquee-plus: "\e083",
+  arrowdown: "\e900",
+  arrowup: "\e901",
+  blog: "\e902",
+  blogselect: "\e903",
+  checkboxempty: "\e904",
+  checkboxfull: "\e905",
+  checkshape: "\e906",
+  chevrondown: "\e907",
+  chevronleft: "\e908",
+  chevronright: "\e909",
+  chevronup: "\e90a",
+  close: "\e90b",
+  closeshape: "\e90c",
+  delivery: "\e90d",
+  deliveryservice: "\e90e",
+  direction: "\e90f",
+  email: "\e910",
+  emailselect: "\e911",
+  facebook: "\e912",
+  facebookselect: "\e913",
+  radio-empty: "\e914",
+  radio-filled: "\e915",
+  googleplus: "\e916",
+  googleplusselect: "\e917",
+  hide: "\e918",
+  infomation: "\e919",
+  instagram: "\e91a",
+  instagramselect: "\e91b",
+  language: "\e91c",
+  list: "\e91d",
+  login: "\e91e",
+  logout: "\e91f",
+  map: "\e920",
+  mappin: "\e921",
+  menu: "\e922",
+  mylocation: "\e923",
+  newsletter: "\e924",
+  nextdaydelivery: "\e925",
+  pinterest: "\e926",
+  pinterestselect: "\e927",
+  play: "\e928",
+  prize: "\e929",
+  radio-empty-old: "\e92a",
+  radio-filled-old: "\e92b",
+  rating: "\e92c",
+  ratingfull: "\e92d",
+  rewards: "\e92e",
+  search: "\e92f",
+  shoppingbag: "\e930",
+  show: "\e931",
+  twitter: "\e932",
+  twitterselect: "\e933",
+  user: "\e934",
+  whiteglovedelivery: "\e935",
+  wishlist: "\e936",
+  wishlistfull: "\e937",
+  youtube: "\e938",
+  youtubeselect: "\e939",
+  zoom: "\e93a",
+  warning: "\e93b",
+  price-tag: "\e93c",
+  check: "\e93d",
+  filter: "\e93e",
+  edit-input: "\e93f",
+  arrow-left: "\e940",
+  arrow-right: "\e941",
+  bin: "\e9ac",
+  map-location: "\e942",
+  minus: "\e943",
+  plus: "\e944",
+  new-facebook-default: "\e945",
+  new-facebook-hover: "\e946",
+  new-instagram-default: "\e947",
+  new-instagram-hover: "\e948",
+  new-twitter-default: "\e949",
+  new-twitter-hover: "\e94a",
+  new-whatsapp-default: "\e94b",
+  new-whatsapp-hover: "\e94c",
+);
+
+@mixin iconbase() {
+  font-family: $alshaya-icons !important;
+  speak: none;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@mixin icon($icon: false, $position: before, $styles: true) {
+  @if $position == both {
+    $position: 'before, &:after';
+  }
+
+  &:#{$position} {
+    @if $icon {
+      content: "#{map-get($icons, $icon)}";
+    }
+
+    @if $styles {
+      @include iconbase;
+    }
+
+    @content;
+  }
+}

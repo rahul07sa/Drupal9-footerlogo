@@ -1,0 +1,44 @@
+.c-user-password,
+.c-user-register,
+.c-user-login {
+  h1 {
+    font-family: $alshaya-thin;
+  }
+}
+
+.order-detail,
+.c-change-password,
+.c-communication-preferences,
+.c-user-edit,
+.c-order-list,
+.c-user--node,
+.c-address-book {
+  .block-page-title-block {
+    padding-bottom: 0.5rem;
+    padding-top: 0.75rem;
+
+    a:hover {
+      text-decoration: none;
+    }
+
+    .back-link {
+      @include breakpoint($only-mobile) {
+        @include icon(chevronup, before);
+      }
+    }
+  }
+}
+
+.c-communication-preferences,
+.c-address-book {
+  @include breakpoint($only-mobile) {
+    padding-bottom: 1.5rem;
+  }
+}
+
+.user-page {
+  @include breakpoint($only-mobile) {
+    padding-bottom: 0;
+    margin-bottom: 0;
+  }
+}

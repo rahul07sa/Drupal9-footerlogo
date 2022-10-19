@@ -1,0 +1,26 @@
+name: 'Alshaya Static Html'
+type: module
+description: 'Manages static pages in Alshaya'
+core: 8.x
+core_version_requirement: ^8 || ^9
+dependencies:
+  - drupal:block
+  - drupal:ckeditor
+  - drupal:content_translation
+  - drupal:ctools
+  - drupal:editor
+  - drupal:field
+  - drupal:file
+  - drupal:filter
+  - drupal:image
+  - drupal:language
+  - drupal:menu_ui
+  - metatag:metatag
+  - drupal:node
+  - drupal:path
+  - pathauto:pathauto
+  - drupal:system
+  - drupal:text
+  - drupal:user
+  - drupal:views
+  - drupal:replicate_ui

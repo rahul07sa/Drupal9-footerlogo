@@ -1,0 +1,6 @@
+name: 'Alshaya Location Redirect'
+description: 'Attempts to redirect users to an appropriate market based on their location'
+package: 'Alshaya'
+type: module
+core: 8.x
+core_version_requirement: ^8 || ^9

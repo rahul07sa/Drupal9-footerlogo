@@ -1,0 +1,34 @@
+// Hotfix styles.
+html[lang=ar] {
+  .alias--cart {
+    #table-cart-items td select {
+      line-height: 1.5;
+    }
+  }
+}
+
+body {
+  &.chrome {
+    &.alias--cart {
+      #table-cart-items {
+        td {
+          select {
+            text-indent: inherit;
+          }
+        }
+      }
+    }
+  }
+}
+
+.ie .site-brand-home a img {
+  width: 21.875rem;
+}
+
+.ie .super-category-victorias-secret .branding__menu .c-header__region .block-system-branding-block .site-brand-home img {
+  width: 100%;
+}
+
+.ie .super-category-beauty .filter-fixed-top .sticky-filter-wrapper .site-brand-home a img {
+  width: 100%;
+}

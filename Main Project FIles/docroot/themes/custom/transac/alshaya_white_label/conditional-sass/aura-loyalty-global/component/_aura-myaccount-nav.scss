@@ -1,0 +1,37 @@
+.aura-enabled {
+  .my-account-nav {
+    @include breakpoint($upto-desktop) {
+      li:nth-child(2) {
+        &::after {
+          top: 50%;
+          transform: translateY(-50%);
+          margin-top: 0;
+          color: $aura-purple;
+        }
+      }
+
+      .my-account-my-aura {
+        height: 3rem;
+        border-radius: 0.625rem;
+        background-image: $aura-my-account-nav-mobile-link-bg;
+        display: flex;
+        align-items: center;
+        padding-#{$left}: 1.875rem !important;
+        color: $aura-my-account-aura-nav-link;
+        font-family: $aura-caption-regular;
+
+        html[lang=ar] & {
+          background-image: $aura-my-account-nav-mobile-link-bg-ar;
+        }
+      }
+
+      .my-aura-link {
+        &::after {
+          top: rem(46);
+          color: $aura-my-account-aura-nav-link-arrow;
+          font-weight: 600;
+        }
+      }
+    }
+  }
+}

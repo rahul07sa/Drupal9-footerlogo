@@ -1,0 +1,27 @@
+<?php
+
+/**
+ * @file
+ * Contains install, update, uninstall hooks for alshaya_amp module.
+ */
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable the AMP display mode for static html bundle.
+ */
+function alshaya_amp_update_8301() {
+  $config = [
+    'core.entity_view_display.node.static_html.amp',
+  ];
+  alshaya_config_install_configs($config, 'alshaya_amp', 'optional');
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_amp_install() {
+  // Enable and set default amp theme.
+  \Drupal::service('theme_installer')->install(['alshaya_amp_white_label'], TRUE);
+  \Drupal::configFactory()->getEditable('amp.theme')->set('amptheme', 'alshaya_amp_white_label')->save();
+}

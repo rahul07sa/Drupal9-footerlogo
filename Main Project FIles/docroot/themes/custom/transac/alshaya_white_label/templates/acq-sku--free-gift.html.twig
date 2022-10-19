@@ -1,0 +1,105 @@
+{{ attach_library('alshaya_white_label/attribute') }}
+{{ attach_library('alshaya_white_label/free_gifts') }}
+
+{%
+set classes = [
+'node',
+'node--type-' ~ node.bundle|clean_class,
+view_mode ? 'node--view-mode-' ~ view_mode|clean_class,
+]
+%}
+
+<article{{ attributes }}>
+  {% if sku.back_to_collection %}
+    {{ sku.back_to_collection }}
+  {% endif %}
+
+  <div class="acq-content-product-modal">
+    <div class="content__title_wrapper">
+
+      {% if sku.brand_logo %}
+        <div class="brand-logo-wrapper">
+          {{ sku.brand_logo }}
+        </div>
+      {% endif %}
+
+      {% if not page %}
+        <h2{{ title_attributes.addClass("c-products__free__item__label") }}>
+          {{ 'FREE GIFT'|t }}
+        </h2>
+        {% if sku.subtitle %}
+          <h2 class="c-products__free__item__subtitle">
+            <span class="title--sub">
+              {{ sku.subtitle }}
+            </span>
+          </h2>
+        {% endif %}
+        <h2{{ title_attributes.addClass("c-products__item__label") }}>
+          {{ sku.name }}
+        </h2>
+      {% endif %}
+
+      <div class="content--item-code">
+        <span class="field__label">{{ 'Item Code'|t }}:</span>
+        {{ sku.item_code }}
+      </div>
+    </div>
+
+    <div class="content__main {{ sku.image_slider_position_pdp }}">
+      {% if sku.gallery is not empty %}
+        {{ sku.gallery }}
+      {% endif %}
+    </div>
+
+    <div class="content__sidebar">
+      {% if sku.select_free_gift is not empty %}
+        {{ sku.select_free_gift }}
+      {% endif %}
+      <div class="short-description-wrapper">
+        <div class="content--short-description">
+          {% if sku.short_desc is not empty or sku.description is not empty %}
+          <h2 class="field__label">{{ 'Product Description'|t }}</h2>
+          <div class="field__content-wrapper">
+            <div class="field__content">
+              <div class="desc-wrapper">
+                {% if sku.short_desc.label|render %}
+                  <div class="desc-label">
+                    {{ sku.short_desc.label }}
+                  </div>
+                {% endif %}
+                {% if sku.short_desc.value|render %}
+                  <div class="desc-value">
+                    {{ sku.short_desc.value }}
+                  </div>
+                {% endif %}
+              </div>
+              {% for desc in sku.description %}
+                {% if desc.value|render %}
+                  <div class="desc-wrapper">
+                    {% if desc.label|render %}
+                      <div class="desc-label">
+                        {{ desc.label }}
+                      </div>
+                    {% endif %}
+
+                    <div class="desc-value">
+                      {{ desc.value }}
+                    </div>
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+            {% if sku.description %}
+              {% if sku.read_more_style.value|render %}
+                <span class="read-more-description-link-gift" style="{{ sku.read_more_style.value }}">{{ 'Read more'|t }}</span>
+              {% else %}
+                <span class="read-more-description-link-gift">{{ 'Read more'|t }}</span>
+              {% endif %}
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</article>

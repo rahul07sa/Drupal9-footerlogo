@@ -1,0 +1,93 @@
+.swatch-list {
+  display: flex;
+  flex-flow: row wrap;
+  margin: 0 0 0.313rem;
+  padding: 0;
+
+  .swatch-label {
+    display: none;
+  }
+
+  .li-swatch-image,
+  .li-swatch-color {
+    height: 2.375rem;
+    width: 2.375rem;
+    margin-top: 0.4375rem;
+    margin-bottom: 0.4375rem;
+    margin-#{$right}: 0.625rem;
+    list-style: none;
+
+    a {
+      display: inline-block;
+      position: relative;
+      height: 2.375rem;
+      width: 2.375rem;
+
+      &.active {
+        &::after {
+          content: '';
+          position: absolute;
+          display: inline-block;
+          z-index: 1;
+          border: 1px solid $black;
+          pointer-events: none;
+          height: 2.75rem;
+          width: 2.75rem;
+          top: -0.1875rem;
+          #{$left}: -0.1875rem;
+        }
+      }
+    }
+  }
+
+  .li-swatch-image {
+    img {
+      height: 2.375rem;
+      width: 2.375rem;
+    }
+  }
+
+  .li-swatch-text {
+    list-style: none;
+    display: inline-block;
+
+    a {
+      @include u-visibility(block);
+
+      margin-top: rem(5);
+      margin-bottom: rem(5);
+      margin-#{$right}: rem(8);
+      margin-#{$left}: 0;
+      border: rem(1) solid $plp-quick-view-product-size-border;
+      text-align: center;
+      padding: rem(10) rem(12);
+      font-size: rem(14);
+      color: $plp-quick-view-product-size-text;
+      line-height: 1;
+
+      &:hover,
+      &.active {
+        background-color: $plp-quick-view-product-size-active-bg;
+        color: $plp-quick-view-product-size-text-active;
+        border-color: $plp-quick-view-product-size-border-hover;
+      }
+
+      &.disabled {
+        cursor: text;
+        border-color: $plp-quick-view-product-size-text-disabled;
+        color: $plp-quick-view-product-size-text-disabled;
+        pointer-events: none;
+      }
+
+      .sku-form.has-groups & {
+        &.active {
+          background: $plp-quick-view-product-group-size-active;
+
+          &:hover {
+            background: $plp-quick-view-product-size-active-bg;
+          }
+        }
+      }
+    }
+  }
+}

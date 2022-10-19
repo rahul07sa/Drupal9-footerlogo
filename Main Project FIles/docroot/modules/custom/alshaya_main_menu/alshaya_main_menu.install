@@ -1,0 +1,86 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the alshaya_main_menu module.
+ */
+
+use Drupal\alshaya_config\AlshayaConfigManager;
+
+/**
+ * Implements hook_update_N().
+ *
+ * Invalidate cache for adding new menu item attribute.
+ */
+function alshaya_main_menu_update_8405() {
+  \Drupal::service('cache_tags.invalidator')->invalidateTags(['taxonomy_term:acq_product_category']);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new setting in alshaya_main_menu - desktop_main_menu_layout.
+ */
+function alshaya_main_menu_update_8404() {
+  \Drupal::configFactory()->getEditable('alshaya_main_menu.settings')
+    ->set('desktop_main_menu_layout', 'default')
+    ->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new setting in alshaya_main_menu - desktop_main_menu_highlight_timing.
+ */
+function alshaya_main_menu_update_8403() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_main_menu.settings'],
+    'alshaya_main_menu',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding 'title' and 'subtitle' field to the highlight menu paragraph.
+ */
+function alshaya_main_menu_update_8402() {
+  $configs = [
+    'paragraphs.paragraphs_type.main_menu_highlight',
+    'field.storage.paragraph.field_highlight_title',
+    'field.storage.paragraph.field_highlight_subtitle',
+    'field.field.paragraph.main_menu_highlight.field_highlight_title',
+    'field.field.paragraph.main_menu_highlight.field_highlight_subtitle',
+    'field.field.paragraph.main_menu_highlight.field_highlight_image',
+    'field.field.paragraph.main_menu_highlight.field_highlight_link',
+    'core.entity_view_display.paragraph.main_menu_highlight.default',
+    'core.entity_form_display.paragraph.main_menu_highlight.default',
+  ];
+  alshaya_config_install_configs($configs, 'alshaya_main_menu');
+
+  $configs = [
+    'field.field.taxonomy_term.acq_product_category.field_main_menu_highlight',
+  ];
+  alshaya_config_install_configs($configs, 'alshaya_acm_product_category');
+
+  // Delete the highlight configuration.
+  \Drupal::configFactory()->getEditable('alshaya_main_menu.settings')->delete();
+  \Drupal::languageManager()->getLanguageConfigOverride('ar', 'alshaya_main_menu.settings')->delete();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding config for the mega menu highlights.
+ */
+function alshaya_main_menu_update_8401() {
+  alshaya_config_install_configs(['alshaya_main_menu.settings'], 'alshaya_main_menu');
+
+  $config = \Drupal::languageManager()->getLanguageConfigOverride('ar', 'alshaya_main_menu.settings');
+  $config->set('highlight_text', 'أهم العروض');
+  $config->save();
+}

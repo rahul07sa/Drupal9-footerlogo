@@ -1,0 +1,645 @@
+<?php
+
+/**
+ * @file
+ * Contains install, update, uninstall hooks for alshaya_product module.
+ */
+
+use Drupal\alshaya_config\AlshayaConfigManager;
+use Drupal\Core\Config\FileStorage;
+use Drupal\search_api\Entity\Index;
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new view mode 'matchback_mobile' for acq_product node bundle
+ * and a new views display.
+ */
+function alshaya_product_update_8032() {
+  $configs = [
+    'core.entity_view_mode.node.matchback_mobile',
+    'core.entity_view_display.node.acq_product.matchback_mobile',
+  ];
+  alshaya_config_install_configs($configs, 'alshaya_product');
+
+  $configs = [
+    'views.view.product_slider',
+  ];
+  alshaya_config_install_configs($configs, 'alshaya_acm_product', 'optional');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adds new block display for brand list.
+ */
+function alshaya_product_update_8031() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['views.view.alshaya_product_list'],
+    'alshaya_product',
+    'install',
+    AlshayaConfigManager::MODE_MERGE
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update views to show "0 items" when there are no results.
+ */
+function alshaya_product_update_8030() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['views.view.alshaya_product_list'],
+    'alshaya_product',
+    'install',
+    AlshayaConfigManager::MODE_MERGE
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Making 'only_visible_when_facet_source_is_visible' setting false
+ * for PLP category facet.
+ */
+function alshaya_product_update_8029() {
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(['facets.facet.category_facet_plp'], 'alshaya_product', 'optional');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update promotion field type.
+ */
+function alshaya_product_update_8028() {
+  $alshayaConfigManager = \Drupal::service('alshaya_config.manager');
+  $alshayaConfigManager->updateConfigs(
+    ['search_api.index.product'],
+    'alshaya_product',
+    'install',
+    AlshayaConfigManager::MODE_MERGE
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding new view mode for acq_product node bundle and a new views display.
+ */
+function alshaya_product_update_8027() {
+  $configs = [
+    'core.entity_view_mode.node.matchback',
+    'core.entity_view_display.node.acq_product.matchback',
+  ];
+  alshaya_config_install_configs($configs, 'alshaya_product');
+
+  $configs = [
+    'views.view.product_slider',
+  ];
+  alshaya_config_install_configs($configs, 'alshaya_acm_product', 'optional');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update views to change row render style.
+ */
+function alshaya_product_update_8026() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['views.view.alshaya_product_list'],
+    'alshaya_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING_RECURSIVE
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Cleanup corrupt search api tables.
+ */
+function alshaya_product_update_8025() {
+  $connection = \Drupal::database();
+  $search_api_db_product_tables = $connection->schema()->findTables('search_api_db_product_%');
+  $search_api_db_product_columns = $connection->query('describe search_api_db_product')->fetchAllKeyed();
+  $deleted_table_names = $deleted_column_names = [];
+
+  // Delete all search api product index tables with integer as a suffix.
+  foreach ($search_api_db_product_tables as $table_name) {
+    // Delete the table if the table name ends with an integer.
+    if (is_numeric(substr($table_name, -1))) {
+      $deleted_table_names[] = $table_name;
+      $connection->schema()->dropTable($table_name);
+
+      // Delete original table as well.
+      $table_name = preg_replace('/_[0-9]*$/', '', $table_name);
+      $connection->schema()->dropTable($table_name);
+    }
+  }
+
+  // Find columns in the base entity table with integer suffixes & delete them.
+  foreach ($search_api_db_product_columns as $column_name => $column_type) {
+    // Delete the column if  the column name ends with an integer.
+    if (is_numeric(substr($column_name, -1))) {
+      $deleted_column_names[] = $column_name;
+      $connection->schema()->dropField('search_api_db_product', $column_name);
+
+      // Remove fields from index. We need to remove fields from index & add
+      // them back to ensure new tables are created correctly.
+      $column_name = preg_replace('/_[0-9]*$/', '', $column_name);
+      $connection->schema()->dropField('search_api_db_product', $column_name);
+      _alshaya_search_api_remove_field_from_indexes($column_name, 'product');
+    }
+  }
+
+  // Resave index config to add back fields.
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $alshayaConfigManager */
+  $alshayaConfigManager = \Drupal::service('alshaya_config.manager');
+  $alshayaConfigManager->updateConfigs(
+    ['search_api.index.product'],
+    'alshaya_product',
+    'install',
+    AlshayaConfigManager::MODE_MERGE
+  );
+
+  // Re-index all product nodes to DB backend.
+  _alshaya_search_api_reindex(['product']);
+
+  // Log list of deleted columns & tables.
+  if (!empty($deleted_column_names) || !empty($deleted_table_names)) {
+    \Drupal::logger('alshaya_product')->notice('Cleaned up tables @tables & columns @columns for search api product index.', [
+      '@tables' => implode(',', $deleted_table_names),
+      '@columns' => implode(',', $deleted_column_names),
+    ]);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding class to product list view.
+ */
+function alshaya_product_update_8024() {
+  alshaya_config_install_configs(['views.view.alshaya_product_list'], 'alshaya_product');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update views to add stock sorting filter.
+ */
+function alshaya_product_update_8023() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['views.view.alshaya_product_list', 'search_api.index.product'],
+    'alshaya_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING_RECURSIVE
+  );
+  // Save product index to flag all products for re-index.
+  $index = Index::load('product');
+  $index->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Updating database search index to run on cron and content update/create.
+ */
+function alshaya_product_update_8022() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $alshayaConfigManager */
+  $alshayaConfigManager = \Drupal::service('alshaya_config.manager');
+  $alshayaConfigManager->updateConfigs(['search_api.index.product'], 'alshaya_product', 'install', AlshayaConfigManager::MODE_MERGE);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Updating alshaya product list view.
+ */
+function alshaya_product_update_8021() {
+  alshaya_config_install_configs(['views.view.alshaya_product_list'], 'alshaya_product');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Re-create promotion facets using label field.
+ */
+function alshaya_product_update_8020() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $alshayaConfigManager */
+  $alshayaConfigManager = \Drupal::service('alshaya_config.manager');
+
+  // Add promotion label to index.
+  $alshayaConfigManager->updateConfigs(['search_api.index.product'], 'alshaya_product', 'install', AlshayaConfigManager::MODE_MERGE);
+
+  $index = Index::load('product');
+  $index->save();
+
+  // Update promotion facet config to display promotion label.
+  alshaya_config_install_configs(['facets.facet.plp_promotions'], 'alshaya_product');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding promotion facet to PLP.
+ */
+function alshaya_product_update_8019() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $alshayaConfigManager */
+  $alshayaConfigManager = \Drupal::service('alshaya_config.manager');
+
+  $alshayaConfigManager->updateConfigs(['search_api.index.product'], 'alshaya_product', 'install', AlshayaConfigManager::MODE_MERGE);
+
+  $index = Index::load('product');
+  $index->save();
+
+  // Create facet & add facet block to PLP.
+  alshaya_config_install_configs(['facets.facet.plp_promotions'], 'alshaya_product');
+  alshaya_config_install_configs(['block.block.plppromotions'], 'alshaya_product', 'optional');
+
+  // Update PLP facet summary to render selected promotion facets.
+  $filter_bar = \Drupal::configFactory()->getEditable('facets_summary.facets_summary.filter_bar_plp');
+  $facets = $filter_bar->get('facets');
+  $facets['plp_promotions'] = [
+    'checked' => 1,
+    'label' => 'Promotions',
+    'separator' => ', ',
+    'show_count' => 1,
+    'weight' => 0,
+  ];
+  $filter_bar->set('facets', $facets);
+  $filter_bar->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding modal view mode for sku entity.
+ */
+function alshaya_product_update_8018() {
+  alshaya_config_install_configs(['core.entity_view_mode.acq_sku.modal'], 'alshaya_product');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Updating promotion list views to use custom contextual filter.
+ */
+function alshaya_product_update_8017() {
+  alshaya_config_install_configs(['views.view.alshaya_product_list'], 'alshaya_product');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding new view mode for acq_product node bundle and a new views.
+ */
+function alshaya_product_update_8016() {
+  $configs = [
+    'core.entity_view_mode.node.product_category_carousel',
+    'core.entity_view_display.node.acq_product.product_category_carousel',
+  ];
+  alshaya_config_install_configs($configs, 'alshaya_product');
+
+  $configs = [
+    'views.view.product_slider',
+  ];
+  alshaya_config_install_configs($configs, 'alshaya_acm_product', 'optional');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding new 'category' facet to the PLP page.
+ */
+function alshaya_product_update_8015() {
+  // New category facet.
+  $category_facet_config = [
+    'facets.facet.plp_category_facet',
+  ];
+  alshaya_config_install_configs($category_facet_config, 'alshaya_product');
+
+  // Facet summary to update config.
+  $facet_summary_config = [
+    'facets_summary.facets_summary.filter_bar_plp',
+  ];
+
+  alshaya_config_install_configs($facet_summary_config, 'alshaya_product', 'optional');
+
+  $facet_block_config = [
+    'block.block.plpcategoryfacet',
+  ];
+  alshaya_config_install_configs($facet_block_config, 'alshaya_transac', 'optional');
+
+  // Get current default theme.
+  $current_theme = \Drupal::config('system.theme')->get('default');
+
+  // Move blocks to current default theme.
+  if (!empty($current_theme)) {
+    alshaya_block_move_blocks_theme_to_theme($current_theme, 'alshaya_white_label');
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Updated facets config.
+ */
+function alshaya_product_update_8014() {
+  $configs = [
+    'facets.facet.skus_sku_reference_collection',
+  ];
+
+  alshaya_config_install_configs($configs, 'alshaya_product');
+
+  $configs = [
+    'facets_summary.facets_summary.filter_bar_plp',
+  ];
+
+  alshaya_config_install_configs($configs, 'alshaya_product', 'optional');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add promotion_nid field again.
+ */
+function alshaya_product_update_8013() {
+  $config = \Drupal::configFactory()->getEditable('search_api.index.product');
+
+  // Promotion nid is field is missing on all hmkw envs, adding a hook to
+  // create it again if missing.
+  if (empty($config->get('field_settings.promotion_nid'))) {
+    $configs = [
+      'search_api.index.product',
+      // Also revert the view to ensure there is no issue left at all.
+      'views.view.alshaya_product_list',
+    ];
+
+    alshaya_config_install_configs($configs, 'alshaya_product');
+
+    $index = Index::load('product');
+
+    // Save index to reflect promotion_nid field.
+    $index->save();
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add field for created in index & remove corrupt tables .
+ */
+function alshaya_product_update_8012() {
+  $config = \Drupal::configFactory()->getEditable('search_api.index.product');
+
+  $config->set('field_settings.created', [
+    'label' => 'Authored on',
+    'datasource_id' => 'entity:node',
+    'property_path' => 'field_skus:entity:created',
+    'type' => 'date',
+    'dependencies' => [
+      'config' => [
+        'field.storage.node.field_skus',
+      ],
+      'module' => [
+        'acq_sku',
+      ],
+    ],
+  ]);
+
+  $config->save();
+
+  $index = Index::load('product');
+
+  // Re-index all items.
+  $index->reindex();
+
+  // Save index to reflect created field.
+  $index->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add translations for sorting option New In on PLP.
+ */
+function alshaya_product_update_8011() {
+  $product_list_view = \Drupal::languageManager()->getLanguageConfigOverride('ar', 'views.view.alshaya_product_list');
+
+  $product_list_view->set('display.default.display_options.exposed_form.options.bef.sort.advanced.combine_rewrite', 'ما ننصح به تصاعدي|ما ننصح به
+جديدنا تنازلي|جديدنا
+الاسم تصاعدي|الاسم من أ إلى ي
+الاسم تنازلي|الاسم من ي إلى أ
+السعر تنازلي|السعر من الأعلى إلى الأدنى
+السعر تصاعدي|السعر من الأدنى إلى الأعلى');
+
+  $product_list_view->set('display.block_1.display_options.sorts.created.expose.label', 'جديدنا');
+
+  $product_list_view->save();
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function alshaya_product_update_8010() {
+  // Update search index field.
+  $configs = [
+    'search_api.index.product',
+    'views.view.alshaya_product_list',
+  ];
+  alshaya_config_install_configs($configs, 'alshaya_product');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update facets config.
+ */
+function alshaya_product_update_8009() {
+  $configs = [
+    'facets.facet.collection',
+    'facets.facet.size',
+    'facets.facet.skus_sku_reference_brand',
+    'facets.facet.skus_sku_reference_collection',
+    'facets.facet.skus_sku_reference_size',
+  ];
+
+  alshaya_config_install_configs($configs, 'alshaya_product');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Revert alshaya_product_list view remove stock sort for PLP.
+ * It is added programmatically now.
+ */
+function alshaya_product_update_8008() {
+  // Revert the view.
+  $reverter = \Drupal::service('config_update.config_update');
+  $reverter->revert('view', 'alshaya_product_list');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Revert alshaya_product_list view and add field for promotion_nid in index.
+ */
+function alshaya_product_update_8007() {
+  $config = \Drupal::configFactory()->getEditable('search_api.index.product');
+
+  $config->set('field_settings.promotion_nid', [
+    'label' => 'Promotion NID',
+    'datasource_id' => 'entity:node',
+    'property_path' => 'field_skus:entity:field_acq_sku_promotions:entity:nid',
+    'type' => 'integer',
+    'dependencies' => [
+      'config' => [
+        'field.storage.node.field_skus',
+        'field.storage.acq_sku.field_acq_sku_promotions',
+      ],
+      'module' => [
+        'acq_sku',
+        'node',
+      ],
+    ],
+  ]);
+
+  $config->save();
+
+  $index = Index::load('product');
+
+  // Re-index all items.
+  $index->reindex();
+
+  // Save index to reflect new stock field.
+  $index->save();
+
+  // Revert the view.
+  $reverter = \Drupal::service('config_update.config_update');
+  $reverter->revert('view', 'alshaya_product_list');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add field for stock in index.
+ */
+function alshaya_product_update_8006() {
+  $config = \Drupal::configFactory()->getEditable('search_api.index.product');
+
+  $config->set('field_settings.stock', [
+    'label' => 'Stock',
+    'datasource_id' => 'entity:node',
+    'property_path' => 'field_skus:entity:stock',
+    'type' => 'integer',
+    'dependencies' => [
+      'config' => [
+        'field.storage.node.field_skus',
+      ],
+      'module' => [
+        'acq_sku',
+      ],
+    ],
+  ]);
+
+  $config->save();
+
+  $index = Index::load('product');
+
+  // Re-index all items.
+  $index->reindex();
+
+  // Save index to reflect new stock field.
+  $index->save();
+
+  // Revert the view.
+  $reverter = \Drupal::service('config_update.config_update');
+  $reverter->revert('view', 'alshaya_product_list');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Remove 'vid' and 'vid_1' fields from search api 'Product' index.
+ */
+function alshaya_product_update_8005() {
+  /** @var \Drupal\search_api\Entity\Index $product_index */
+  $product_index = Index::load('product');
+  // Removing fields.
+  $product_index->removeField('vid');
+  $product_index->removeField('vid_1');
+  // Re-saving index.
+  $product_index->save();
+  // Re-indexing the content.
+  $product_index->reindex();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update facets config.
+ */
+function alshaya_product_update_8004() {
+  $config_path = drupal_get_path('module', 'alshaya_product') . '/config/install';
+  $source = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+  $config_storage->write('facets.facet.color', $source->read('facets.facet.color'));
+  $config_storage->write('facets.facet.skus_sku_reference_color', $source->read('facets.facet.skus_sku_reference_color'));
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update facets config.
+ */
+function alshaya_product_update_8003() {
+  $config_path = drupal_get_path('module', 'alshaya_product') . '/config/install';
+  $source = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+  $config_storage->write('facets.facet.final_price', $source->read('facets.facet.final_price'));
+  $config_storage->write('facets.facet.skus_sku_reference_final_price', $source->read('facets.facet.skus_sku_reference_final_price'));
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Correct the translation for position sort.
+ */
+function alshaya_product_update_8002() {
+  $product_list_view = \Drupal::languageManager()->getLanguageConfigOverride('ar', 'views.view.alshaya_product_list');
+
+  $product_list_view->set('display.default.display_options.exposed_form.options.bef.sort.advanced.combine_rewrite', 'ما ننصح به تصاعدي|ما ننصح به
+الاسم تصاعدي|الاسم من أ إلى ي
+الاسم تنازلي|الاسم من ي إلى أ
+السعر تنازلي|السعر من الأعلى إلى الأدنى
+السعر تصاعدي|السعر من الأدنى إلى الأعلى');
+
+  $product_list_view->set('display.block_1.display_options.sorts.nid.expose.label', 'ما ننصح به');
+
+  $product_list_view->save();
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function alshaya_product_update_8001() {
+  // Getting editable SOLR facet config.
+  $facet_solr_collection = \Drupal::configFactory()
+    ->getEditable('facets.facet.collection');
+  $facet_solr_collection->set('widget.config.show_numbers', TRUE)->save();
+
+  // Get editable db facet config.
+  $facet_db_collection = \Drupal::configFactory()
+    ->getEditable('facets.facet.skus_sku_reference_collection');
+  $facet_db_collection->set('widget.config.show_numbers', TRUE)->save();
+}

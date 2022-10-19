@@ -1,0 +1,21 @@
+field_settings:
+  attr_collection:
+    label: 'Collection'
+    datasource_id: 'entity:node'
+    property_path: 'field_skus:entity:attr_collection'
+    type: string
+    dependencies:
+      config:
+        - field.storage.node.field_skus
+      module:
+        - acq_sku
+  attr_actual_color_label_code:
+    label: 'Color'
+    datasource_id: entity:node
+    property_path: field_skus:entity:attr_actual_color_label_code
+    type: string
+    dependencies:
+      config:
+      - field.storage.node.field_skus
+      module:
+      - acq_sku

@@ -1,0 +1,223 @@
+.c-menu-primary {
+  display: block;
+  height: auto;
+
+  .region__menu-primary {
+    @include breakpoint($desktop) {
+      float: $left;
+      width: 35%;
+    }
+
+    .menu--one__list {
+      .menu--one__link {
+        font-size: 0;
+        height: rem(38);
+        display: flex;
+        line-height: 4;
+        border-bottom: rem(3) solid transparent;
+
+        @include breakpoint($only-mobile) {
+          justify-content: center;
+        }
+
+        @include breakpoint($only-tablet) {
+          padding: rem(9) rem(10);
+          line-height: 1;
+        }
+
+        @include breakpoint ($desktop) {
+          padding: rem(8) rem(24);
+        }
+
+        &::before {
+          @include breakpoint($upto-desktop) {
+            display: none;
+          }
+        }
+      }
+    }
+
+    .menu--one__link {
+      &:hover,
+      &.active {
+        border-bottom: rem(3) solid $mm_l1_link_active;
+      }
+    }
+  }
+
+  .block-alshaya-super-category-menu {
+    .menu--one__list {
+      @include breakpoint($upto-desktop) {
+        height: rem(40);
+      }
+
+      li {
+        @include breakpoint($upto-desktop) {
+          overflow: hidden;
+          height: rem(40);
+        }
+
+        &:last-child {
+          &::after {
+            display: none;
+          }
+        }
+
+        &::after {
+          content: "|";
+          display: block;
+          color: $header_super_category_menu_divider;
+          font-size: rem(16);
+          margin-top: rem(-30);
+          float: $right;
+          margin-#{$right}: rem(-2);
+
+          @include breakpoint($only-tablet) {
+            font-size: rem(21);
+            margin-top: rem(34);
+          }
+
+          @include breakpoint($only-mobile) {
+            margin-#{$right}: rem(-1);
+          }
+        }
+      }
+    }
+  }
+}
+
+.block-alshaya-super-category {
+  .menu--one__list {
+    .menu--one__link {
+      @include breakpoint($only-tablet) {
+        display: flex;
+        justify-content: center;
+      }
+    }
+
+    .c-menu-primary & {
+      display: flex;
+    }
+  }
+
+  .brand-victorias-secret,
+  .brand-pink,
+  .brand-beauty,
+  .brand-swim {
+    img {
+      height: auto;
+    }
+  }
+
+  .brand-victorias-secret img {
+    width: rem(60);
+  }
+
+  .brand-pink img {
+    width: rem(34);
+  }
+
+  .brand-beauty img {
+    width: rem(64);
+  }
+
+  .brand-swim {
+    img {
+      width: rem(27);
+    }
+  }
+}
+
+.header--fixed {
+  .c-header__wrapper--inner {
+    @include breakpoint($desktop) {
+      display: none;
+    }
+  }
+}
+
+.header--wrapper.show-overlay {
+  .menu--mobile-navigation {
+    border-bottom-color: $header_mobile_menu_overlay !important;
+  }
+
+  &::before {
+    z-index: 11 !important;
+  }
+
+  .menu--mobile-navigation,
+  .block-alshaya-super-category-menu {
+    @include breakpoint($only-tablet) {
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        left: 0;
+        background-color: $header_mobile_menu_overlay !important;
+        z-index: 1 !important;
+        transition: none !important;
+        opacity: 1 !important;
+      }
+    }
+  }
+}
+
+.branding__menu.show-overlay {
+  .block-cart-mini-block,
+  .block-alshaya-react-mini-cart {
+    @include breakpoint($only-tablet) {
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        left: 0;
+        background-color: $header_mobile_menu_overlay !important;
+        z-index: 1 !important;
+        transition: none !important;
+        opacity: 1 !important;
+      }
+    }
+
+    border-bottom-color: $header_mobile_menu_overlay !important;
+  }
+}
+
+.super-category-beauty {
+  .filter-fixed-top {
+    .sticky-filter-wrapper {
+      .site-brand-home {
+        a {
+          width: 5rem;
+          margin-top: 0.3125rem;
+        }
+      }
+    }
+  }
+}
+
+.super-category-swim,
+.super-category-swimwear {
+  .branding__menu {
+    .c-header__region {
+      .block-system-branding-block {
+        .site-brand-home img {
+          max-height: 2.5rem;
+        }
+      }
+    }
+  }
+
+  .filter-fixed-top {
+    .sticky-filter-wrapper {
+      .site-brand-home a {
+        img {
+          height: calc(100% - 1.75rem);
+        }
+      }
+    }
+  }
+}

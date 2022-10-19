@@ -1,0 +1,668 @@
+.site-brand-home {
+  a {
+    @include breakpoint($desktop) {
+      max-width: 21.875rem;
+      margin: auto;
+      text-align: center;
+      height: 3.75rem;
+    }
+  }
+}
+
+.block-system-branding-block {
+  .site-brand-home {
+    .logo {
+      img {
+        width: 18.75rem;
+        height: rem(72);
+
+        html[lang=ar] & {
+          width: 17.94rem;
+          height: 3.75rem;
+        }
+      }
+    }
+  }
+}
+
+.super-category-beauty {
+  .branding__menu {
+    .c-header__region {
+      .block-system-branding-block {
+        .site-brand-home {
+          .logo {
+            img {
+              width: 18.75rem;
+              height: 3rem;
+
+              html[lang=ar] & {
+                width: 18.75rem;
+                height: 3rem;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+.super-category-pink {
+  .branding__menu {
+    .c-header__region {
+      .block-system-branding-block {
+        .site-brand-home {
+          .logo {
+            img {
+              width: 9.063rem;
+              height: 3rem;
+
+              html[lang=ar] & {
+                width: 9.063rem;
+                height: 3rem;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+.super-category-swim {
+  .branding__menu {
+    .c-header__region {
+      .block-system-branding-block {
+        .site-brand-home {
+          .logo {
+            img {
+              width: 9.375rem;
+              height: 2.49rem;
+
+              html[lang=ar] & {
+                width: 9.375rem;
+                height: 2.49rem;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+.c-pre-content__region {
+  border: 0;
+
+  @include breakpoint($desktop) {
+    height: 2.5rem;
+  }
+
+  .region__pre-content {
+    @include breakpoint($desktop) {
+      border-bottom: 1px solid $header_border;
+    }
+  }
+}
+
+header {
+  .block-cart-mini-block,
+  .block-alshaya-react-mini-cart {
+    .cart-link {
+      background-size: contain;
+      width: rem(20);
+      height: rem(20);
+
+      @include breakpoint($desktop) {
+        top: rem(3);
+        #{$right}: rem(1);
+      }
+
+      @include breakpoint($upto-desktop) {
+        .frontpage & {
+          #{$right}: rem(-14);
+        }
+
+        .frontpage.logged-in & {
+          height: rem(41);
+        }
+
+        .logged-in & {
+          height: rem(42);
+        }
+      }
+    }
+
+    .cart-link-total {
+      padding-#{$right}: 0.675rem;
+
+      @include breakpoint($upto-desktop) {
+        display: none;
+      }
+    }
+
+    .quantity {
+      width: rem(14);
+      height: rem(14);
+      bottom: rem(1);
+      #{$left}: rem(24);
+      border-radius: rem(3);
+
+      html[lang=ar] & {
+        font-family: $vs-bold !important;
+      }
+
+      @include breakpoint($upto-desktop) {
+        width: rem(14);
+        height: rem(14);
+        bottom: rem(12);
+        #{$left}: rem(40);
+        #{$right}: 0;
+        margin: 0 auto;
+      }
+    }
+  }
+
+  .region__header {
+    @include breakpoint($desktop) {
+      display: flex;
+      padding-top: rem(22);
+    }
+
+    & > div {
+      @include breakpoint($desktop) {
+        flex-grow: 1;
+        vertical-align: middle;
+        flex-basis: 33.33%;
+        display: block;
+      }
+    }
+
+    .block-views-exposed-filter-blocksearch-page {
+      .form-item-keywords {
+        display: block;
+      }
+
+      .form-text {
+        width: 100%;
+        max-width: none;
+        background-position-x: 95% !important;
+
+        html[lang="ar"] & {
+          background-position-x: 5% !important;
+        }
+
+        @include breakpoint($desktop) {
+          background-position-x: 84% !important;
+          width: 12.5rem;
+          padding-#{$left}: 2rem;
+          padding-#{$right}: 0.4375rem;
+
+          html[lang="ar"] & {
+            background-position-x: 16% !important;
+          }
+        }
+      }
+
+      input {
+        color: $primary_search_input;
+        text-transform: none;
+
+        &::placeholder {
+          color: $primary_search_input_placeholder;
+          font-size: 0.875rem;
+          text-transform: capitalize;
+        }
+      }
+    }
+  }
+
+  .block-views-exposed-filter-blocksearch-page {
+    #edit-submit-search,
+    #edit-submit-search--2 {
+      background: $primary_search_btn_icon url('../imgs/assets/search.svg') center no-repeat;
+      background-size: contain;
+      width: 1rem;
+      height: 1rem;
+      margin: 0.65rem 0.5rem;
+
+      @include breakpoint($desktop) {
+        background-size: 0.75rem;
+      }
+    }
+  }
+
+  .views-exposed-form-search-page {
+    position: relative;
+    display: inline-block;
+
+    .form-actions {
+      @include breakpoint($tablet) {
+        position: absolute;
+        z-index: 1;
+        top: 0;
+        #{$right}: 0;
+      }
+
+      @include breakpoint($desktop) {
+        #{$right}: auto;
+        #{$left}: 0;
+      }
+    }
+  }
+}
+
+.static-minicart-wrapper {
+  .cart-link {
+    margin-bottom: rem(-13);
+  }
+
+  .quantity {
+    bottom: rem(12);
+    #{$left}: rem(23);
+    border-radius: rem(3);
+    width: rem(14);
+    height: rem(14);
+  }
+}
+
+@include breakpoint($desktop) {
+  .block-alshaya-main-menu {
+    .menu--two__list {
+      .menu--two__list-item {
+        .menu--three__list li {
+          max-width: 12rem;
+        }
+      }
+    }
+
+    ul.menu--one__list {
+      text-align: center;
+      width: auto;
+      margin: 0 auto;
+    }
+
+    li.menu--one__list-item {
+      display: inline-block;
+      vertical-align: top;
+      list-style: none;
+      text-align: center;
+      height: 2.5rem;
+
+      .menu--one__link {
+        border-bottom: none;
+        font-size: 0.875rem;
+        display: block;
+        text-transform: uppercase;
+        padding: 0.625rem 1.5rem;
+        height: 2.5rem;
+        margin-top: 0;
+        border-top: rem(2) solid transparent !important;
+
+        &::after {
+          content: '';
+          height: rem(2);
+          width: auto;
+          transition: all 0.3s ease-out;
+          margin: rem(10) auto 0;
+          display: block;
+        }
+      }
+
+      &:hover {
+        a.menu--one__link {
+          border-bottom: 0;
+
+          &::after {
+            background-color: $mm_l1_link_active_border;
+            visibility: visible;
+          }
+        }
+      }
+
+      &.has-bg-color {
+        .menu--one__link {
+          padding: 0.625rem;
+        }
+      }
+
+      .menu--one__link.active {
+        border-bottom: 2px solid $mm_l1_link_hover_border_to_fill_space;
+      }
+    }
+
+    .active--menu--links {
+      &:hover {
+        li.menu--one__list-item {
+          .menu--one__link.active {
+            border-bottom: 2px solid $mm_l1_link_hover_border_to_fill_space;
+          }
+        }
+      }
+    }
+  }
+
+  .menu--two__list {
+    .menu-two__link {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+    }
+
+    .menu--three__list {
+      font-size: 0.875rem;
+    }
+  }
+
+  &:not(.megamenu-inline-layout) {
+    li.menu--one__list-item {
+      ul.menu--two__list {
+        background: $mm_l3_link_bg;
+
+        .menu__links__wrapper {
+          .column {
+            border-#{$right}: rem(1) solid $mm_l1_border;
+            padding-#{$left}: rem(18);
+
+            &:last-of-type {
+              border-#{$right}: 0;
+            }
+
+            &:first-of-type {
+              padding-#{$left}: 0;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+.c-header .block-views-exposed-filter-blocksearch-page {
+  @include breakpoint($desktop) {
+    left: 0;
+
+    html[lang=ar] & {
+      right: 0;
+      top: 1rem;
+    }
+  }
+
+  .ui-autocomplete-input {
+    background-color: $primary_search_bg;
+    border: none;
+  }
+}
+
+.c-header__wrapper--inner {
+  max-width: 80.25rem;
+  margin: 0 auto;
+}
+
+.c-menu-primary {
+  li {
+    &:hover a {
+      @include breakpoint($upto-desktop) {
+        color: $header_my_account_mobile_link_hover;
+      }
+    }
+
+    .mobile--search {
+      &::before {
+        @include breakpoint($only-mobile) {
+          #{$left}: rem(-21);
+          top: rem(-3);
+        }
+      }
+    }
+  }
+
+  h3 {
+    @include breakpoint($upto-desktop) {
+      color: $header_my_account_mobile_h3_title;
+    }
+  }
+
+  ul.menu {
+    @include breakpoint($upto-desktop) {
+      display: table;
+      width: 100%;
+    }
+  }
+
+  .search-active {
+    background-color: $header_search_active_bg;
+
+    .mobile--search {
+      &::before {
+        color: $header_c_menu_search_active_icon;
+      }
+    }
+  }
+
+  .store {
+    @include breakpoint($upto-desktop) {
+      background: url("../imgs/icons/ic-mappin.svg") no-repeat center;
+      background-size: 2.125rem;
+      font-size: 0;
+    }
+
+    &:hover {
+      @include breakpoint($upto-desktop) {
+        background-color: $header_search_active_bg;
+      }
+    }
+
+    &::before,
+    &:hover::before {
+      content: none;
+    }
+
+    &.is-active {
+      @include breakpoint($upto-desktop) {
+        background: url("../imgs/icons/ic-mappin-active.svg") no-repeat center;
+        background-size: 2.125rem;
+      }
+    }
+  }
+
+  .mobile--search {
+    @include icon(search) {
+      color: $header_c_menu_icon_color;
+      width: 1rem;
+      height: 1.4375rem;
+      font-size: 2rem;
+      position: relative;
+      top: -0.3125rem;
+      #{$left}: -0.375rem;
+
+      @include breakpoint($only-tablet) {
+        font-size: 2.25rem;
+        top: -0.35rem;
+      }
+    }
+  }
+
+  .active--menu--links {
+    &:hover {
+      li.menu--one__list-item {
+        .menu--one__link {
+          border-bottom: 1px solid transparent;
+        }
+      }
+    }
+  }
+
+  .region__menu-primary {
+    .menu--one__link {
+      @include breakpoint($upto-desktop) {
+        padding: 0.625rem;
+      }
+    }
+
+    .menu--mobile-navigation {
+      @include breakpoint($upto-desktop) {
+        border-bottom: 2px solid $header_mobile_border;
+        position: absolute;
+        z-index: 10;
+      }
+
+      @include breakpoint($only-mobile) {
+        position: fixed;
+      }
+    }
+  }
+
+  .block-system-menublock ul {
+    @include breakpoint($upto-desktop) {
+      overflow: hidden;
+      margin: 0;
+      font-size: 0;
+    }
+
+    li {
+      @include breakpoint($upto-desktop) {
+        display: table-cell;
+        vertical-align: middle;
+        width: 33.33%;
+        text-align: $left;
+      }
+    }
+  }
+
+  .mobile--menu {
+    float: none;
+    font-size: 0;
+    position: static;
+    margin-top: 0;
+    padding: rem(14);
+    padding-#{$left}: rem(17);
+    width: rem(36);
+
+    .logged-in & {
+      margin-top: rem(6);
+    }
+
+    &::before {
+      @include breakpoint($upto-desktop) {
+        width: rem(20);
+      }
+    }
+  }
+
+  .mobile--search,
+  a {
+    @include breakpoint($upto-desktop) {
+      display: block;
+      text-transform: uppercase;
+    }
+  }
+
+  .mobile--search,
+  .store {
+    @include breakpoint($upto-desktop) {
+      padding: 0.54rem 1rem;
+      position: static;
+      font-size: 0;
+      margin: 0 auto;
+      float: none;
+      height: 2.5rem;
+    }
+  }
+}
+
+.c-menu-secondary a:hover,
+.c-menu-secondary a.is-active {
+  @include breakpoint($upto-desktop) {
+    color: $header_secondary_menu_mobile_link;
+    background: $header_secondary_menu_link_mobile_hover_bg;
+  }
+}
+
+.block-alshaya-main-menu {
+  li.menu--one__list-item {
+    a.promo-panel--mobile-link {
+      &::after {
+        font-size: 1.5rem;
+      }
+    }
+  }
+}
+
+#block-cartminiblock,
+.block-alshaya-react-mini-cart {
+  @include breakpoint($desktop) {
+    padding-top: 0.75rem;
+    padding-#{$right}: 0.5rem;
+
+    html[lang=ar] & {
+      padding-top: 1.25rem;
+      padding-left: 0.75rem;
+    }
+  }
+
+  .cart-link-total {
+    display: none;
+
+    @include breakpoint($desktop) {
+      display: block;
+    }
+  }
+}
+
+.form-autocomplete.ui-autocomplete-loading {
+  background-size: 1.5rem;
+}
+
+.c-header__region {
+  .block-views-exposed-filter-blocksearch-page {
+    .ui-autocomplete {
+      @include breakpoint($only-mobile) {
+        top: 7.875rem !important;
+
+        html[lang=ar] & {
+          top: 8.5rem !important;
+        }
+      }
+    }
+  }
+}
+
+@include breakpoint($upto-desktop) {
+  .menu--two__list-item {
+    .menu__in {
+      margin-top: -2.25rem;
+    }
+
+    & > .menu-two__link-wrapper {
+      border-bottom: 0;
+    }
+  }
+
+  .menu--three__list-item {
+    & > .menu-two__link-wrapper {
+      border-bottom: 0;
+    }
+  }
+
+  .menu__back {
+    background: url('#{$brand_theme_img_directory_path}/icons/ic-chevronleft.svg') no-repeat;
+  }
+}
+
+html[lang="en"] {
+  .block-alshaya-main-menu {
+    .menu--one__list-item {
+      & > .menu__link-wrapper {
+        & > .menu__link {
+          letter-spacing: 2.4px;
+        }
+      }
+    }
+  }
+}
+
+.menu__list-item {
+  @include breakpoint($upto-desktop) {
+    border-bottom: 0;
+  }
+}

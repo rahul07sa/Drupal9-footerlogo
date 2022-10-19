@@ -1,0 +1,143 @@
+<?php
+
+/**
+ * @file
+ * Install file for alshaya_ksa.
+ */
+
+/**
+ * Implements hook_update_N().
+ *
+ * Install config for spc click n collect.
+ */
+function alshaya_sa_update_8006() {
+  alshaya_sa_default_spc_config();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add iso_currency_code for sa sites.
+ */
+function alshaya_sa_update_8005() {
+  $modulehandler = \Drupal::service("module_handler");
+  if ($modulehandler->moduleExists("acq_commerce")) {
+    if ($config = \Drupal::configFactory()->getEditable('acq_commerce.currency')) {
+      $config->set('iso_currency_code', 'SAR')->save();
+    }
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Correct the mapping to handle locality for SA.
+ */
+function alshaya_sa_update_8004() {
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_addressbook.settings'],
+    'alshaya_addressbook'
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Save translations for meta tags.
+ */
+function alshaya_sa_update_8003() {
+  $strings = [
+    'seo_country' => [
+      'en' => 'KSA',
+      'ar' => 'اتش اند ام',
+    ],
+    'seo_city1' => [
+      'en' => 'Jeddah',
+      'ar' => 'جدة',
+    ],
+    'seo_city2' => [
+      'en' => 'Riyadh',
+      'ar' => 'الرياض',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function alshaya_sa_update_8001() {
+  // Re-install config for the override to take effect.
+  alshaya_config_install_configs(['alshaya_master.mobile_number_settings'], 'alshaya_master');
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_sa_install() {
+  // Add iso_currency_code for sa sites.
+  \Drupal::configFactory()
+    ->getEditable('acq_commerce.currency')
+    ->set('iso_currency_code', 'SAR')
+    ->save();
+
+  // Country code and timezone for Saudi Arabia.
+  alshaya_country_set_default_regional_info('SA');
+
+  // Store finder search placeholder for Saudi Arabia.
+  alshaya_country_set_default_store_search_placeholder('e.g. Riyadh', 'مثل الرياض');
+
+  $strings = [
+    'seo_country' => [
+      'en' => 'KSA',
+      'ar' => 'اتش اند ام',
+    ],
+    'seo_city1' => [
+      'en' => 'Jeddah',
+      'ar' => 'جدة',
+    ],
+    'seo_city2' => [
+      'en' => 'Riyadh',
+      'ar' => 'الرياض',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+  alshaya_sa_default_spc_config();
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function alshaya_sa_update_8002() {
+  // Store finder search placeholder for Saudi Arabia.
+  alshaya_country_set_default_store_search_placeholder('e.g. Riyadh', 'مثل الرياض');
+}
+
+/**
+ * Implements hook_update_dependencies().
+ */
+function alshaya_sa_update_dependencies() {
+  // Adding this dependency only for transac sites.
+  $modulehandler = \Drupal::service("module_handler");
+  if ($modulehandler->moduleExists("acq_commerce")) {
+    return [
+      'alshaya_sa' => [
+        '8005' => [
+          'acq_commerce' => '8002',
+        ],
+      ],
+    ];
+  }
+}
+
+/**
+ * Install config for spc click n collect.
+ *
+ * Set default lat and long for click n collect api requests.
+ */
+function alshaya_sa_default_spc_config() {
+  alshaya_country_set_default_spc_config(24.7249316, 46.5423362);
+}

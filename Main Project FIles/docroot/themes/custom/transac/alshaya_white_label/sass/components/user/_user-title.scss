@@ -1,0 +1,144 @@
+.c-user--node {
+  .c-page-title {
+    font-size: 1.375rem;
+
+    @include breakpoint($desktop) {
+      font-size: 1.5rem;
+    }
+  }
+
+  .subtitle {
+    border-bottom: 1px solid $primary_border;
+  }
+}
+
+.c-user-password,
+.c-user-register,
+.c-user-login {
+  h1 {
+    @extend %page-title;
+
+    position: absolute;
+    font-family: $alshaya-bold;
+    color: $title;
+    font-weight: normal;
+    top: -4.5rem;
+
+    @include breakpoint($tablet) {
+      top: -5.5rem;
+    }
+
+    @include breakpoint($desktop) {
+      top: -4.5rem;
+    }
+  }
+}
+
+.c-user-login {
+  h1 {
+    @include breakpoint($tablet) {
+      top: -4.5rem;
+
+      html[lang=ar] & {
+        width: 100%;
+      }
+    }
+  }
+
+  .form-item-pass > label {
+    html[lang=ar] & {
+      width: 100%;
+    }
+  }
+}
+
+.c-user-register {
+  h1 {
+    top: -3.7rem;
+
+    @include breakpoint($tablet) {
+      top: -4.5rem;
+    }
+  }
+}
+
+.c-user-password {
+  h1 {
+    top: -3.7rem;
+  }
+}
+
+.order-detail .block-page-title-block,
+.c-change-password .block-page-title-block,
+.c-communication-preferences .block-page-title-block,
+.c-user-edit .block-page-title-block,
+.c-order-list .block-page-title-block,
+.c-user--node .block-page-title-block,
+.c-address-book .block-page-title-block,
+.c-payment-cards .block-page-title-block,
+.c-loyalty-club-page .block-page-title-block,
+.c-my-egift .block-page-title-block {
+  position: relative;
+  border-bottom: 1px solid $primary_border;
+  padding: 0.45rem 0 0.3rem;
+
+  @include breakpoint($tablet) {
+    padding: 1.5rem 0 0.75rem;
+
+    h1.c-page-title {
+      @include breakpoint($tablet) {
+        cursor: default;
+      }
+    }
+  }
+
+  @include breakpoint($desktop) {
+    padding: 0 0 0.75rem;
+  }
+
+  .back-link {
+    @include breakpoint($tablet) {
+      display: inline-block;
+      pointer-events: none;
+      width: 100%;
+    }
+
+    @include breakpoint($only-mobile) {
+      @include icon(arrowup, before) {
+        position: absolute;
+        #{$left}: -0.5rem;
+        top: 0.3125rem;
+        font-size: 2.125rem;
+        transform: rotate(270deg);
+
+        html[lang=ar] & {
+          transform: rotate(90deg);
+        }
+      }
+
+      h1.c-page-title {
+        display: inline-block;
+        line-height: 1.5;
+        vertical-align: top;
+        padding-#{$left}: 2rem;
+      }
+    }
+  }
+}
+
+.c-communication-preferences,
+.c-order-list,
+.c-user-edit,
+.c-my-egift {
+  .block-page-title-block {
+    padding: 0.45rem 0 0.3rem;
+
+    @include breakpoint($tablet) {
+      padding: 1.5rem 0 0.75rem;
+    }
+
+    @include breakpoint($desktop) {
+      padding: 0 0 1rem;
+    }
+  }
+}

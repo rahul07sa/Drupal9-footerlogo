@@ -1,0 +1,113 @@
+#spc-cart {
+  @include breakpoint($tablet) {
+    padding-top: 2.5rem;
+  }
+
+  .spc-content {
+    .spc-checkout-section-title {
+      @include breakpoint($only-mobile) {
+        display: none;
+      }
+    }
+  }
+
+  .spc-promotions {
+    &.free-gift-container {
+      @include breakpoint($only-mobile) {
+        width: 100%;
+        position: static;
+        margin: 0;
+      }
+
+      .free-gift-promo {
+        .gift-message {
+          font-size: 0.75rem;
+          line-height: 1rem;
+
+          .coupon-code {
+            padding-#{$left}: 0.3125rem;
+            margin-#{$right}: 0.3125rem;
+            color: $spc-cart-free-gift-coupon-code;
+            font-family: $alshaya-bold;
+          }
+
+          .free-gift-title {
+            padding-#{$left}: 0.3125rem;
+            color: $spc-cart-free-gifts-link;
+            text-decoration: underline;
+            cursor: pointer;
+          }
+        }
+      }
+    }
+  }
+}
+
+.spc-mobile-cart-preview {
+  background-color: $spc-order-summary-totals-bg;
+  padding: 1.25rem 0;
+
+  .cart-text {
+    font-size: 0.875rem;
+    color: $spc-cart-text-color;
+    margin: 0 0.3125rem;
+  }
+
+  .cart-quantity,
+  .cart-value {
+    color: $spc-mobile-cart-preview;
+    font-size: 0.875rem;
+  }
+
+  @include breakpoint($tablet) {
+    display: none;
+  }
+
+  @include breakpoint($only-mobile) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.sticky {
+      position: fixed;
+      width: 100%;
+      z-index: 1;
+      box-shadow: 0 -1px 20px 9px $sticky-btn;
+    }
+  }
+}
+
+// Search result in basket page.
+body.alias--cart {
+  .page-standard {
+    &.l-two--sf {
+      &.l-container {
+        background: $algolia-react-search-result-page-bg;
+
+        .show-algolia-result {
+          max-width: 80.25rem;
+          margin: 0 auto;
+        }
+
+        .ais-InstantSearch__root {
+          @include breakpoint($only-tablet) {
+            padding-#{$left}: 1.5rem;
+            padding-#{$right}: 1.5rem;
+          }
+        }
+      }
+    }
+
+    &.l-container {
+      &:not(.l-two--sf) {
+        max-width: 100%;
+      }
+    }
+  }
+
+  .c-products-list {
+    &.view-search {
+      margin-bottom: 3.125rem;
+    }
+  }
+}

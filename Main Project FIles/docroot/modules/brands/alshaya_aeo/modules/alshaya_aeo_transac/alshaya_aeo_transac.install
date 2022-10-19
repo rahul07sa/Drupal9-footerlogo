@@ -1,0 +1,188 @@
+<?php
+
+/**
+ * @file
+ * Install, uninstall, update function for alshaya_aeo_transac.
+ */
+
+use Drupal\block\Entity\Block;
+use Drupal\alshaya_config\AlshayaConfigManager;
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add translations for super category feature.
+ */
+function alshaya_aeo_transac_update_8006() {
+  $strings = [
+    'alshaya_seo_super_category_prefix' => [
+      'en' => "American Eagle",
+      'ar' => "ﭬيكتوريا سيكريت",
+    ],
+    'alshaya_seo_super_category_prefix @term' => [
+      'en' => "American Eagle @term",
+      'ar' => "ﭬيكتوريا سيكريت @term",
+    ],
+  ];
+
+  // Save translations.
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function alshaya_aeo_transac_update_8005() {
+  // Set image_thumb_gallery => false to use single image gallery
+  // on listing pages.
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.display_settings'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_RESAVE
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable alshaya_mobile_app module.
+ */
+function alshaya_aeo_transac_update_8004() {
+  \Drupal::service('module_installer')->install(['alshaya_mobile_app']);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update sort orders for size facet to match order in Magento.
+ */
+function alshaya_aeo_transac_update_8003() {
+  $size_facets = [
+    'facets.facet.size',
+    'facets.facet.plp_size',
+    'facets.facet.promo_size',
+  ];
+
+  foreach ($size_facets as $config) {
+    \Drupal::configFactory()->getEditable($config)->save();
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Override PDP image style to sharpen the images before zoom.
+ *
+ * Add new sku attribute division_name.
+ *
+ * Hide swatch image in pdp gallery section.
+ */
+function alshaya_aeo_transac_update_8002() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+
+  $styles = [
+    'image.style.product_zoom_medium_606x504',
+  ];
+
+  $manager->updateConfigs($styles, 'alshaya_image_styles');
+
+  $strings = [
+    'Gender' => [
+      'ar' => 'الجنس',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+
+  $manager->updateConfigs(
+    [
+      'alshaya_acm_product.display_settings',
+      'alshaya_acm_product.sku_base_fields',
+    ],
+    'alshaya_acm_product'
+  );
+
+  \Drupal::service('acq_sku.fields_manager')->addFields();
+
+  // Re-save indexes.
+  _alshaya_search_resave_indexes();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Disable color block, color family is being used as color facet.
+ */
+function alshaya_aeo_transac_update_8001() {
+  $blocks = [
+    'plpcolor' => 'plpcolorfamily',
+    'promocolor' => 'promocolorfamily',
+    'color' => 'colorfamily',
+  ];
+
+  foreach ($blocks as $old_id => $new_id) {
+    $old_block = Block::load($old_id);
+    $new_block = Block::load($new_id);
+
+    // Set weight of new block same as old block.
+    $new_block->setWeight($old_block->getWeight());
+    $new_block->save();
+
+    // Keep the old block disabled.
+    $old_block->disable();
+    $old_block->save();
+  }
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_aeo_transac_install() {
+  // Enable and set alshaya_american_eagle as default theme and set,
+  // the site logo favicon icon and email logo path.
+  _alshaya_master_initialize_brand_theme('alshaya_american_eagle');
+
+  /** @var \Drupal\alshaya_acm\AlshayaAcmConfigCheck $config_check */
+  $config_check = \Drupal::service('alshaya_acm.config_check');
+  $config_check->checkConfig(TRUE);
+
+  // Set google map marker.
+  if (\Drupal::moduleHandler()->moduleExists('alshaya_stores_finder')) {
+    alshaya_stores_finder_set_default_marker_icon('alshaya_aeo_transac');
+  }
+
+  // Add string translations.
+  $strings = [
+    'our company' => [
+      'ar' => 'شركتنا',
+    ],
+    'Connect with us' => [
+      'ar' => 'اتصل بنا',
+    ],
+    'Customer care' => [
+      'ar' => ' خدمة الزبائن ',
+    ],
+    'Discover' => [
+      'ar' => ' تعرفي إلينا ',
+    ],
+    'I would like to receive exclusive deals from American Eagle Online.' => [
+      'ar' => 'أود الحصول على عروض حصرية من النسر الأمريكيعبر الانترنت',
+    ],
+    '@group_name/@sku_name' => [
+      'ar' => '@sku_name/@group_name',
+    ],
+    'seo_brand_name' => [
+      'en' => 'American Eagle Online',
+      'ar' => 'النسر الاميركي اون لاين',
+    ],
+    'Gender' => [
+      'ar' => 'الجنس',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}

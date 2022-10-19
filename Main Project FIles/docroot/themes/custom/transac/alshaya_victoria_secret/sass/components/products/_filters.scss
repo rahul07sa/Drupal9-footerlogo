@@ -1,0 +1,30 @@
+.c-plp {
+  .c-content__region {
+    .block-views-exposed-filter-blockalshaya-product-list-block-1,
+    .block-views-exposed-filter-blockalshaya-product-list-block-1,
+    .block-views-exposed-filter-blocksearch-page {
+      legend {
+        text-transform: capitalize;
+      }
+    }
+  }
+
+  .block-facets-summary-blockfilter-bar-promotions,
+  .block-facets-summary-blockfilter-bar-plp,
+  .block-facets-summary-blockfilter-bar {
+    ul {
+      @include breakpoint($tablet) {
+        width: calc(100% - 7.375rem) !important;
+      }
+    }
+
+    .filter-list-label {
+      text-transform: capitalize;
+      width: rem(118);
+      justify-content: center;
+      letter-spacing: 1px;
+      margin-top: rem(12);
+      font-size: rem(11);
+    }
+  }
+}

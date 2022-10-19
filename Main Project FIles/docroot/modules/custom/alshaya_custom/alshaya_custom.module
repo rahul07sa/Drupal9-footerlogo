@@ -1,0 +1,57 @@
+<?php
+
+/**
+ * @file
+ * Module file.
+ */
+
+use Drupal\paragraphs\Entity\Paragraph;
+
+/**
+ * Utility function to get the site level country code.
+ *
+ * @param bool $reset
+ *   (optional) True to reset the static cache.
+ *
+ * @return string
+ *   Country code.
+ */
+function _alshaya_custom_get_site_level_country_code($reset = FALSE) {
+  if ($reset) {
+    drupal_static_reset(__FUNCTION__);
+  }
+  $default_site_country = &drupal_static(__FUNCTION__);
+  if (empty($default_site_country)) {
+    $default_site_country = \Drupal::config('system.date')->get('country.default');
+    if (empty($default_site_country)) {
+      // If no default country is set, take the first as default.
+      $full_country_list = \Drupal::service('address.country_repository')->getList();
+      $default_site_country = key($full_country_list);
+    }
+  }
+  return $default_site_country;
+}
+
+/**
+ * Determines if the current route is amp or not.
+ *
+ * @return bool
+ *   True if amp route or FALSE.
+ */
+function _alshaya_custom_is_amp_route() {
+  return \Drupal::moduleHandler()->moduleExists('amp')
+  && \Drupal::service('router.amp_context')->isAmpRoute() ? TRUE : FALSE;
+}
+
+/**
+ * Implements hook_entity_type_presave().
+ */
+function alshaya_custom_paragraph_presave(Paragraph $paragraph) {
+  // If mobile settings are not present use default settings for slug banner.
+  if ($paragraph->getType() == 'slug_banner') {
+    if (empty($paragraph->get('field_mobile_slug_text')->getString())) {
+      $default_slug_text = $paragraph->get('field_default_slug_text')->value;
+      $paragraph->get('field_mobile_slug_text')->setValue($default_slug_text);
+    }
+  }
+}

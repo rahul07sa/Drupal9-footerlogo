@@ -1,0 +1,42 @@
+#alshaya-algolia-search,
+.block-alshaya-algolia-react-plp,
+.block-alshaya-algolia-react-promotion,
+.block-alshaya-algolia-react-product-list {
+  .filter-fixed-top {
+    .show-all-filters-algolia {
+      &.empty-category {
+        @include breakpoint($only-mobile) {
+          width: 100%;
+        }
+      }
+
+      @include breakpoint($only-mobile) {
+        position: fixed;
+        background: $algolia-search-bar-background;
+        z-index: 10;
+        width: 50%;
+        top: 3.625rem;
+        #{$right}: 0;
+      }
+    }
+
+    .block-facet-blockcategory-facet-search,
+    .block-facet-blockcategory-facet-plp {
+      @include breakpoint($only-mobile) {
+        top: 3.625rem;
+        z-index: 10;
+      }
+    }
+  }
+}
+
+@include breakpoint($only-mobile) {
+  .block-alshaya-algolia-react-plp {
+    .filter-fixed-top {
+      .block-alshaya-sub-category-block ~ .block-facet-blockcategory-facet-plp,
+      .block-alshaya-sub-category-block ~ .show-all-filters-algolia {
+        top: 2.625rem;
+      }
+    }
+  }
+}

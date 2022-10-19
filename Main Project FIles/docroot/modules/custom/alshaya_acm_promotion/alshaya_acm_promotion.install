@@ -1,0 +1,488 @@
+<?php
+
+/**
+ * @file
+ * Contains install, update, uninstall hooks for alshaya_acm_promotion module.
+ */
+
+use Drupal\alshaya_config\AlshayaConfigManager;
+use Drupal\Core\Config\FileStorage;
+use Drupal\field\Entity\FieldConfig;
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update the path pattern of promotion.
+ */
+function alshaya_acm_promotion_update_8027(&$sandbox) {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs([
+    'pathauto.pattern.promotion_url_alias',
+  ],
+    'alshaya_acm_promotion',
+    'install',
+    AlshayaConfigManager::MODE_MERGE
+  );
+
+  // Bulk update all the promotion nodes.
+  $nids = \Drupal::entityQuery('node')
+    ->condition('type', 'acq_promotion')
+    ->execute();
+  // Use the sandbox to store the information needed to track progression.
+  if (!isset($sandbox['current'])) {
+    $sandbox['current'] = 0;
+    $sandbox['max'] = is_countable($nids) ? count($nids) : 0;
+  }
+
+  // Process nodes by groups of 10.
+  $limit = 10;
+  $result = array_slice($nids, $sandbox['current'], $limit);
+  foreach ($result as $nid) {
+    $entity_storage = \Drupal::entityTypeManager()->getStorage('node');
+    $entity = $entity_storage->load($nid);
+    // Load different translated versions of the node.
+    foreach ($entity->getTranslationLanguages() as $langcode => $language) {
+      $translated_node = $entity->getTranslation($langcode);
+      // Update Entity URL alias.
+      \Drupal::service('pathauto.generator')->updateEntityAlias($translated_node, 'update');
+    }
+
+    // Update our progress information.
+    $sandbox['current']++;
+  }
+
+  $sandbox['#finished'] = empty($sandbox['max']) ? 1 : ($sandbox['current'] / $sandbox['max']);
+
+  if ($sandbox['#finished'] >= 1) {
+    return t('The URL Alias update is finished.');
+  }
+
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new promotions dynamic labels resource.
+ */
+function alshaya_acm_promotion_update_8026() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs([
+    'rest.resource.promotions_dynamic_label',
+  ],
+    'alshaya_acm_promotion',
+    'install'
+  );
+
+  \Drupal::configFactory()->getEditable('user.role.anonymous')->save();
+  \Drupal::configFactory()->getEditable('user.role.authenticated')->save();
+
+  // Rebuild router.
+  \Drupal::service('router.builder')->rebuild();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * [5.15.0]Adding field for contextual promotions.
+ */
+function alshaya_acm_promotion_update_8025() {
+  // Install the new field configs.
+  alshaya_config_install_configs([
+    'field.storage.node.field_acq_promotion_context',
+    'field.field.node.acq_promotion.field_acq_promotion_context',
+  ], 'alshaya_acm_promotion');
+
+  // Re-install entity form and view display config for overrides to take
+  // effect.
+  alshaya_config_install_configs([
+    'core.entity_form_display.node.acq_promotion.default',
+    'core.entity_view_display.node.acq_promotion.default',
+  ], 'acq_promotion');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * [5.9.0]Adding fields for marking full catalog sync.
+ */
+function alshaya_acm_promotion_update_8024() {
+  // Install the new field configs.
+  alshaya_config_install_configs([
+    'field.storage.node.field_acq_promotion_full_catalog',
+    'field.field.node.acq_promotion.field_acq_promotion_full_catalog',
+  ], 'alshaya_acm_promotion');
+  // Re-install entity form and view display config for overrides to take
+  // effect.
+  alshaya_config_install_configs([
+    'core.entity_form_display.node.acq_promotion.default',
+    'core.entity_view_display.node.acq_promotion.default',
+  ], 'acq_promotion');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new value for promotion sub type and add translations.
+ */
+function alshaya_acm_promotion_update_8023() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['field.storage.node.field_alshaya_promotion_subtype'],
+    'alshaya_acm_promotion',
+    'install',
+    AlshayaConfigManager::MODE_MERGE
+  );
+
+  // Add Translations.
+  $strings = [
+    'Shop for @threshold and get a @gift FREE' => [
+      'ar' => 'تسوق مقابل @threshold واحصل على @gift مجانًا',
+    ],
+    'Your Free Gift @gift has been added to the cart' => [
+      'ar' => 'تمت إضافة هديتك المجانية @gift إلى سلة التسوق',
+    ],
+  ];
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add translations for cart level promotions.
+ */
+function alshaya_acm_promotion_update_8022() {
+  // Add Translations.
+  $strings = [
+    'Buy @condition_value to get a free gift' => [
+      'ar' => 'تسوق @condition_value واحصل على هدية مجانية',
+    ],
+  ];
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add translations for cart level promotions.
+ */
+function alshaya_acm_promotion_update_8021() {
+  // Add Translations.
+  $strings = [
+    'Use the code:' => [
+      'ar' => 'استخدم هذا الرمز',
+    ],
+    'Your order qualifies for @percent% OFF' => [
+      'ar' => '@percent% طلبيتك تؤهلك للحصول على خصم',
+    ],
+    'Use and get @percent% off' => [
+      'ar' => 'استخدم واحصل على خصم %@percent',
+    ],
+  ];
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update alshayacartpromotionsblock block configurations.
+ */
+function alshaya_acm_promotion_update_8020() {
+  $alshayacartpromotionsblock = \Drupal::configFactory()->getEditable('block.block.alshayacartpromotionsblock');
+  if (!empty($alshayacartpromotionsblock)) {
+    $settings = $alshayacartpromotionsblock->get('settings');
+    $settings['source'] = 'static';
+    $alshayacartpromotionsblock->set('settings', $settings)->save();
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Re-saving the `promotion` resource to moved outside mobile app.
+ */
+function alshaya_acm_promotion_update_8019() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $configs = [
+    'rest.resource.promotions',
+  ];
+  $manager->updateConfigs($configs, 'alshaya_acm_promotion');
+
+  \Drupal::configFactory()->getEditable('user.role.anonymous')->save();
+  \Drupal::configFactory()->getEditable('user.role.authenticated')->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add Translations for Dynamic Promo Labels.
+ */
+function alshaya_acm_promotion_update_8018() {
+  _alshaya_acm_promotion_add_promotions_translations();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new setting 'dynamic_labels'.
+ */
+function alshaya_acm_promotion_update_8017() {
+  alshaya_config_install_configs(['alshaya_acm_promotion.settings'], 'alshaya_acm_promotion');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add Translations for Dynamic Promo Labels.
+ */
+function alshaya_acm_promotion_update_8016() {
+  _alshaya_acm_promotion_add_promotions_translations();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Making promotion coupon field cardinality unlimited.
+ */
+function alshaya_acm_promotion_update_8015() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['field.storage.node.field_coupon_code'],
+    'alshaya_acm_promotion',
+    'install',
+    AlshayaConfigManager::MODE_MERGE
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Change name of promotion category facet.
+ */
+function alshaya_acm_promotion_update_8014() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['facets.facet.promotion_category_facet'],
+    'alshaya_acm_promotion',
+    'optional'
+  );
+
+  Drupal::configFactory()->getEditable('facets.facet.category_promotion')->delete();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding fields for coupon code & free gift skus.
+ */
+function alshaya_acm_promotion_update_8013() {
+  $field_storage_configs = [
+    'field.storage.node.field_coupon_code',
+    'field.storage.node.field_free_gift_skus',
+  ];
+
+  alshaya_config_install_configs($field_storage_configs, 'alshaya_acm_promotion');
+
+  $field_configs = [
+    'field.field.node.acq_promotion.field_coupon_code',
+    'field.field.node.acq_promotion.field_free_gift_skus',
+  ];
+
+  alshaya_config_install_configs($field_configs, 'alshaya_acm_promotion', 'optional');
+
+  // Re-install entity form display config for overrides to take effect.
+  alshaya_config_install_configs(['core.entity_form_display.node.acq_promotion.default'], 'acq_promotion');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Updated facets config.
+ */
+function alshaya_acm_promotion_update_8010() {
+  $configs = [
+    'facets.facet.promotion_collection_facet',
+    'facets_summary.facets_summary.filter_bar_promotions',
+  ];
+
+  alshaya_config_install_configs($configs, 'alshaya_acm_promotion', 'optional');
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function alshaya_acm_promotion_update_8009() {
+  // Delete acm promotion config.
+  Drupal::configFactory()->getEditable('alshaya_acm_promotion.config')->delete();
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function alshaya_acm_promotion_update_8008() {
+  alshaya_config_install_configs(['alshaya_acm_promotion.config'], 'alshaya_acm_promotion');
+  // Add Translations.
+  $strings = [
+    'Your order qualifies for free delivery.' => [
+      'ar' => 'طلبيتك جاهزة للتوصيل المجاني',
+    ],
+  ];
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add field for promotion sub type and config for free shipping message.
+ */
+function alshaya_acm_promotion_update_8007() {
+  // Add the new field "Subtype".
+  $configs = [
+    'field.storage.node.field_alshaya_promotion_subtype',
+    'field.field.node.acq_promotion.field_alshaya_promotion_subtype',
+    'alshaya_acm_promotion.config',
+  ];
+  alshaya_config_install_configs($configs, 'alshaya_acm_promotion');
+
+  // Add Translations.
+  $strings = [
+    'Your order qualifies for free standard delivery.' => [
+      'ar' => 'طلبك مؤهل للتسليم القياسي مجانا',
+    ],
+  ];
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update facets config.
+ */
+function alshaya_acm_promotion_update_8006() {
+  $configs = [
+    'facets.facet.promotion_brand_facet',
+    'facets.facet.promotion_collection_facet',
+    'facets.facet.promotion_size_facet',
+  ];
+
+  alshaya_config_install_configs($configs, 'alshaya_acm_promotion', 'optional');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update facets config.
+ */
+function alshaya_acm_promotion_update_8005() {
+  $config_path = drupal_get_path('module', 'alshaya_acm_promotion') . '/config/optional';
+  $source = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+  $config_storage->write('facets.facet.promotion_color_facet', $source->read('facets.facet.promotion_color_facet'));
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update facets config.
+ */
+function alshaya_acm_promotion_update_8004() {
+  $config_path = drupal_get_path('module', 'alshaya_acm_promotion') . '/config/optional';
+  $source = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+  $config_storage->write('facets.facet.promotion_price_facet', $source->read('facets.facet.promotion_price_facet'));
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable translation for promotional banner field in acq_promotion.
+ */
+function alshaya_acm_promotion_update_8002() {
+  $config = \Drupal::configFactory()->getEditable('field.field.node.acq_promotion.field_acq_promotion_banner');
+  $config->set('translatable', TRUE);
+  $config->save();
+
+  $field = FieldConfig::loadByName('node', 'acq_promotion', 'field_acq_promotion_banner');
+  $field->setTranslatable(TRUE);
+  $field->save();
+
+  // Revert the view to have language filter.
+  $reverter = \Drupal::service('config_update.config_update');
+  $reverter->revert('view', 'promotion_banner');
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function alshaya_acm_promotion_update_8001() {
+  // Getting editable SOLR facet config.
+  $facet_promotion_collection = \Drupal::configFactory()->getEditable('facets.facet.promotion_collection_facet');
+  $facet_promotion_collection->set('widget.config.show_numbers', TRUE)->save();
+}
+
+/**
+ * Implements hook_update_dependencies().
+ */
+function alshaya_acm_promotion_update_dependencies() {
+  $dependencies = [];
+  $dependencies['alshaya_transac'][8116] = [
+    'alshaya_acm_promotion' => 8014,
+  ];
+  return $dependencies;
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_acm_promotion_install() {
+  // Add Translations for Dynamic Promo Labels.
+  _alshaya_acm_promotion_add_promotions_translations();
+}
+
+/**
+ * Add Translations for Dynamic Promo Labels.
+ */
+function _alshaya_acm_promotion_add_promotions_translations() {
+  // Add Translations.
+  $strings = [
+    'Add @z more to get FREE item' => [
+      'ar' => 'أضف @z واحصل على قطعة مجاناً',
+    ],
+    'Add @z more to get @step items for @amount' => [
+      'ar' => 'اضف المزيد من @z واحصل على  المزيد من المنتجات بسعر  @amount',
+    ],
+    'Add @z more to get @amount off' => [
+      'ar' => 'اضف المزيد من @z واحصل على خصم بقيمة @amount',
+    ],
+    'Add @z more to get @amount% off' => [
+      'ar' => 'اضف المزيد من @z واحصل على خصم % @amount',
+    ],
+    'Add more and keep saving' => [
+      'ar' => 'أضف أكثر ووفر أكثر',
+    ],
+    'Your order qualifies for free delivery.' => [
+      'ar' => 'طلبيتك جاهزة للتوصيل المجاني',
+    ],
+    'Use the code:' => [
+      'ar' => 'استخدم هذا الرمز',
+    ],
+    'Your order qualifies for @percent% OFF' => [
+      'ar' => '@percent% طلبيتك تؤهلك للحصول على خصم',
+    ],
+    'Use and get @percent% off' => [
+      'ar' => 'استخدم واحصل على خصم %@percent',
+    ],
+    'Shop for @threshold and get a @gift FREE' => [
+      'ar' => 'تسوق مقابل @threshold واحصل على @gift مجانًا',
+    ],
+    'Your Free Gift @gift has been added to the cart' => [
+      'ar' => 'تمت إضافة هديتك المجانية @gift إلى سلة التسوق',
+    ],
+  ];
+  alshaya_i18n_save_translations($strings);
+}

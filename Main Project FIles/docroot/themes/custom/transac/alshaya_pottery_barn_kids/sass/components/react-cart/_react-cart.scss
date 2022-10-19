@@ -1,0 +1,24 @@
+header {
+  .block-cart-mini-block,
+  .block-alshaya-react-mini-cart {
+    @include breakpoint($only-mobile) {
+      width: 25%;
+    }
+
+    .quantity {
+      font-size: 0.75rem;
+    }
+
+    .cart-link-total {
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      font-weight: normal;
+      margin-top: 0.4375rem;
+      margin-#{$right}: 0;
+
+      .price-amount {
+        font-weight: normal;
+      }
+    }
+  }
+}

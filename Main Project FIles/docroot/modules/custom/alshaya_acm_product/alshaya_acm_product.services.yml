@@ -1,0 +1,205 @@
+services:
+  logger.channel.alshaya_acm_product:
+    parent: logger.channel_base
+    arguments: ['alshaya_acm_product']
+  alshaya_acm_product.breadcrumb:
+    class: Drupal\alshaya_acm_product\Breadcrumb\AlshayaPDPBreadcrumbBuilder
+    tags:
+      - { name: breadcrumb_builder, priority: 100 }
+    arguments:
+      - '@database'
+      - '@language_manager'
+      - '@entity.repository'
+      - '@entity_type.manager'
+      - '@module_handler'
+      - '@path.validator'
+      - '@title_resolver'
+      - '@request_stack'
+      - '@alshaya_acm_product.category_helper'
+  alshaya_acm_product.helper:
+    class: Drupal\alshaya_acm_product\ProductHelper
+    arguments:
+      - '@config.factory'
+      - '@alshaya_acm_product.skumanager'
+      - '@alshaya_acm_product.sku_images_manager'
+  alshaya_acm_product.category_helper:
+    class: Drupal\alshaya_acm_product\ProductCategoryHelper
+    arguments:
+      - '@entity_type.manager'
+      - '@database'
+      - '@language_manager'
+
+  alshaya_acm_product.skumanager:
+    class: Drupal\alshaya_acm_product\SkuManager
+    arguments:
+      - '@database'
+      - '@config.factory'
+      - '@current_route_match'
+      - '@request_stack'
+      - '@entity_type.manager'
+      - '@language_manager'
+      - '@entity.repository'
+      - '@logger.factory'
+      - '@acq_sku.linked_sku'
+      - '@acq_sku.cart_form_helper'
+      - '@module_handler'
+      - '@cache.alshaya'
+      - '@cache.product_labels'
+      - '@acq_sku.fields_manager'
+      - '@alshaya_acm_product.category_helper'
+      - '@http_client'
+      - '@renderer'
+      - '@simple_sitemap.generator'
+      - '@acq_sku.product_info_helper'
+      - '@alshaya_acm_product.cache_manager'
+      - '@alshaya.alshaya_array_utils'
+      - '@alshaya_acm_product.product_processed_manager'
+      - '@alshaya_acm_product.context_manager'
+      - '@file_system'
+      - '@datetime.time'
+  alshaya_acm_product.add_to_cart_form_helper:
+    class: Drupal\alshaya_acm_product\Service\AddToCartFormHelper
+    arguments:
+      - '@alshaya_acm_product.skumanager'
+      - '@alshaya_acm_product.sku_images_manager'
+      - '@alshaya_acm_product.sku_fields_helper'
+      - '@alshaya_product_options.helper'
+      - '@alshaya.alshaya_array_utils'
+  alshaya_acm_product.cache_manager:
+    class: Drupal\alshaya_acm_product\Service\ProductCacheManager
+    arguments:
+      - '@cache.product_processed_data'
+  alshaya_acm_product.product_processed_manager:
+    class: Drupal\alshaya_acm_product\Service\ProductProcessedManager
+    arguments:
+      - '@database'
+  alshaya_acm_product.price_helper:
+    class: Drupal\alshaya_acm_product\Service\SkuPriceHelper
+    arguments:
+      - '@alshaya_acm_product.skumanager'
+      - '@config.factory'
+      - '@renderer'
+  alshaya_acm_product.sku_images_manager:
+    class: Drupal\alshaya_acm_product\SkuImagesManager
+    arguments:
+      - '@module_handler'
+      - '@config.factory'
+      - '@entity_type.manager'
+      - '@alshaya_acm_product.skumanager'
+      - '@acq_sku.product_info_helper'
+      - '@cache.data'
+      - '@alshaya_acm_product.cache_manager'
+      - '@alshaya_acm_product.sku_images_helper'
+  cache.alshaya:
+    class: Drupal\Core\Cache\CacheInterface
+    tags:
+      - { name: cache.bin }
+    factory: cache_factory:get
+    arguments: [alshaya]
+  cache.product_labels:
+    class: Drupal\Core\Cache\CacheBackendInterface
+    tags:
+      - { name: cache.bin, default_backend: cache.backend.permanent_database }
+    factory: cache_factory:get
+    arguments: [product_labels]
+  cache.product_processed_data:
+    class: Drupal\Core\Cache\CacheBackendInterface
+    tags:
+      - { name: cache.bin, default_backend: cache.backend.permanent_database }
+    factory: cache_factory:get
+    arguments: [product_processed_data]
+  alshaya_acm_product.sku_fields_helper:
+    class: Drupal\alshaya_acm_product\SkuFieldsHelper
+    arguments:
+      - '@config.factory'
+      - '@language_manager'
+  alshaya_acm_product.product_info_requested_event:
+    class: Drupal\alshaya_acm_product\EventSubscriber\ProductInfoRequestedEventSubscriber
+    arguments:
+      - '@alshaya_acm_product.sku_images_manager'
+      - '@alshaya_acm_product.skumanager'
+    tags:
+      - { name: 'event_subscriber' }
+  alshaya_acm_product.product_updated_event:
+    class: Drupal\alshaya_acm_product\EventSubscriber\ProductUpdatedEventSubscriber
+    arguments:
+      - '@alshaya_acm_product.product_queue_utility'
+      - '@alshaya_acm_product.product_processed_manager'
+    tags:
+      - { name: 'event_subscriber' }
+  alshaya_acm_product.process_finish_event:
+    class: Drupal\alshaya_acm_product\EventSubscriber\ProcessFinishEventSubscriber
+    arguments:
+      - '@alshaya_acm_product.skumanager'
+      - '@entity_type.manager'
+    tags:
+      - { name: 'event_subscriber' }
+  alshaya_acm_product.acq_sku_validate_event:
+    class: Drupal\alshaya_acm_product\EventSubscriber\AlshayaAcmProductAcqSkuValidateEventSubscriber
+    arguments:
+      - '@alshaya_acm_product.product_processed_manager'
+      - '@logger.factory'
+    tags:
+      - { name: event_subscriber }
+  alshaya_acm_product.product_dy_page_type_event:
+    class: Drupal\alshaya_acm_product\EventSubscriber\ProductDyPageTypeEventSubscriber
+    arguments:
+      - '@current_route_match'
+      - '@alshaya_acm_product.skumanager'
+      - '@logger.channel.alshaya_acm_product'
+    tags:
+      - { name: event_subscriber }
+  alshaya_acm_product.sku_info:
+    class: Drupal\alshaya_acm_product\Service\SkuInfoHelper
+    arguments:
+      - '@alshaya_acm_product.skumanager'
+      - '@alshaya_acm_product.sku_images_manager'
+      - '@metatag.manager'
+      - '@alshaya_acm_product.price_helper'
+      - '@renderer'
+      - '@module_handler'
+      - '@database'
+      - '@acq_sku.stock_manager'
+      - '@language_manager'
+      - '@alshaya_acm_product.product_order_limit'
+      - '@config.factory'
+      - '@alshaya_acm_product.category_helper'
+      - '@acq_sku.product_info_helper'
+      - '@alshaya_acm_product.delivery_options_helper'
+
+  alshaya_acm_product.product_queue_utility:
+    class: Drupal\alshaya_acm_product\Service\ProductQueueUtility
+    arguments:
+      - '@queue'
+      - '@database'
+  alshaya_acm_product.meta_image_event:
+    class: Drupal\alshaya_acm_product\EventSubscriber\ProductMetaImageEventSubscriber
+    arguments:
+      - '@current_route_match'
+      - '@alshaya_acm_product.skumanager'
+      - '@alshaya_acm_product.sku_images_manager'
+      - '@alshaya_acm_product.sku_images_helper'
+    tags:
+      - { name: event_subscriber }
+  alshaya_acm_product.product_order_limit:
+    class: Drupal\alshaya_acm_product\Service\ProductOrderLimit
+    arguments:
+      - '@alshaya_acm_product.skumanager'
+      - '@config.factory'
+
+  alshaya_acm_product.stdclass_normalizer:
+    class: Drupal\alshaya_acm_product\Normalizer\StdClassNormalizer
+    arguments: ['\stdClass']
+    tags:
+      - { name: normalizer, priority: 20 }
+  alshaya_acm_product.context_manager:
+    class: Drupal\alshaya_acm_product\AlshayaRequestContextManager
+    arguments:
+      - '@request_stack'
+  alshaya_acm_product.sku_images_helper:
+    class: Drupal\alshaya_acm_product\SkuImagesHelper
+
+  alshaya_acm_product.delivery_options_helper:
+    class: Drupal\alshaya_acm_product\DeliveryOptionsHelper
+    arguments:
+      - '@config.factory'

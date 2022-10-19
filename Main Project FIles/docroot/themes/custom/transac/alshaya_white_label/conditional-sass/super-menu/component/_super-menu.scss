@@ -1,0 +1,221 @@
+$super-menu-height: 1.875rem;
+
+.menu--super-menu {
+  float: $left;
+  display: none;
+
+  ul {
+    li {
+      height: $super-menu-height;
+      vertical-align: middle;
+      border: 0;
+
+      @include breakpoint($desktop) {
+        a {
+          display: flex;
+          align-items: center;
+
+          &:hover {
+            text-decoration: underline;
+            background: none;
+          }
+        }
+      }
+    }
+  }
+
+  @include breakpoint($desktop) {
+    display: block;
+  }
+}
+
+// Margin top of body changes with super menu at mobile and tablet.
+body.frontpage.supermenu {
+  @include breakpoint($only-mobile) {
+    margin-top: 9.5rem !important;
+
+    .filter-fixed-top .show-all-filters-algolia,
+    .filter-fixed-top .block-facet-blockcategory-facet-search {
+      top: 3.6875rem !important;
+    }
+  }
+
+  @include breakpoint($only-tablet) {
+    margin-top: 9.875rem;
+  }
+}
+
+body.supermenu {
+  @include breakpoint($only-mobile) {
+    margin-top: 6rem !important;
+
+    .filter-fixed-top .show-all-filters-algolia,
+    .filter-fixed-top .block-facet-blockcategory-facet-search,
+    .filter-fixed-top .block-facet-blockcategory-facet-plp {
+      top: 5.575rem !important;
+    }
+  }
+
+  @include breakpoint($only-tablet) {
+    margin-top: 9.875rem;
+  }
+
+  &.slug-banner-processed:not(.header--fixed) {
+    margin-top: 0;
+  }
+
+  .filter-fixed-top .sticky-filter-wrapper {
+    @include breakpoint($upto-desktop) {
+      top: $super-menu-height;
+    }
+  }
+
+  .filter-fixed-top .container-without-product {
+    @include breakpoint($upto-desktop) {
+      top: $super-menu-height;
+    }
+  }
+
+  .c-header__region {
+    @include breakpoint($desktop) {
+      padding-bottom: 1rem;
+    }
+  }
+}
+
+body.supermenu.header-sticky-filter {
+  @include breakpoint($tablet) {
+    margin-top: 7.8125rem + $super-menu-height;
+  }
+
+  @include breakpoint($desktop) {
+    margin-top: 2.5rem + $super-menu-height;
+  }
+
+  &.slug-banner-processed {
+    @include breakpoint($tablet) {
+      margin-top: 5.3125rem + $super-menu-height;
+    }
+  }
+}
+
+@include breakpoint($upto-desktop) {
+  body.supermenu:not(.mobile--overlay) {
+    .c-menu-secondary {
+      @include clearfix;
+
+      display: block;
+      z-index: 12;
+      position: fixed;
+      top: 0;
+      width: 100%;
+      max-width: none;
+      height: $super-menu-height;
+      background: $header_secondary_bg;
+
+      .menu--super-menu {
+        float: none;
+        display: block;
+
+        ul {
+          display: flex;
+          justify-content: space-around;
+          align-items: center;
+
+          li {
+            height: $super-menu-height;
+            border: 0;
+            display: inline-block;
+            margin: 0;
+
+            a {
+              padding: 0;
+              line-height: $super-menu-height;
+              font-size: 0.75rem;
+              text-transform: capitalize;
+
+              &:hover,
+              &.is-active {
+                background: transparent;
+                text-decoration: underline;
+              }
+            }
+
+            &::after {
+              content: none;
+            }
+          }
+        }
+      }
+    }
+
+    .block-system-menublock.menu--account {
+      display: none;
+    }
+  }
+
+  body.supermenu {
+    .branding__menu {
+      margin-top: $super-menu-height;
+    }
+  }
+}
+
+@include breakpoint($only-tablet) {
+  body.supermenu:not(.mobile--overlay) {
+    .c-menu-secondary {
+      .menu--super-menu {
+        ul {
+          justify-content: flex-start;
+
+          li {
+            padding: 0 1.3125rem;
+
+            &:first-child {
+              padding-#{$left}: 1.5rem;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@include breakpoint($only-tablet) {
+  body.supermenu:not(.mobile--overlay):not(.header-sticky-filter) {
+    .c-menu-secondary {
+      position: absolute;
+    }
+  }
+}
+
+// Front page, mobile resolution, scroll secondary menu up with content.
+@include breakpoint($only-mobile) {
+  body.supermenu:not(.mobile--overlay).frontpage {
+    .c-menu-secondary {
+      position: absolute;
+    }
+
+    &.sticky-algolia-search {
+      .block-alshaya-algolia-react-autocomplete {
+        z-index: 1;
+      }
+    }
+  }
+}
+
+// Hide welcome user title for devices up to tablet
+.c-menu-secondary #block-welcomeuser {
+  @include breakpoint($upto-desktop) {
+    display: none;
+  }
+}
+
+// Hide the aura accordian when menu is not open and supermenu is enabled.
+body.aura-enabled.supermenu:not(.menu--open) {
+  .c-menu-secondary {
+    #aura-mobile-header-signin-register {
+      display: none;
+    }
+  }
+}

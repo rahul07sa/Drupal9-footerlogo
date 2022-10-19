@@ -1,0 +1,25 @@
+.block-alshaya-category-lhn-block {
+  // L2.
+  > ul > li {
+    > .lhn-2 {
+      font-family: $vs-bold;
+      text-transform: capitalize;
+      line-height: 2;
+    }
+  }
+
+  ul {
+    li {
+      line-height: 1;
+
+      a {
+        text-transform: capitalize;
+        line-height: 2;
+
+        &.active {
+          font-family: $vs-bold;
+        }
+      }
+    }
+  }
+}

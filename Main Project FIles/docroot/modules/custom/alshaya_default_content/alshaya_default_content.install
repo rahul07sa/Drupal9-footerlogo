@@ -1,0 +1,88 @@
+<?php
+
+/**
+ * @file
+ * Contains install, update, uninstall hooks for alshaya_default_content module.
+ */
+
+use Drupal\node\Entity\Node;
+use Drupal\node\NodeInterface;
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_default_content_install() {
+  $home = Node::create([
+    'type' => 'advanced_page',
+    'langcode' => 'en',
+  ]);
+
+  $home->setTitle('Home');
+  $home->setPublished(NodeInterface::PUBLISHED);
+  $home->set('moderation_state', 'published');
+  $home->setPromoted(NodeInterface::NOT_PROMOTED);
+  $home->setRevisionUserId(1);
+  $home->save();
+
+  $home = $home->addTranslation('ar', []);
+  $home->setTitle('Home');
+  $home->setPublished(NodeInterface::PUBLISHED);
+  $home->set('moderation_state', 'published');
+  $home->setPromoted(NodeInterface::NOT_PROMOTED);
+  $home->setRevisionUserId(1);
+  $home->save();
+
+  $config_factory = \Drupal::configFactory()->getEditable('alshaya_master.home');
+  $config_factory->set('entity.id', $home->id());
+  $config_factory->save();
+
+  $menu_items = [];
+
+  $menu_items[] = [
+    'menu' => 'mobile-navigation',
+    'en' => 'STORES',
+    'ar' => 'محلاتنا',
+    'uri' => 'internal:/store-finder',
+    'class' => 'no--desktop store',
+    'weight' => -48,
+  ];
+
+  $menu_items[] = [
+    'menu' => 'account',
+    'en' => 'Sign in',
+    'ar' => 'تسجيل الدخول',
+    'uri' => 'internal:/user/login',
+    'class' => 'sign-in-mobile',
+    'weight' => -49,
+  ];
+
+  $menu_items[] = [
+    'menu' => 'account',
+    'en' => 'create an account',
+    'ar' => 'تسجيل مستخدم جديد',
+    'uri' => 'internal:/user/register',
+    'class' => 'register-link',
+    'weight' => 0,
+  ];
+
+  foreach ($menu_items as $item) {
+    alshaya_default_content_add_menu_link_with_translations($item);
+  }
+}
+
+/**
+ * Implements hook_modules_installed().
+ */
+function alshaya_default_content_modules_installed($modules) {
+  // Exclude home page node from sitemap.
+  if (in_array('alshaya_seo', $modules)) {
+    $entity_details = \Drupal::config('alshaya_master.home')->get('entity');
+
+    $simple_sitemap = \Drupal::service('simple_sitemap.generator');
+    $simple_sitemap->setEntityInstanceSettings($entity_details['entity_type'], $entity_details['id'], [
+      'index' => 0,
+      'priority' => 0.5,
+      'changefreq' => 'never',
+    ]);
+  }
+}

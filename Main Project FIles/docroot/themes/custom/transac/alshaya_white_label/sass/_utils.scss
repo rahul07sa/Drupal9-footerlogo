@@ -1,0 +1,655 @@
+/**
+  * Image path
+ */
+$base_theme_img_directory_path: '/themes/custom/transac/alshaya_white_label/imgs';
+$base_theme_loader_img_directory_path: '/themes/custom/transac/alshaya_white_label/imgs/icons/MC-loader.svg';
+$brand_theme_img_directory_path: '/themes/custom/transac/alshaya_white_label/imgs';
+
+/**
+ * ALIGNMENT
+ */
+@mixin u-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+@mixin u-center--horizontally {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, 0);
+}
+
+@mixin u-center--vertically {
+  position: absolute;
+  top: 50%;
+  transform: translate(0, -50%);
+}
+
+/**
+  * VISIBILITY
+ */
+@mixin u-visibility($state, $important: false) {
+  @if $important {
+    display: $state !important;
+  } @else {
+    display: $state;
+  }
+}
+
+/**
+  * Helpers
+ */
+// Image Replacement
+@mixin u-image-replacement {
+  border: 0;
+  font: 0/0 a;
+  text-shadow: none;
+  color: transparent;
+}
+
+// Overlay Content
+@mixin u-overlay-content {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+
+  .ie & {
+    /* IE 8 */
+    -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=0)";
+
+    /* IE 5-7 */
+    filter: alpha(opacity=0);
+
+    /* IE 10 */
+    opacity: 0;
+    background: white;
+  }
+}
+
+// @TODO: Replace the classes below with mixins.
+// Classes
+%show-overlay {
+  @include breakpoint($upto-desktop) {
+    position: relative;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      right: 0;
+      left: 0;
+      background-color: $header_mobile_menu_overlay !important;
+      z-index: 1 !important;
+      transition: none !important;
+      opacity: 1 !important;
+    }
+  }
+}
+
+%modal-overlay {
+  height: initial;
+  width: 100%;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 7;
+    opacity: 1;
+
+    @include breakpoint($desktop) {
+      pointer-events: unset;
+      height: 100%;
+      width: 100%;
+    }
+  }
+}
+
+%modal-overlay-spinner {
+  @extend %modal-overlay;
+
+  &::before {
+    position: fixed;
+    background: rgba(255, 255, 255, 0.5);
+    z-index: 1000;
+  }
+
+  &::after {
+    content: '';
+    position: fixed;
+    top: 50%;
+    right: 0;
+    left: 0;
+    transform: translateY(-50%);
+    background-image: url(#{$base_theme_loader_img_directory_path});
+    background-repeat: no-repeat;
+    background-size: contain;
+    margin: 0 auto;
+    width: 6rem;
+    height: 6rem;
+    z-index: 1001;
+  }
+}
+
+@mixin clearfix {
+  &::after {
+    content: "";
+    display: table;
+    clear: both;
+  }
+}
+
+// Mixin for truncating lines in text and adding ellipsis to the end.
+@mixin truncateAfterLines($line-height: 1, $lines: 2, $font-size: 12px) {
+  display: block; /* Fallback for non-webkit */
+  font-size: $font-size;
+  line-height: $line-height;
+  height: $font-size * $lines * $line-height;  /* Fallback for non-webkit */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Mixin for Sticky button.
+@mixin stickyButton($left-postion: 0, $zindex: 5) {
+  position: fixed;
+  bottom: 0;
+  #{$left}: $left-postion;
+  z-index: $zindex;
+  margin-bottom: 0;
+  border: 0.5rem solid;
+  box-shadow: 0 -1px 20px 9px $sticky-btn;
+  transition-property: none !important;
+}
+
+// Mixin for adding a full page spinner. Used on Slug modal links and campaign-plp-style-1 static modal links.
+// Can be used anywhere when you need a full screen loader.
+@mixin fullPageLoader() {
+  position: fixed !important;
+  width: 100% !important;
+  height: 100%;
+  top: 0 !important;
+  #{$left}: 0 !important;
+  background: $primary_full_page_overlay_bg;
+  z-index: 9999;
+  visibility: visible;
+
+  @content;
+
+  .message {
+    display: none;
+  }
+
+  .throbber {
+    bottom: 0;
+    #{$left}: 0;
+    margin: auto;
+    position: fixed;
+    #{$right}: 0;
+    top: 0;
+    z-index: 100;
+    background: url(#{$base_theme_loader_img_directory_path}) center no-repeat !important;
+    background-size: 5.5rem !important;
+    padding-#{$left}: 0.625rem;
+    padding-#{$right}: 0.625rem;
+    width: 100%;
+    height: auto;
+  }
+}
+
+// Mixin to add a spinner.
+// Can be used anywhere when you need a loader
+@mixin throbberLoader() {
+  background-image: url(#{$base_theme_loader_img_directory_path}) !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  background-size: 1.5rem;
+  padding-left: 0.625rem;
+  padding-right: 0.625rem;
+
+  @content;
+}
+
+// Mixin styles the label input fields.
+// Apply on label inside form elements.
+@mixin placeholder-label() {
+  font-size: 1rem;
+  color: $primary_input_label;
+  position: absolute;
+  #{$left}: 0;
+  top: -0.125rem;
+  transition: font-size 0.2s ease-in-out, top 0.2s ease-in-out;
+  pointer-events: none;
+}
+
+// To be used with placeholder-label to give transition when input is active.
+// Aplly on imput:foucs, etc.
+@mixin placeholder-active() {
+  top: -1.25em;
+  bottom: 0;
+  #{$left}: 0;
+  opacity: 1;
+  font-size: 0.75rem;
+}
+
+// When you need to block any user action until a AJAX is finished.
+@mixin fullPageTransparentOverlay($pseudo-element: after) {
+  &::#{$pseudo-element} {
+    content: '';
+    background: transparent;
+    position: fixed;
+    top: 0;
+    #{$left}: 0;
+    z-index: 100;
+    width: 100vw;
+    height: 100vh;
+    cursor: progress;
+  }
+}
+
+// Add a component level loader which shall add a loader in place of the component.
+@mixin componentLoader($background-color, $pseudo-element) {
+  &.loading {
+    color: transparent;
+    background: $background-color url(#{$base_theme_loader_img_directory_path}) center center no-repeat;
+    background-size: contain;
+    // Prevent clicks and selection.
+    pointer-events: none;
+    user-select: none;
+
+    @content;
+    @include fullPageTransparentOverlay($pseudo-element);
+  }
+}
+
+@mixin arabic-letter-spacing {
+  html[lang='ar'] & {
+    letter-spacing: normal;
+  }
+}
+
+@mixin arabic-line-height($value) {
+  html[lang='ar'] & {
+    line-height: $value;
+  }
+}
+
+// This mixin can be used to keep text in a single line.
+// where text overflows a box can be hidden with dots.
+@mixin ellipsis-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// This mixin can be used for tooltip with the below HTML structure
+// <div class="empty-stars">
+//    <div class="histogram-data"></div>
+// </div>
+// here the parent class (empty-stars) should have position relative.
+// Child class (histogram-data) should call the @mixin tooltip
+// .empty-stars:hover .histogram-data we have to call tooltip-display
+@mixin tooltip($width) {
+  width: $width;
+  position: absolute;
+  #{$left}: 0%;
+  top: 100%;
+  margin: 0.625rem 0;
+  padding: 1rem;
+  border: 0.0625rem solid $rr-tooltip-border;
+  visibility: hidden;
+  opacity: 0;
+  text-align: $left;
+  transition: opacity 0.2s linear;
+  z-index: 100;
+  background: $rr-tooltip-bg;
+
+  @include breakpoint($only-mobile) {
+    #{$left}: -95%;
+  }
+
+  @content;
+}
+
+@mixin tooltip-display() {
+  visibility: visible;
+  opacity: 1;
+}
+
+// Force ltr on a element in arabic.
+@mixin force-ltr {
+  html[lang=ar] & {
+    direction: ltr;
+    display: inline-block;
+
+    @content;
+  }
+}
+
+// RR thumbnail image container style
+@mixin bv-photo-upload-container {
+  border: 0;
+  background: $rr-thumbnail-img-bg;
+  box-sizing: border-box;
+  vertical-align: top;
+  margin: 0;
+  margin-bottom: 1%;
+  margin-#{$right}: 1%;
+  height: 8.75rem;
+  width: 8.75rem;
+  overflow: hidden;
+  zoom: 1;
+  flex-shrink: 0;
+  padding: 0;
+
+  @content;
+}
+
+// RR thumbnail image style for my reviews, PDP and write a review form.
+@mixin bv-photo-upload-image {
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+  object-position: center;
+  zoom: 1;
+
+  @content;
+}
+
+// Apply Select style mixin for tablet and mobile on select tag.
+// We dont use selec2 in devices, allowing native OS to handle inputs.
+@mixin select-style($select-width) {
+  appearance: none;
+  border: 1px solid $primary_dropdown_border;
+  border-radius: 0;
+  background-color: $primary_dropdown_bg;
+  padding: 0.5rem;
+  padding-#{$left}: 0.35rem;
+  padding-#{$right}: 1.5rem;
+  width: $select-width;
+  height: 2.1875rem;
+  font-size: 0.75rem;
+  outline: none;
+  direction: $dir;
+
+  @include breakpoint($tablet) {
+    background-color: $primary_dropdown_bg;
+    position: relative;
+    z-index: 3;
+  }
+
+  @include breakpoint($only-mobile) {
+    font-size: 0.875rem;
+  }
+
+  // Arabic font is longer so it gets clipped from bottom.
+  html[lang=ar] & {
+    line-height: 1.2;
+  }
+}
+
+// Apply Select Wrapper mixin for all resolutions.
+// Style it in two stages.
+// 1. Apply select-wrapper($wrapper-width) on form-item div.
+// 2. Then apply select2-style mixin on selec2-container div for desktop.
+// Above only true if using select2 on desktop.
+// 3. Apply select-style mixing for select tag on mobile and tablets.
+@mixin select-wrapper($wrapper-width) {
+  width: $wrapper-width;
+  margin-bottom: 0.75rem;
+  position: relative;
+
+  @include icon(chevrondown, after) {
+    font-size: 1.75rem;
+    line-height: 35px;
+    pointer-events: none;
+    position: absolute;
+    #{$right}: 0;
+    top: 0;
+    text-align: center;
+    background-color: $primary_dropdown_arrow_bg;
+    width: 2.1875rem;
+    height: 35px;
+    height: 2.1875rem;
+
+    @include breakpoint($tablet) {
+      z-index: 3;
+    }
+  }
+}
+
+@mixin select-bg($select-width) {
+  &::before {
+    width: $select-width;
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    height: 2.1875rem;
+    z-index: 1;
+  }
+}
+
+// Style select2 container.
+@mixin select2-style($select-width) {
+  width: $select-width !important;
+
+  .select2-selection {
+    font-size: 0.875rem;
+    height: 2.1875rem;
+    padding: 0.25rem 0.2rem;
+    text-align: $left;
+    width: $select-width;
+    border: 1px solid $primary_dropdown_border;
+    border-radius: 0;
+    outline: none;
+
+    .select2-selection__rendered {
+      color: $primary_dropdown_text;
+
+      @include breakpoint($only-mobile) {
+        line-height: 1.5rem;
+      }
+    }
+  }
+
+  html[lang=ar] & {
+    .select2-selection--single .select2-selection__rendered {
+      width: 94%;
+    }
+  }
+
+  .select2-selection__arrow {
+    top: 0;
+    #{$right}: 0;
+    width: 2.1875rem;
+    height: 2.1875rem;
+    background: $primary_dropdown_arrow_bg;
+
+    &::after {
+      // IE10 needs this in px.
+      line-height: 35px;
+      font-size: 1.75rem;
+      top: 0;
+      #{$left}: auto;
+      width: 2.1875rem;
+      height: 2.1875rem;
+      #{$right}: 0;
+      text-align: center;
+      display: inline-block;
+      background: $primary_dropdown_arrow_bg;
+    }
+  }
+}
+
+// Country Select style.
+@mixin country-select {
+  border: none;
+  height: auto;
+
+  .mobile-number-flag {
+    display: none;
+  }
+
+  .arrow {
+    display: none;
+  }
+
+  select.country {
+    display: none;
+  }
+}
+
+// Mobile input style.
+@mixin mobile-input-style {
+  display: flex;
+  align-items: flex-end;
+  border-bottom: 1px solid $checkout_cc_store_address_mobile_border;
+  position: relative;
+  direction: ltr;
+
+  .form-item.verified {
+    #edit-billing-address & {
+      display: none;
+    }
+  }
+
+  .prefix {
+    font-size: 1rem;
+    line-height: 1.5;
+    color: $greyish;
+
+    html[lang=ar] .safari & {
+      line-height: 1.2;
+    }
+
+    html[lang=ar] .ie & {
+      line-height: 1.3;
+    }
+  }
+
+  .form-item-field-address-0-address-mobile-number-mobile,
+  .form-item-field-mobile-number-0-mobile,
+  .form-item-billing-address-address-billing-mobile-number-mobile,
+  .form-item-guest-delivery-home-address-shipping-mobile-number-mobile,
+  .form-item-member-delivery-home-address-form-form-mobile-number-mobile,
+  .form-item-cc-mobile-number-mobile,
+  .form-item-mobile-number-mobile {
+    position: static !important;
+    width: 9.375rem;
+
+    .c-input__bar {
+      position: static;
+
+      &::before,
+      &::after {
+        bottom: -1px;
+      }
+    }
+  }
+
+  .form-item-field-mobile-number-0-country-code {
+    .user-page.c-user-edit & {
+      margin-top: 0;
+    }
+  }
+
+  #edit-field-address-0-address-mobile-number-mobile-error,
+  #edit-mobile-number-mobile-error {
+    border-top: 2px solid $primary_input_inline_error;
+    position: absolute;
+    top: 2rem;
+    #{$left}: 0;
+  }
+
+  .form-item--error-message {
+    position: absolute;
+    #{$left}: 0;
+    line-height: 1;
+    border-top: 2px solid $primary_input_inline_error;
+    width: 100%;
+  }
+}
+
+// Mobile number input style.
+@mixin mobile-number-input-style {
+  border: none !important;
+
+  &:-ms-input-placeholder {
+    /* Internet Explorer 10+ */
+    color: $white-five !important;
+  }
+
+  &::placeholder {
+    color: transparent;
+  }
+
+  html[lang=ar] & {
+    direction: ltr;
+  }
+}
+
+// Convert PX to REM.
+@function rem($value) {
+  $remValue: ($value / 16) + rem;
+
+  @return $remValue;
+}
+
+// Online Booking Delivery Schedule Block Icons
+@mixin online-booking-icon($icon, $width: 18, $height: 18) {
+  content: '';
+  position: relative;
+  display: inline-block;
+  min-width: rem($width);
+  min-height: rem($height);
+  margin-#{$right}: rem(14);
+  align-self: flex-start;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-image: url('#{$base_theme_img_directory_path}/icons/#{$icon}');
+
+  @content;
+}
+
+// Mixin to add a plain skeletal loader.
+@mixin plain-loader() {
+  animation: plain-bg-load 1s infinite;
+  background-image: $plain-loader-gradient;
+  background-repeat: repeat-y;
+  background-size: 400% 8rem;
+  background-position: 100% 0;
+
+  @keyframes plain-bg-load {
+    to {
+      background-position: 0 0;
+    }
+  }
+}
+
+// Mixin to add a text block skeletal loader.
+@mixin text-block-loader() {
+  animation: text-bg-load 1s infinite;
+  background-image:
+    $text-loader-gradient,
+    $text-loader-gradient,
+    $text-loader-gradient,
+    $plain-loader-gradient;
+  background-repeat: repeat-y;
+  background-size: 90% 8rem, 90% 8rem, 75% 8rem, 400% 8rem;
+  background-position: center 2rem, center 4rem, center 6rem, 100% 0;
+
+  @keyframes text-bg-load {
+    to {
+      background-position: center 2rem, center 4rem, center 6rem, 0 0;
+    }
+  }
+}

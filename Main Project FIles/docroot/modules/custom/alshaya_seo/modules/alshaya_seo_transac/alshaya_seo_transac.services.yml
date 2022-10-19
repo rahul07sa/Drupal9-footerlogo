@@ -1,0 +1,41 @@
+services:
+  alshaya_seo_transac.gtm_manager:
+    class: Drupal\alshaya_seo_transac\AlshayaGtmManager
+    arguments:
+      - '@current_route_match'
+      - '@config.factory'
+      - '@acq_cart.cart_storage'
+      - '@alshaya_acm.cart_helper'
+      - '@current_user'
+      - '@request_stack'
+      - '@entity_type.manager'
+      - '@alshaya_acm_checkout.options_manager'
+      - '@language_manager'
+      - '@cache.alshaya'
+      - '@database'
+      - '@alshaya_addressbook.manager'
+      - '@alshaya_acm_product.skumanager'
+      - '@alshaya_acm_product.sku_images_manager'
+      - '@module_handler'
+      - '@alshaya_acm_customer.orders_manager'
+      - '@entity.repository'
+      - '@alshaya_acm_product.category_helper'
+    calls:
+      - [setStoreFinderUtility, ['@?alshaya_stores_finder_transac.utility']]
+  alshaya_seo_transac.alshaya_sitemap_manager:
+    class: Drupal\alshaya_seo_transac\AlshayaSitemapManager
+    arguments:
+      - '@entity_type.manager'
+      - '@simple_sitemap.generator'
+      - '@config.factory'
+      - '@alshaya_acm_product_category.product_category_tree'
+      - '@database'
+  alshaya_seo_transac.alshaya_sitemap_path_processor:
+    class: Drupal\alshaya_seo_transac\PathProcessor\AlshayaPathProcessorSitemapVariant
+    tags:
+      - { name: path_processor_inbound, priority: 500 }
+      - { name: path_processor_outbound, priority: 500 }
+  alshaya_seo_transac.route_subscriber:
+    class: Drupal\alshaya_seo_transac\Routing\AlshayaSeoRouteSubscriber
+    tags:
+      - { name: event_subscriber }

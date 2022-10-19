@@ -1,0 +1,334 @@
+<?php
+
+/**
+ * @file
+ * Alshaya vs transac module file.
+ */
+
+use Drupal\acq_commerce\SKUInterface;
+use Drupal\acq_sku\Entity\SKU;
+use Drupal\block\Entity\Block;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function alshaya_vs_transac_module_implements_alter(&$implementations, $hook) {
+  // We want to alter only for sku_base_form_alter which is not available on
+  // all pages. Trying to alter for that hook directly seems not working as
+  // expected so added isset check.
+  if ($hook == 'form_alter' && isset($implementations['alshaya_vs_transac'])) {
+    $group = $implementations['alshaya_vs_transac'];
+    unset($implementations['alshaya_vs_transac']);
+    $implementations = ['alshaya_vs_transac' => $group] + $implementations;
+  }
+}
+
+/**
+ * Implements hook_alshaya_stores_finder_store_update_alter().
+ */
+function alshaya_vs_transac_alshaya_stores_finder_store_update_alter(&$node, array $store) {
+  if (isset($store['included_in_store'])) {
+    $node->get('field_brand')->setValue(trim($store['included_in_store']));
+  }
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter().
+ */
+function alshaya_vs_transac_form_sku_base_form_alter(&$form, FormStateInterface $form_state) {
+  /** @var \Drupal\alshaya_acm_product\SkuManager $skuManager */
+  $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+
+  // Load SKU entity.
+  $sku_entity = $skuManager->loadSkuById((int) $form['sku_id']['#value']);
+
+  if (!($sku_entity instanceof SKUInterface)) {
+    return;
+  }
+
+  if (isset($form['ajax'], $form['ajax']['configurables'], $form['ajax']['configurables']['fragrance'])) {
+    // For condition check, we need the English value.
+    if ($sku_entity->hasTranslation('en')) {
+      $sku_entity = $sku_entity->getTranslation('en');
+    }
+
+    // Try to get value for product_category. We need to set fragrance field's
+    // label based on that.
+    $product_category = $sku_entity->get('attr_product_category')->getString();
+    if (strtolower($product_category) == 'lip-color') {
+      $form['ajax']['configurables']['fragrance']['#title'] = t('Color');
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_views_view_fields().
+ */
+function alshaya_vs_transac_preprocess_views_view_fields__stores_finder(&$variables) {
+  $view = $variables['view'];
+  if (!in_array($view->current_display,
+  ['attachment_1', 'page_3', 'page_2', 'page_1'])) {
+    return;
+  }
+
+  // Change the position of the field brand, to display it after store address.
+  if (isset($variables['fields']['field_brand'])) {
+    $fields = $variables['fields'];
+    unset($fields['field_brand']);
+    $new_fields = [];
+    foreach ($fields as $field => $field_object) {
+      $new_fields[$field] = $field_object;
+      if ($field == 'field_store_address') {
+        $new_fields['field_brand'] = $variables['fields']['field_brand'];
+      }
+    }
+    $variables['fields'] = $new_fields;
+  }
+}
+
+/**
+ * Implements hook_acq_sku_base_field_additions_alter().
+ */
+function alshaya_vs_transac_acq_sku_base_field_additions_alter(array &$fields = []) {
+  // Somehow config override or config override-delete are not working during
+  // installation so we modify the fields from CORE here.
+  if (isset($fields['color'])) {
+    $fields['color']['configurable'] = 1;
+    unset($fields['color']['index']);
+    unset($fields['color']['facet']);
+  }
+
+  $transac_fields = \Drupal::config('alshaya_vs_transac.sku_base_fields')->get('fields');
+  $fields = array_merge($fields, $transac_fields);
+}
+
+/**
+ * Implements hook_alshaya_acm_product_build_alter().
+ */
+function alshaya_vs_transac_alshaya_acm_product_build_alter(&$build, SKUInterface $sku, $context = 'pdp') {
+  $title = _alshaya_vs_transac_get_title($sku, $context);
+
+  if ($context == 'search') {
+    $build['#product_label'] = [
+      '#markup' => $title,
+    ];
+
+    /** @var \Drupal\alshaya_acm_product\ProductHelper $productHelper */
+    $productHelper = \Drupal::service('alshaya_acm_product.helper');
+    // Display swatches on PLP/Search/Promo. We use sku gallery formatter for
+    // all these cases and context received here is 'search' for that.
+    $productHelper->updateSwatches($build, $sku);
+  }
+  else {
+    $build['title'] = [
+      '#markup' => $title,
+    ];
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_view().
+ */
+function alshaya_vs_transac_node_view(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, $view_mode) {
+  if ($entity->bundle() == 'acq_product') {
+    /** @var \Drupal\alshaya_acm_product\SkuManager $skuManager */
+    $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+
+    $sku = $skuManager->getSkuForNode($entity);
+    $sku_entity = SKU::loadFromSku($sku);
+
+    if ($sku_entity instanceof SKU && ($view_mode == 'full' || $view_mode == 'matchback')) {
+      $return = _alshaya_vs_transac_get_product_description($sku_entity);
+      $build['short_desc'] = $return['short_desc'];
+      $build['description'] = $return['description'];
+      $build['read_more_style']['value'] = $return['read_more'] ? 'display:block;' : 'display:none;';
+    }
+    if ($sku_entity instanceof SKU && $sku_entity->get('attr_product_collection')->getString() && $view_mode == 'matchback') {
+      $build['matchback_product_collection']['value'] = $sku_entity->get('attr_product_collection')->getString();
+    }
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_view().
+ */
+function alshaya_vs_transac_acq_sku_view(array &$build, EntityInterface $sku_entity, EntityViewDisplayInterface $display, $view_mode) {
+  if ($view_mode == 'modal' || $view_mode == 'free_gift') {
+    $return = _alshaya_vs_transac_get_product_description($sku_entity);
+    $build['short_desc'] = $return['short_desc'];
+    $build['description'] = $return['description'];
+    $build['read_more_style']['value'] = $return['read_more'] ? 'display:block;' : 'display:none;';
+  }
+}
+
+/**
+ * Get product description from SKU.
+ */
+function _alshaya_vs_transac_get_product_description(SKUInterface $sku_entity) {
+  $description_value = '';
+  $short_desc = [];
+  $read_more_link = FALSE;
+  $body = $sku_entity->get('attr_description')->getValue();
+  if (is_array($body) && !empty($body[0]['value'])) {
+    $description_value = $body[0]['value'];
+    $short_desc['label'] = [
+      '#markup' => t('Short Description'),
+    ];
+
+    // Get short description of given html.
+    /** @var \Drupal\alshaya_acm_product\ProductHelper $product_helper*/
+    $product_helper = \Drupal::service('alshaya_acm_product.helper');
+    $desc = $product_helper->createShortDescription($description_value);
+    if (!empty($desc['read_more'])) {
+      $desc['html'] = $product_helper->processShortDescEllipsis($desc['html']);
+    }
+    $short_desc['value'] = [
+      '#markup' => $desc['html'],
+    ];
+    $read_more_link = isset($desc['read_more']);
+  }
+  else {
+    // Try once with parent if available.
+    if ($sku_entity->bundle() == 'simple') {
+      /** @var \Drupal\acq_sku\AcquiaCommerce\SKUPluginBase $plugin */
+      $plugin = $sku_entity->getPluginInstance();
+      $parent = $plugin->getParentSku($sku_entity);
+
+      if ($parent instanceof SKUInterface) {
+        return _alshaya_vs_transac_get_product_description($parent);
+      }
+    }
+  }
+  $description = [];
+  $description['value'] = [
+    '#markup' => $description_value,
+  ];
+
+  // Add all variables to $build in the sequence in
+  // which they should be displayed.
+  // $build['short_desc'] contains the description that should be
+  // displayed before 'Read More'.
+  $return = [];
+  $return['short_desc'] = $short_desc;
+  $return['description'][] = $description;
+  $return['read_more'] = $read_more_link;
+
+  return $return;
+}
+
+/**
+ * Implements hook_alshaya_main_menu_links_alter().
+ */
+function alshaya_vs_transac_alshaya_main_menu_links_alter(array &$term_tree, $parent_id, array $context) {
+  $promo_panel_blocks = alshaya_promo_panel_blocks_get_plugin_ids();
+
+  // Add links of all enabled promo panel blocks in main menu for mobile view.
+  foreach (array_keys($promo_panel_blocks) as $block_plugin_id) {
+    $blocks = \Drupal::entityTypeManager()->getStorage('block')->loadByProperties(['plugin' => $block_plugin_id]);
+    $block = reset($blocks);
+
+    if ($block instanceof Block && $block->access('view')) {
+      $item = [
+        'label' => $block->label(),
+        'path' => Url::fromUserInput($promo_panel_blocks[$block_plugin_id])->toString(),
+        'class' => 'promo-panel--mobile-link',
+        'clickable' => TRUE,
+      ];
+      array_unshift($term_tree, $item);
+    }
+  }
+}
+
+/**
+ * Get the concatenated title based on context.
+ *
+ * @param \Drupal\acq_commerce\SKUInterface $sku
+ *   SKU Entity.
+ * @param string $context
+ *   Context to get the title for.
+ *
+ * @return string
+ *   Title.
+ */
+function _alshaya_vs_transac_get_title(SKUInterface $sku, $context = 'pdp') {
+  $new = $sku->get('attr_sku_definition')->getString();
+  $collection = $sku->get('attr_product_collection')->getString();
+  $short_description = $sku->label();
+  if ($context === 'pdp' || $context === 'modal') {
+    $title = '<span class="title--sub">' . $collection . '</span>';
+    $title .= '<span class="title--main">' . $new . ' ' . $short_description . '</span>';
+  }
+  else {
+    $title = implode(' ', [$new, $collection, $short_description]);
+  }
+
+  return $title;
+}
+
+/**
+ * Implements hook_alshaya_stores_finder_marker_label_position_alter().
+ */
+function alshaya_vs_transac_alshaya_stores_finder_marker_label_position_alter(array &$label_position) {
+  $label_position['y'] = 17;
+  $label_position['single_y'] = 17;
+}
+
+/**
+ * Implements hook_alshaya_get_currency_code().
+ */
+function alshaya_vs_transac_alshaya_get_currency_code_alter(&$currency) {
+  // Updated UAE currency code.
+  $currency['ae']['en'] = 'DHS';
+}
+
+/**
+ * Implements hook_preprocess_acq_sku__free_gift().
+ */
+function alshaya_vs_transac_preprocess_acq_sku__free_gift(&$variables) {
+  $variables['sku']['subtitle'] = $variables['sku_entity']->get('attr_product_collection')->getString();
+}
+
+/**
+ * Implements hook_alshaya_performance_preload_alter().
+ */
+function alshaya_vs_transac_alshaya_performance_preload_alter(array &$preload) {
+  $site_preloads = [
+    'en' => [
+      [
+        'as' => 'font',
+        'href' => '/themes/custom/transac/alshaya_victoria_secret/fonts/BentonSans-Book.woff2',
+        'crossorigin' => 'crossorigin',
+        'type' => 'font/woff2',
+      ],
+      [
+        'as' => 'font',
+        'href' => '/themes/custom/transac/alshaya_victoria_secret/fonts/BentonSans-Bold.woff2',
+        'crossorigin' => 'crossorigin',
+        'type' => 'font/woff2',
+      ],
+    ],
+    'ar' => [
+      [
+        'as' => 'font',
+        'href' => '/themes/custom/transac/alshaya_victoria_secret/fonts/DroidArabicKufi.woff2',
+        'crossorigin' => 'crossorigin',
+        'type' => 'font/woff2',
+      ],
+      [
+        'as' => 'font',
+        'href' => '/themes/custom/transac/alshaya_victoria_secret/fonts/DroidArabicKufi-Bold.woff2',
+        'crossorigin' => 'crossorigin',
+        'type' => 'font/woff2',
+      ],
+    ],
+  ];
+  // Preloading fonts here.
+  $language = \Drupal::languageManager()->getCurrentLanguage()->getId();
+  if (isset($site_preloads[$language])) {
+    $preload = array_merge($site_preloads[$language], $preload);
+  }
+}

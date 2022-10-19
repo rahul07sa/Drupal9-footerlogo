@@ -1,0 +1,58 @@
+.c-breadcrumb {
+  background: $breadcrumb_bg;
+
+  ol {
+    max-width: 80.25rem;
+    margin: auto;
+    padding: 0.875rem 1.5rem;
+    font-size: 0.75rem;
+    line-height: 1.5;
+  }
+
+  li {
+    list-style: none;
+    display: inline-block;
+    font-weight: bold;
+    text-transform: lowercase;
+
+    &:last-of-type {
+      font-weight: bold;
+    }
+
+    &:last-of-type a {
+      font-weight: bold;
+      color: $breadcrumb_link_active;
+      pointer-events: none;
+      cursor: default;
+    }
+
+    a {
+      font-weight: normal;
+      color: $breadcrumb_link;
+
+      &:hover {
+        text-decoration: underline;
+      }
+
+      &.no-link {
+        pointer-events: none;
+        cursor: default;
+      }
+    }
+
+    &::after {
+      content: '>';
+      color: $breadcrumb_link_hover;
+      padding-right: 0.3125rem;
+      padding-left: 0.3125rem;
+    }
+
+    &:last-of-type::after {
+      display: none;
+    }
+  }
+
+  @include breakpoint($only-mobile) {
+    display: none;
+  }
+}

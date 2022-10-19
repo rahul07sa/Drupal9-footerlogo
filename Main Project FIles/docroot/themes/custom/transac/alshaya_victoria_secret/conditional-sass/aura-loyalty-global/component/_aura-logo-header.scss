@@ -1,0 +1,9 @@
+#block-aurarewardsheader {
+  @include breakpoint($desktop) {
+    #aura-header-modal {
+      a.join-aura {
+        padding: rem(9) 0;
+      }
+    }
+  }
+}

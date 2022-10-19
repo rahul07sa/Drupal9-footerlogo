@@ -1,0 +1,115 @@
+body.wishlist-enabled {
+  header {
+    .region__header {
+      > div {
+        @include breakpoint($desktop) {
+          flex-basis: auto;
+          flex-grow: unset;
+        }
+      }
+    }
+  }
+
+  #wishlist-header-wrapper {
+    @include breakpoint($upto-desktop) {
+      width: 8%;
+      #{$right}: rem(136);
+      top: rem(57);
+    }
+
+    @include breakpoint($only-tablet) {
+      width: 34%;
+      #{$right}: 9.0625rem;
+      text-align: center;
+      z-index: 10;
+    }
+
+    @include breakpoint($only-mobile) {
+      transition: transform 0.4s;
+    }
+
+    .wishlist-header {
+      padding-bottom: 0;
+
+      .wishlist-icon {
+        @include breakpoint($desktop) {
+          margin-top: rem(4);
+        }
+      }
+    }
+  }
+
+  .wishlist-notification {
+    @include breakpoint($only-mobile) {
+      #{$right}: -8.3125rem;
+    }
+
+    .actions {
+      a {
+        border-radius: rem(3);
+
+        &.register {
+          border-color: $btn_border;
+        }
+      }
+    }
+  }
+
+  &.header-sticky-filter {
+    #wishlist-header-wrapper {
+      @include breakpoint($only-mobile) {
+        transform: translate3d(0, -2.8125rem, 0);
+      }
+    }
+  }
+
+  &.hide-minimalistic-header.no-sticky-algolia-search-bar {
+    #wishlist-header-wrapper {
+      @include breakpoint($only-mobile) {
+        transform: translate3d(0, -2.875rem, 0);
+      }
+    }
+
+    &.exponea-scrolled #wishlist-header-wrapper {
+      @include breakpoint($only-mobile) {
+        transform: translate3d(0, -5.6875rem, 0);
+      }
+    }
+  }
+
+  &.frontpage {
+    #wishlist-header-wrapper {
+      #{$right}: auto;
+
+      @include breakpoint($only-mobile) {
+        #{$right}: calc(50% - 3%);
+
+        .wishlist-header {
+          padding-#{$right}: 0;
+        }
+      }
+    }
+  }
+
+  .filter-fixed-top {
+    .sticky-filter-wrapper {
+      .wishlist-minicart-sticky-wrapper {
+        @include breakpoint($desktop) {
+          top: 0;
+          transform: none;
+          height: rem(60);
+        }
+      }
+    }
+  }
+}
+
+.wishlist-icon {
+  width: rem(25);
+  height: rem(25);
+
+  @include breakpoint($upto-desktop) {
+    width: rem(22);
+    height: rem(22);
+  }
+}

@@ -1,0 +1,146 @@
+<?php
+
+/**
+ * @file
+ * Module file.
+ */
+
+use Drupal\acq_commerce\SKUInterface;
+use Drupal\acq_sku\Entity\SKU;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+
+/**
+ * Implements hook_ENTITY_TYPE_view().
+ */
+function alshaya_fl_transac_node_view(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, $view_mode) {
+  if ($entity->bundle() == 'acq_product') {
+    /** @var \Drupal\alshaya_acm_product\SkuManager $skuManager */
+    $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+    $sku = $skuManager->getSkuForNode($entity);
+    $sku_entity = SKU::loadFromSku($sku);
+
+    if ($sku_entity instanceof SKU && $view_mode == 'full') {
+      /** @var \Drupal\alshaya_acm_product\ProductHelper $productHelper */
+      $productHelper = \Drupal::service('alshaya_acm_product.helper');
+
+      $description = [];
+
+      if ($body = $entity->get('body')->getValue()) {
+        $description['value'] = [
+          '#markup' => $body[0]['value'],
+        ];
+
+        $build['description'][] = $description;
+
+        $productHelper->updateShortDescription($build, $body[0]['value']);
+        if (!empty($build['short_desc'])) {
+          $build['short_desc']['value']['#markup'] = $productHelper->processShortDescEllipsis($build['short_desc']['value']['#markup']);
+        }
+      }
+
+      $material = $sku_entity->get('attr_material')->getString();
+      if (!empty($material)) {
+        $build['materials'] = [
+          '#theme' => 'product_material_markup',
+          '#title' => t('material'),
+          '#material' => [
+            '#markup' => $material,
+          ],
+        ];
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_view().
+ */
+function alshaya_fl_transac_acq_sku_view(array &$build, EntityInterface $sku_entity, EntityViewDisplayInterface $display, $view_mode) {
+  if ($view_mode == 'modal') {
+    /** @var \Drupal\alshaya_acm_product\ProductHelper $productHelper */
+    $productHelper = \Drupal::service('alshaya_acm_product.helper');
+
+    $body = $sku_entity->get('attr_description')->getValue();
+    if ($body) {
+      $description = [];
+      $description['value'] = [
+        '#markup' => $body[0]['value'],
+      ];
+      $build['description'][] = $description;
+      $productHelper->updateShortDescription($build, $body[0]['value']);
+    }
+  }
+}
+
+/**
+ * Implements hook_alshaya_acm_product_build_alter().
+ */
+function alshaya_fl_transac_alshaya_acm_product_build_alter(&$build, SKUInterface $sku, $context = 'pdp') {
+  if ($context == 'search') {
+    /** @var \Drupal\alshaya_acm_product\ProductHelper $productHelper */
+    $productHelper = \Drupal::service('alshaya_acm_product.helper');
+    // Display swatches on PLP/Search/Promo. We use sku gallery formatter for
+    // all these cases and context received here is 'search' for that.
+    $productHelper->updateSwatches($build, $sku);
+  }
+}
+
+/**
+ * Implements hook_alshaya_acm_product_gallery_alter().
+ */
+function alshaya_fl_transac_alshaya_acm_product_gallery_alter(array &$gallery, SKUInterface $sku, $context = 'pdp') {
+  /** @var \Drupal\alshaya_acm_product\SkuImagesManager $sku_image_manager */
+  // Display thumbnails from each variants in gallery
+  // instead angles of one variant.
+  if ($context == 'search') {
+    /** @var \Drupal\alshaya_acm_product\SkuManager $skuManager */
+    $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+    if (!$skuManager->isListingDisplayModeAggregated()) {
+      return;
+    }
+
+    $show_variants_thumbnail_plp_gallery = \Drupal::config('alshaya_acm_product.display_settings')->get('show_variants_thumbnail_plp_gallery');
+    if ($show_variants_thumbnail_plp_gallery) {
+      $sku_image_manager = \Drupal::service('alshaya_acm_product.sku_images_manager');
+      $image = $sku_image_manager->getAllVariantThumbnails($sku);
+
+      $gallery = [
+        '#theme' => 'alshaya_search_gallery',
+        '#mainImage' => $image['mainImage'],
+        '#thumbnails' => $image['thumbnails'],
+      ];
+    }
+  }
+}
+
+/**
+ * Implements hook_alshaya_performance_preload_alter().
+ */
+function alshaya_fl_transac_alshaya_performance_preload_alter(array &$preload) {
+  $alshaya_preload = [
+    'as' => 'font',
+    'href' => '/themes/custom/transac/alshaya_white_label/fonts/alshaya-icons.woff2?D7b5if',
+    'crossorigin' => 'crossorigin',
+    'type' => 'font/woff2',
+  ];
+  $site_preloads = [
+    'en' => [
+      $alshaya_preload,
+    ],
+    'ar' => [
+      [
+        'as' => 'font',
+        'href' => '/themes/custom/transac/alshaya_footlocker/fonts/DroidKufi-Regular.woff2',
+        'crossorigin' => 'crossorigin',
+        'type' => 'font/woff2',
+      ],
+      $alshaya_preload,
+    ],
+  ];
+  // Footlocker's icon font comes from whitelabel.
+  $language = \Drupal::languageManager()->getCurrentLanguage()->getId();
+  if (isset($site_preloads[$language])) {
+    $preload = array_merge($site_preloads[$language], $preload);
+  }
+}

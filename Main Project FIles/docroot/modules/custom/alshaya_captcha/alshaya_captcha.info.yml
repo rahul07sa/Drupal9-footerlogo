@@ -1,0 +1,12 @@
+name: alshaya_captcha
+type: module
+core: 8.x
+core_version_requirement: ^8 || ^9
+package: Alshaya
+description: 'Alshaya captcha.'
+dependencies:
+  - drupal:block
+  - captcha:captcha
+  - recaptcha:recaptcha
+  - drupal:system
+  - drupal:views

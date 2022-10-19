@@ -1,0 +1,17 @@
+alshaya_promo_panel.settings:
+  type: config_object
+  label: 'Promo panel block configuration'
+  mapping:
+    promo_panel_blocks:
+      type: sequence
+      label: 'Promo panel blocks'
+      sequence:
+        type: mapping
+        label: 'Promo panel block configuration'
+        mapping:
+          mobile_path:
+            type: string
+            label: 'Mobile path'
+          plugin_id:
+            type: string
+            label: 'Plugin Id'

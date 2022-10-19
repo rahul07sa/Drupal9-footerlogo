@@ -1,0 +1,73 @@
+ladda:
+  version: 1.x
+  js:
+    js/spin.min.js: {}
+    js/ladda.min.js: {}
+    js/ladda.jquery.min.js: {}
+  css:
+    theme:
+      css/ladda.min.css: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+
+mobile_number:
+  version: 1.x
+  js:
+    js/jquery.alphanum.js: {}
+    js/alshaya_mobile.js: {}
+  dependencies:
+    - core/jquery.once
+    - core/drupal
+
+focus_form_error:
+  version: 1.x
+  js:
+    js/alshaya_form_error.js: {}
+  dependencies:
+    - core/jquery.once
+    - core/drupal
+
+jquery_minicolor_arabic:
+  version: 1.x
+  css:
+    theme:
+      css/jquery_minicolor_arabic.css: {scope: footer}
+
+cv_ife:
+  version: 1.x
+  js:
+    js/cv.jquery.ife.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+
+jquery_is_in_viewport:
+  version: 1.x
+  js:
+    js/jquery.is_in_viewport.js: {}
+  dependencies:
+    - core/jquery
+
+common_fixes:
+  version: 1.x
+  js:
+    js/common_fixes.js: {}
+
+common_functions:
+  version: 1.x
+  js:
+    js/common_functions.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+
+local_storage_manager:
+  js:
+    js/local_storage_manager.js: { weight: -10 }
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/jquery.once
+    - core/drupalSettings
+    - alshaya_master/common_functions

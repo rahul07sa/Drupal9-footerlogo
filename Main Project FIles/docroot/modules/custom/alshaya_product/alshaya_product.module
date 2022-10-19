@@ -1,0 +1,216 @@
+<?php
+
+/**
+ * @file
+ * Module file.
+ */
+
+use Drupal\Core\Database\Query\SelectInterface;
+use Drupal\search_api\Entity\Index;
+use Drupal\search_api\Query\QueryInterface;
+use Drupal\views\ViewExecutable;
+use Drupal\views\Plugin\views\query\QueryPluginBase;
+use Drupal\alshaya_acm_product\SkuManager;
+
+/**
+ * Implements hook_views_query_alter().
+ */
+function alshaya_product_views_query_alter(ViewExecutable $view, QueryPluginBase $query) {
+  if ($view->id() == 'taxonomy_term' && \Drupal::routeMatch()->getRouteName() == 'entity.taxonomy_term.canonical') {
+    // Get the term from args.
+    /** @var \Drupal\taxonomy\Entity\Term $term */
+    $term = \Drupal::request()->attributes->get('taxonomy_term');
+
+    // Remove content for product category page.
+    if (in_array($term->bundle(), [
+      'acq_product_category',
+      'rcs_category',
+    ])) {
+      foreach ($query->where as &$condition_group) {
+        foreach ($condition_group['conditions'] as &$condition) {
+          if ($condition['field'] == 'taxonomy_index.tid = :taxonomy_index_tid') {
+            $condition['value'][':taxonomy_index_tid'] = -1;
+          }
+        }
+      }
+    }
+  }
+  elseif ($view->storage->get('id') === 'product_slider' && $view->current_display === 'category_product_slider') {
+    $nids = $view->args[0];
+    if (!empty($nids)) {
+      // This is just to maintain the order in which nids passed to views.
+      $query->addOrderBy(NULL, 'FIELD(node_field_data.nid, ' . $nids . ')', 'ASC', 'order_field');
+    }
+  }
+}
+
+/**
+ * Implements hook_views_pre_execute().
+ */
+function alshaya_product_views_pre_execute(ViewExecutable $view) {
+  if ($view->id() == 'taxonomy_term' && \Drupal::routeMatch()->getRouteName() == 'entity.taxonomy_term.canonical') {
+    // Get the term from args.
+    /** @var \Drupal\taxonomy\Entity\Term $term */
+    $term = \Drupal::request()->attributes->get('taxonomy_term');
+
+    // Remove feeds for product category page.
+    if (in_array($term->bundle(), [
+      'acq_product_category',
+      'rcs_category',
+    ])) {
+      unset($view->feedIcons);
+    }
+  }
+}
+
+/**
+ * Implements hook_alshaya_master_post_drupal_install().
+ */
+function alshaya_product_alshaya_master_post_drupal_install() {
+  // @todo ACR2-2190 - get promotion_nid created properly during install.
+  // @todo ACR2-2477: https://www.drupal.org/project/search_api/issues/2896248.
+  alshaya_config_install_configs(['search_api.index.product'], 'alshaya_product');
+
+  // Execute all pending search_api tasks.
+  \Drupal::service('search_api.task_manager')->executeAllTasks();
+
+  // Flush all caches.
+  drupal_flush_all_caches();
+
+  try {
+    $index = Index::load('product');
+    $index->save();
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('alshaya_product')->warning('Failed to re-save product index : @message', [
+      '@message' => $e->getMessage(),
+    ]);
+  }
+
+}
+
+/**
+ * Implements hook_alshaya_i18n_onetime_translation_add().
+ */
+function alshaya_product_alshaya_i18n_onetime_translation_add() {
+  // Add translations for PLP page view.
+  $product_list_view = \Drupal::languageManager()->getLanguageConfigOverride('ar', 'views.view.alshaya_product_list');
+
+  $product_list_view->set('display.default.display_options.exposed_form.options.exposed_sorts_label', 'رتب حسب');
+  $product_list_view->set('display.default.display_options.exposed_form.options.bef.sort.advanced.combine_rewrite', 'ما ننصح به تصاعدي|ما ننصح به
+جديدنا تنازلي|جديدنا
+الاسم تصاعدي|الاسم من أ إلى ي
+الاسم تنازلي|الاسم من ي إلى أ
+السعر تنازلي|السعر من الأعلى إلى الأدنى
+السعر تصاعدي|السعر من الأدنى إلى الأعلى');
+  $product_list_view->set('display.default.display_options.exposed_form.options.sort_asc_label', 'تصاعدي');
+  $product_list_view->set('display.default.display_options.exposed_form.options.sort_desc_label', 'تنازلي');
+  $product_list_view->set('display.default.display_options.sorts.price.expose.label', 'السعر');
+  $product_list_view->set('display.default.display_options.sorts.final_price.expose.label', 'السعر');
+  $product_list_view->set('display.default.display_options.sorts.title.expose.label', 'الاسم');
+  $product_list_view->set('display.default.display_options.header.result.content', '@total القطع');
+  $product_list_view->set('display.default.display_options.pager.options.views_infinite_scroll.button_text', 'عرض المزيد');
+  $product_list_view->set('display.block_1.display_options.sorts.nid.expose.label', 'ما ننصح به');
+  $product_list_view->set('display.block_1.display_options.sorts.created.expose.label', 'جديدنا');
+
+  $product_list_view->save();
+}
+
+/**
+ * Implements hook_sharethis_render_alter().
+ */
+function alshaya_product_sharethis_render_alter(&$attributes, $data_options, &$span_text) {
+  // Add title to sharethis span.
+  if (isset($attributes['displayText'])) {
+    $attributes['title'] = ucfirst($attributes['displayText']);
+
+    /** @var \Drupal\alshaya_acm_product\SkuManager $skuManager */
+    $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+    // Get global pdp layout.
+    $default_pdp_layout = \Drupal::config('alshaya_acm_product.settings')->get('pdp_layout');
+    $pdp_layout = $skuManager->getContextFromLayoutKey('pdp', $default_pdp_layout);
+
+    /** @var \Drupal\alshaya_acm_product_category\ProductCategoryTree $product_category_tree */
+    $product_category_tree = \Drupal::service('alshaya_acm_product_category.product_category_tree');
+    // Get the innermost category for the product.
+    $inner_term_id = $product_category_tree->getProductInnermostCategoryIdFromRoute();
+    // If there is an innermost category, get pdp layout for that.
+    if (!empty($inner_term_id)) {
+      $pdp_layout = $skuManager->getPdpLayoutFromTermId($inner_term_id);
+    }
+
+    // If the selected layout is magazine,
+    // add span text to be displayed along with share icons.
+    if ($pdp_layout == SkuManager::PDP_LAYOUT_MAGAZINE) {
+      $span_text = $attributes['title'];
+    }
+  }
+}
+
+/**
+ * Implements hook_search_api_db_query_alter().
+ */
+function alshaya_product_search_api_db_query_alter(SelectInterface &$db_query, QueryInterface $query) {
+  if ($query->hasTag('views_alshaya_product_list')) {
+    $sorts =& $query->getSorts();
+
+    // We should have something here to prepend it.
+    if (!empty($sorts) && empty($sorts['stock'])) {
+      $sorts = ['stock' => QueryInterface::SORT_DESC] + $sorts;
+    }
+  }
+}
+
+/**
+ * Implements hook_acq_sku_base_fields_updated().
+ */
+function alshaya_product_acq_sku_base_fields_updated(array $fields, $op = 'add') {
+  /** @var \Drupal\alshaya_search_api\AlshayaSearchApiFacetsManager $facet_manager */
+  $facet_manager = \Drupal::service('alshaya_search_api.facets_manager');
+
+  $facet_source_id = 'search_api:views_block__alshaya_product_list__block_1';
+  $filter_bar_id = 'facets_summary.facets_summary.filter_bar_plp';
+  $prefix = 'plp';
+
+  switch ($op) {
+    case 'add':
+      /** @var \Drupal\search_api\Entity\Index $index */
+      $index = Index::load('product');
+      if ($index && $index->status()) {
+        alshaya_config_install_configs(['search_api.index.product'], 'alshaya_product');
+      }
+
+      foreach ($fields as $field_code => $field) {
+        if (empty($field['facet'])) {
+          // We use add even when resetting. Remove facet if available.
+          $facet_manager->removeFacet($field_code, $filter_bar_id, $prefix);
+          continue;
+        }
+
+        // Prepare overrides data for the facet.
+        $overrides['name'] = $field['label'];
+
+        // If widget data is present in fields array, include that in overrides
+        // to ensure correct widget information is added while creating facets.
+        if (isset($field['widget'])) {
+          foreach ($field['widget'] as $key => $widget) {
+            $overrides['widget'][$key] = $widget;
+          }
+        }
+        $facet_manager->createFacet($field_code, $facet_source_id, $filter_bar_id, $prefix, $overrides, $index->status());
+      }
+      break;
+
+    case 'remove';
+      foreach ($fields as $field_code => $field) {
+        $index_field_code = 'attr_' . $field_code;
+        _alshaya_search_api_remove_field_from_indexes($index_field_code, 'product');
+
+        // Remove from facets if facet is 1.
+        if (!empty($field['facet'])) {
+          $facet_manager->removeFacet($field_code, $filter_bar_id, $prefix);
+        }
+      }
+      break;
+  }
+}

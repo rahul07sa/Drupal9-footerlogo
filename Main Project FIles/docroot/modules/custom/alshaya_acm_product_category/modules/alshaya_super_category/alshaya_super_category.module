@@ -1,0 +1,891 @@
+<?php
+
+/**
+ * @file
+ * Module file for alshaya_super_category.
+ */
+
+use Drupal\alshaya_acm_product_category\ProductCategoryTree;
+use Drupal\alshaya_super_category\AlshayaSuperCategoryManager;
+use Drupal\block\Entity\Block;
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Block\BlockPluginInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Url;
+use Drupal\file\Entity\File;
+use Drupal\menu_link_content\Entity\MenuLinkContent;
+use Drupal\node\NodeInterface;
+use Drupal\system\Entity\Menu;
+use Drupal\taxonomy\Entity\Term;
+use Drupal\taxonomy\TermInterface;
+use Drupal\Component\Utility\Html;
+use Drupal\views\ViewExecutable;
+use Drupal\views\Plugin\views\query\QueryPluginBase;
+use Solarium\Core\Query\QueryInterface as SolariumQueryInterface;
+use Drupal\search_api\Query\QueryInterface as SearchApiQueryInterface;
+use Symfony\Component\HttpFoundation\ParameterBag;
+
+/**
+ * Implements hook_theme().
+ */
+function alshaya_super_category_theme($existing, $type, $theme, $path) {
+  return [
+    'alshaya_super_category_top_level' => [
+      'template' => 'alshaya-super-category-top-level',
+      'variables' => [
+        'term_tree' => NULL,
+      ],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ *
+ * Call the alshaya_super_category_alshaya_main_menu_links_alter at the top
+ * before any other module invokes.
+ */
+function alshaya_super_category_module_implements_alter(&$implementations, $hook) {
+  $super_category_status = \Drupal::config('alshaya_super_category.settings')->get('status');
+  if (!$super_category_status) {
+    unset($implementations['alshaya_super_category']);
+    return;
+  }
+
+  $hooks = [
+    'alshaya_main_menu_links_alter',
+    'pathauto_alias_alter',
+  ];
+
+  if (in_array($hook, $hooks) && isset($implementations['alshaya_super_category'])) {
+    $current = $implementations['alshaya_super_category'];
+    unset($implementations['alshaya_super_category']);
+    $implementations = ['alshaya_super_category' => $current] + $implementations;
+  }
+}
+
+/**
+ * Implements hook_alshaya_main_menu_links_alter().
+ *
+ * Add super category status to context to use it with other implementation.
+ */
+function alshaya_super_category_alshaya_main_menu_links_alter(array &$term_tree, $parent_id, array &$context) {
+  $super_category_status = \Drupal::config('alshaya_super_category.settings')->get('status');
+  $context['depth_offset'] = $super_category_status ? 1 : 0;
+}
+
+/**
+ * Implements hook_preprocess_block().
+ */
+function alshaya_super_category_preprocess_block(&$variables) {
+  $parent = NULL;
+  $config = \Drupal::config('alshaya_super_category.settings');
+  // Check super category feature status.
+  if (!$config->get('status')) {
+    return;
+  }
+
+  switch ($variables['base_plugin_id']) {
+    case 'system_menu_block':
+      // Check current menu type.
+      if (!in_array($variables['derivative_plugin_id'], $config->get('footer_menu_blocks'))) {
+        return;
+      }
+
+      // Update block cache context.
+      $variables['content']['#cache']['contexts'][] = 'url.path';
+
+      // Default parent term id.
+      $current_category_id = alshaya_super_category_get_default_term();
+
+      /** @var \Drupal\alshaya_acm_product_category\ProductCategoryTree $product_category_tree */
+      $product_category_tree = \Drupal::service('alshaya_acm_product_category.product_category_tree');
+      $term = $product_category_tree->getCategoryTermFromRoute();
+      if (!empty($term)) {
+        $current_category = $product_category_tree->getCategoryTermRootParent($term);
+        $current_category_id = $current_category['id'];
+      }
+      // Get all the menu items.
+      $items = &$variables['content']['#items'];
+
+      // Loop through each item, & remove item that isn't in parent term id.
+      foreach ($items as $id => $item) {
+        $options = $item['original_link']->getOptions();
+        $super_categories = !empty($options['categories']) ? array_filter($options['categories']) : [];
+        if (!in_array($current_category_id, $super_categories)) {
+          unset($items[$id]);
+        }
+      }
+      break;
+
+    case 'system_branding_block':
+      /** @var \Drupal\alshaya_acm_product_category\ProductCategoryTree $product_category_tree */
+      $product_category_tree = \Drupal::service('alshaya_acm_product_category.product_category_tree');
+      $term = $product_category_tree->getCategoryTermFromRoute();
+
+      if (empty($term)) {
+        return;
+      }
+
+      $parents = $product_category_tree->getCategoryTermParents($term);
+      if (!empty($parents)) {
+        $parent = end($parents);
+      }
+
+      if (!$parent instanceof TermInterface && !$variables['content']['site_logo']['#access']) {
+        return;
+      }
+
+      // Create a name without spaces and any special character.
+      // For the logo file name - we always want the english value.
+      // @todo Move this to a separate field and remove name dependency.
+      $parent_en = \Drupal::service('entity.repository')->getTranslationFromContext($parent, 'en');
+      $term_clean_name = Html::cleanCssIdentifier(mb_strtolower($parent_en->label()));
+      // Set the language suffix for logo based on current language.
+      $langcode = \Drupal::service('language_manager')
+        ->getCurrentLanguage()
+        ->getId();
+
+      // Get super category based on slug and proceed only if the vocab is of
+      // rcs category type.
+      if (!is_null(\Drupal::entityTypeManager()->getStorage('taxonomy_vocabulary')->load('rcs_category'))) {
+        $current_uri = \Drupal::request()->getRequestUri();
+        $current_super_category = explode('/', $current_uri);
+        if (!empty($current_super_category[2])) {
+          // Load term by comparing the slug with current super category.
+          $query = \Drupal::entityQuery('taxonomy_term');
+          $query->condition('field_category_slug', $current_super_category[2]);
+          $term_id = $query->execute();
+          // Load the term based on the id.
+          $parent = Term::load($term_id);
+        }
+      }
+
+      $super_category = \Drupal::service('entity.repository')->getTranslationFromContext($parent, $langcode);
+      $meta_tags = \Drupal::service('metatag.manager')->tagsFromEntityWithDefaults($super_category);
+      $meta_title = \Drupal::service('token')->replace($meta_tags['title'], ['term' => $super_category]);
+
+      $langcode = ($langcode != 'en') ? '-' . $langcode : '';
+      // Current active theme object.
+      $theme = \Drupal::service('theme.manager')->getActiveTheme();
+      // Set the logo path based on term name and current language.
+      if ($super_category->hasField('field_logo_header_image') && !empty($super_category->field_logo_header_image->getValue())) {
+        $file = File::load($super_category->field_logo_header_image->getValue()[0]['target_id']);
+        $header_logo = file_create_url($file->getFileUri());
+      }
+      $logo_path = '/' . $theme->getPath() . '/imgs/logos/' . $term_clean_name . '-logo';
+      $logo_absolute_path = DRUPAL_ROOT . $logo_path;
+      // Check logo fallback.
+      if (!empty($header_logo)) {
+        $variables['content']['site_logo']['#uri'] = $header_logo;
+      }
+      elseif (file_exists($logo_absolute_path . $langcode . '.svg')) {
+        $variables['content']['site_logo']['#uri'] = $logo_path . $langcode . '.svg';
+      }
+      elseif (file_exists($logo_absolute_path . '.svg')) {
+        $variables['content']['site_logo']['#uri'] = $logo_path . '.svg';
+      }
+      // Set image Alt based on current brand.
+      $variables['content']['site_logo']['#alt'] = $super_category->label();
+      $variables['content']['site_name']['#markup'] = $meta_title;
+      // Set the site path to brand page.
+      if ($parent->id() != alshaya_super_category_get_default_term()) {
+        $variables['content']['site_path']['#markup'] = $super_category->toUrl()->toString();
+      }
+      break;
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_block_alter().
+ */
+function alshaya_super_category_theme_suggestions_block_alter(array &$suggestions, array $variables) {
+  switch ($variables['elements']['#base_plugin_id']) {
+    case 'system_branding_block':
+      // Check super category feature status.
+      if (!\Drupal::config('alshaya_super_category.settings')->get('status')) {
+        return;
+      }
+
+      /** @var \Drupal\alshaya_acm_product_category\ProductCategoryTree $product_category_tree */
+      $product_category_tree = \Drupal::service('alshaya_acm_product_category.product_category_tree');
+      $term = $product_category_tree->getCategoryTermFromRoute();
+
+      if ($term instanceof TermInterface) {
+        $root_terms = $product_category_tree->getCategoryRootTerms();
+        if (in_array($term->id(), array_keys($root_terms))) {
+          $suggestions[] = "block__system_branding__home_block";
+        }
+      }
+      break;
+  }
+}
+
+/**
+ * Implements hook_block_build_alter().
+ */
+function alshaya_super_category_block_build_alter(array &$build, BlockPluginInterface $block) {
+  $config = \Drupal::config('alshaya_super_category.settings');
+
+  if (!$config->get('status')) {
+    return;
+  }
+
+  $blocks = array_merge([
+    'system_branding_block',
+    'alshaya_main_menu',
+    'alshaya_shop_by_block',
+  ],
+  // Prepare plugin id array based on configured 'footer menu blocks".
+  array_map(fn($derivative) => "system_menu_block:$derivative", $config->get('footer_menu_blocks')));
+
+  // Get the list of blocks that are used as promo panel.
+  if (\Drupal::moduleHandler()->moduleExists('alshaya_promo_panel')) {
+    $promo_panel_blocks = alshaya_promo_panel_blocks_get_plugin_ids();
+    $blocks = array_merge($blocks, array_keys($promo_panel_blocks));
+  }
+
+  if (!in_array($block->getPluginId(), $blocks)) {
+    return;
+  }
+
+  $build['#cache']['contexts'][] = 'url.path';
+  $build['#cache']['contexts'][] = 'url.query_args:brand';
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter().
+ */
+function alshaya_super_category_form_menu_link_content_form_alter(array &$form, FormStateInterface $form_state, $form_id) {
+  // Get entity from form state object.
+  $menu_link = $form_state->getFormObject()->getEntity();
+
+  // Check if the current form is menu link form of configured menu types.
+  if (!$menu_link instanceof MenuLinkContent) {
+    return;
+  }
+
+  // Get the settings of super category feature.
+  $config = \Drupal::config('alshaya_super_category.settings');
+  // We don't do anything if the super-category feature is disabled or if the
+  // menu is not listed in super-category config.
+  if (!$config->get('status') || !in_array($menu_link->getMenuName(), $config->get('footer_menu_blocks'))) {
+    return;
+  }
+
+  /** @var \Drupal\alshaya_acm_product_category\ProductCategoryTree $product_category_tree */
+  $product_category_tree = \Drupal::service('alshaya_acm_product_category.product_category_tree');
+  $terms = $product_category_tree->getCategoryRootTerms();
+  // Create option array of root terms.
+  foreach ($terms as $term) {
+    $options[$term['id']] = $term['label'];
+  }
+
+  $menu_link_options = $menu_link->link->first()->options ?: [];
+  // Form to select root terms.
+  $form['categories'] = [
+    '#type' => 'checkboxes',
+    '#title' => t('Categories'),
+    '#description' => t('Please select categories for which you want to show this menu item.'),
+    '#options' => $options,
+    '#default_value' => !empty($menu_link_options['categories']) ? $menu_link_options['categories'] : [],
+    '#required' => TRUE,
+  ];
+
+  // Form submit handler.
+  $form['actions']['submit']['#submit'][] = 'alshaya_super_category_menu_link_content_form_submit';
+}
+
+/**
+ * Submit function for menu add / edit form to save category root term.
+ */
+function alshaya_super_category_menu_link_content_form_submit($form, FormStateInterface $form_state) {
+  /** @var \Drupal\menu_link_content\Form\MenuLinkContentForm $menu_link */
+  $menu_link = $form_state->getFormObject()->getEntity();
+
+  if (!$menu_link->link) {
+    return;
+  }
+
+  // Load previous link options coming from menu_link_attributes.
+  $menu_link_options = $menu_link->link->first()->options ?: [];
+  if (!empty($form_state->getValue('categories'))) {
+    $menu_link_options['categories'] = $form_state->getValue('categories');
+  }
+
+  if (!empty($menu_link_options['categories'])) {
+    $menu_link->link->first()->options = $menu_link_options;
+    $menu_link->save();
+  }
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter().
+ *
+ * Append categories name to menu title when super category feature is enabled.
+ */
+function alshaya_super_category_form_menu_edit_form_alter(array &$form, FormStateInterface $form_state, $form_id) {
+  // Get entity from form state object.
+  $menu_object = $form_state->getFormObject()->getEntity();
+  // Do not proceed if menu object is empty.
+  if (!$menu_object instanceof Menu) {
+    return;
+  }
+
+  // Get the settings of super category feature.
+  $config = \Drupal::config('alshaya_super_category.settings');
+  // We don't do anything if the super-category feature is disabled or if the
+  // menu is not listed in super-category config.
+  if (!$config->get('status') || !in_array($menu_object->id(), $config->get('footer_menu_blocks'))) {
+    return;
+  }
+
+  if (!empty($form['links']['links'])) {
+    // Get only menu links from child elements.
+    $filtered_links = array_filter($form['links']['links'], fn($key) => str_contains($key, 'menu_plugin_id:menu_link_content'), ARRAY_FILTER_USE_KEY);
+
+    // Get term storage.
+    $term_storage = $terms = \Drupal::service('entity_type.manager')->getStorage('taxonomy_term');
+
+    // Loop through each menu links.
+    foreach ($filtered_links as $id => $link) {
+      if (empty($link['#item']->link->getOptions()['categories'])) {
+        continue;
+      }
+
+      // Filter out selected categories.
+      $categories = array_filter($link['#item']->link->getOptions()['categories']);
+
+      if (!empty($categories)) {
+        // Load all the terms from term ids.
+        $terms = $term_storage->loadMultiple($categories);
+        // Get the label of each terms.
+        $names = array_map(fn($term) => $term->label(), $terms);
+        // Append categories name to menu title.
+        $form['links']['links'][$id]['title'][1]['#title'] .= ' (' . implode(', ', $names) . ')';
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_product_category_parent_alter().
+ */
+function alshaya_super_category_product_category_parent_alter(&$parent_id, &$context) {
+  // Load category top level menu settings.
+  $config = \Drupal::config('alshaya_super_category.settings');
+  if (!$config->get('status')) {
+    return;
+  }
+
+  // Set the default parent from settings.
+  $parent_id = alshaya_super_category_get_default_term();
+
+  // Use this to know that depth changed, means super category feature enabled.
+  $context['depth_offset'] = 1;
+
+  // Get the term id from the current path, and display only the related
+  // second level child terms.
+  if ($context['term'] instanceof TermInterface
+      && $parent = \Drupal::service('alshaya_acm_product_category.product_category_tree')->getCategoryTermRootParent($context['term'])) {
+    // Get the top level parent id if parent exists.
+    $parent_id = $parent['id'];
+  }
+}
+
+/**
+ * Implements hook_pathauto_alias_alter().
+ *
+ * Update url alias for product node based on super category feature status.
+ */
+function alshaya_super_category_pathauto_alias_alter(&$alias, array $context) {
+  $super_category = \Drupal::config('alshaya_super_category.settings');
+  if (!$super_category->get('status')) {
+    return;
+  }
+
+  if ($context['module'] == 'node' && $context['bundle'] == 'acq_product' && $super_category->get('product_path_alter')) {
+    // Get the node object.
+    $node = $context['data']['node'];
+
+    // Do not proceed if not node object, Or missing category.
+    if (!$node instanceof NodeInterface || empty($node->get('field_category')->get(0))) {
+      return;
+    }
+
+    // Get the category field of the node to generate path alias.
+    $term = $node->get('field_category')->get(0)->entity;
+    // Get the translations of the term based on the current lang code.
+    if ($term instanceof TermInterface && $context['language'] !== 'en'
+      && $term->hasTranslation($context['language'])) {
+      $term = $term->getTranslation($context['language']);
+    }
+
+    // Get parent term object of given term.
+    /** @var \Drupal\alshaya_super_category\ProductSuperCategoryTree $product_category_tree */
+    $product_category_tree = \Drupal::service('alshaya_acm_product_category.product_category_tree');
+    $parent = $product_category_tree->getCategoryTermRootParent($term);
+
+    if (empty($parent)) {
+      return;
+    }
+
+    // Get term alias to append with node alias.
+    $term_alias = \Drupal::service('path_alias.manager')->getAliasByPath(
+      '/taxonomy/term/' . $parent['id'],
+      $context['language']
+    );
+
+    // Check if the pattern is already set with the alias.
+    // In case of 'arabic', alias is generating in wrong(reverse) pattern, so
+    // this needs to be handled for language specific for now. In case of
+    // arabic as discussed, assumption is that user will add only in arabic
+    // or numbers (no english).
+    if ($context['language'] == 'ar') {
+      $term_has_no_en = (bool) !preg_match("/([a-z])/iu", $term_alias);
+      $alias_has_no_en = (bool) !preg_match("/([a-z])/iu", $alias);
+
+      // If both term alias and node alias have nothing in EN we revert the
+      // pattern.
+      if ($term_has_no_en && $alias_has_no_en) {
+        $alias = $alias . $term_alias;
+      }
+      else {
+        $alias = $term_alias . $alias;
+      }
+    }
+    else {
+      $alias = $term_alias . $alias;
+    }
+  }
+  elseif ($context['module'] == 'taxonomy' && $context['bundle'] == ProductCategoryTree::VOCABULARY_ID) {
+    $array = explode('/', trim($alias, '/'));
+    // Do not add shop- to super categories.
+    if (isset($array[1])) {
+      $array[1] = 'shop-' . $array[1];
+    }
+
+    // For all the category terms we want shop- prefix for L1 only.
+    // We do not want it to be added to super category so we do it for
+    // second one.
+    $alias = '/' . implode('/', $array);
+  }
+}
+
+/**
+ * Hide super category visibility settings, if feature is not enabled.
+ *
+ * Implements hook_form_FORM_ID_alter().
+ */
+function alshaya_super_category_form_block_form_alter(array &$form, FormStateInterface $form_state, $form_id) {
+  if (!\Drupal::config('alshaya_super_category.settings')->get('status')) {
+    unset($form['visibility']['alshaya_super_category']);
+  }
+}
+
+/**
+ * Implements hook_views_pre_view().
+ */
+function alshaya_super_category_views_pre_view(ViewExecutable $view, $display_id, array &$args) {
+  if ($view->id() == 'product_category_level_3' && $display_id == 'entity_reference_1') {
+    // Check super category feature status.
+    if (!\Drupal::config('alshaya_super_category.settings')->get('status')) {
+      return;
+    }
+
+    // When super category feature is enabled, we want to allow creation of
+    // page for both super-categories and second level too.
+    $handler = $view->getHandler($display_id, 'filter', 'depth_level');
+    $handler['operator'] = '<=';
+    $handler['value']['value'] = 2;
+    $view->setHandler($display_id, 'filter', 'depth_level', $handler);
+  }
+}
+
+/**
+ * Implements hook_search_api_solr_query_alter().
+ *
+ * Alter solr query to boost result related to current super category.
+ */
+function alshaya_super_category_search_api_solr_query_alter(SolariumQueryInterface $solarium_query, SearchApiQueryInterface $query) {
+  $super_category = \Drupal::configFactory()->get('alshaya_super_category.settings');
+  if (!$super_category->get('status')) {
+    return;
+  }
+
+  $index = $query->getIndex();
+  $fields = $index->getServerInstance()->getBackend()->getSolrFieldNames($index);
+  $solr_field = !empty($fields['field_category']) ? $fields['field_category'] : '';
+  if ($solr_field) {
+    $term = \Drupal::service('alshaya_acm_product_category.product_category_tree')->getCategoryTermRequired();
+    $solarium_query->addParam('bq', "{$solr_field}:{$term['id']}^" . $super_category->get('solr_boost'));
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Add hidden field to pass current super category to query string.
+ */
+function alshaya_super_category_form_views_exposed_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  if ($form_id == 'views_exposed_form') {
+    $status = \Drupal::configFactory()->get('alshaya_super_category.settings')->get('status');
+    if (!$status) {
+      return;
+    }
+
+    $view = $form_state->get('view');
+    if (!$view instanceof ViewExecutable || substr($view->storage->get('base_table'), 0, 17) != 'search_api_index_') {
+      return;
+    }
+
+    $term = \Drupal::service('alshaya_acm_product_category.product_category_tree')->getCategoryTermRequired();
+
+    if (is_array($term)) {
+
+      $form['brand'] = [
+        '#type' => 'hidden',
+        '#value' => $term['id'],
+      ];
+
+      $lang = \Drupal::languageManager()->getCurrentLanguage()->getId();
+      $path = str_replace("/$lang/", '', urldecode($term['path']));
+
+      if (!str_contains($path, 'taxonomy')) {
+        $form['brand']['#value'] = ($lang == 'ar') ? urldecode($path) : $path;
+      }
+    }
+
+    $form['#cache']['contexts'][] = 'url.path';
+    $form['#cache']['contexts'][] = 'url.query_args';
+  }
+}
+
+/**
+ * Implements hook_facets_query_string_alter().
+ */
+function alshaya_super_category_facets_query_string_alter(ParameterBag $result_get_params, array &$filter_params, array &$context) {
+  static $status;
+
+  if (!isset($status)) {
+    $status = (bool) \Drupal::config('alshaya_super_category.settings')->get('status');
+  }
+
+  // For super category, L2 becomes L1 (as L1 are super categories), so we need
+  // to adjust the parents for the category facet.
+  if ($status) {
+    $context['facet_count'] = 1;
+    $context['parent_id_count'] = 1;
+  }
+}
+
+/**
+ * Helper function to use fallback tid, when term is not set.
+ *
+ * @param string $langcode
+ *   (optional) The language code.
+ *
+ * @return int
+ *   return term id.
+ */
+function alshaya_super_category_get_default_term($langcode = NULL) {
+  $tid = \Drupal::configFactory()->get('alshaya_super_category.settings')->get('default_category_tid');
+  if (empty($tid)) {
+    $terms = \Drupal::service('alshaya_acm_product_category.product_category_tree')->getCategoryRootTerms($langcode);
+    $tid = key($terms);
+  }
+  return $tid;
+}
+
+/**
+ * Implements hook_block_access().
+ */
+function alshaya_super_category_block_access(Block $block, $operation, AccountInterface $account) {
+  if ($operation != 'view'
+    || !in_array(
+      $block->getPluginId(),
+      ['system_breadcrumb_block', 'page_title_block']
+    )
+  ) {
+    return;
+  }
+
+  $config = \Drupal::config('alshaya_super_category.settings');
+  // Check super category feature status.
+  if (!$config->get('status')) {
+    return;
+  }
+
+  $route = \Drupal::routeMatch();
+  if ($route->getRouteName() != 'entity.node.canonical') {
+    return;
+  }
+
+  /** @var \Drupal\node\Entity\Node $node */
+  $node = $route->getParameter('node');
+  if ($node->bundle() == 'advanced_page' && $node->get('field_use_as_department_page')->value == 1) {
+    /** @var \Drupal\alshaya_acm_product_category\ProductCategoryTree $product_category_tree */
+    $terms = \Drupal::service('alshaya_acm_product_category.product_category_tree')->getCategoryRootTerms();
+
+    $category_id = NULL;
+    if ($category = $node->get('field_product_category')->getValue()) {
+      $category_id = array_column($category, 'target_id')[0];
+    }
+
+    return AccessResult::forbiddenIf(!empty($category_id) && in_array($category_id, array_keys($terms)));
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function alshaya_super_category_form_taxonomy_term_acq_product_category_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  // Only for the term edit page.
+  if (isset($form['tid']) && !empty($form['tid']['#value'])) {
+    if (!\Drupal::config('alshaya_super_category.settings')->get('status')) {
+      // Hide the super category logo fields if the feature is not enabled.
+      $form['field_logo_active_image']['#access'] = FALSE;
+      $form['field_logo_inactive_image']['#access'] = FALSE;
+      $form['field_logo_header_image']['#access'] = FALSE;
+      return;
+    }
+    $termDepth = taxonomy_term_depth_get_by_tid($form['tid']['#value']);
+    if ($termDepth != 1) {
+      // Hide the super category logo fields since it is not required for
+      // children categories.
+      $form['field_logo_active_image']['#access'] = FALSE;
+      $form['field_logo_inactive_image']['#access'] = FALSE;
+      $form['field_logo_header_image']['#access'] = FALSE;
+    }
+
+    if ($term = Term::load($form['tid']['#value'])) {
+      // Display highlight field only for level 2 term.
+      $form['field_main_menu_highlight']['#access'] = ($term->get('depth_level')->getString() == 2) ? TRUE : FALSE;
+    }
+  }
+}
+
+/**
+ * Implements hook_language_switch_links_alter().
+ */
+function alshaya_super_category_language_switch_links_alter(array &$links, $type, Url $url) {
+  $request = \Drupal::requestStack()->getCurrentRequest();
+
+  if ($request->get('_route') == 'view.search.page') {
+    if (($keywords = $request->query->get('keywords')) && !is_numeric($keywords)) {
+      return;
+    }
+
+    if (($brand = $request->query->get('brand'))) {
+      if (is_numeric($brand)) {
+        $brand = '';
+        $request->query->set('brand', '');
+      }
+      else {
+        try {
+          $params = Url::fromUserInput("/$brand")->getRouteParameters();
+          if (!empty($params['taxonomy_term'])) {
+            $brand = $params['taxonomy_term'];
+          }
+        }
+        catch (\Exception) {
+          // Ignore the value, someone is simply trying to mess up with system
+          // using random value in GET.
+          $brand = '';
+          $request->query->set('brand', '');
+        }
+      }
+    }
+
+    if (!empty($brand)) {
+      foreach ($links as $lang => $url_object) {
+        // Get term alias to replace it for brand query.
+        $alias = \Drupal::service('path_alias.manager')
+          ->getAliasByPath('/taxonomy/term/' . $brand, $lang);
+        // Decode url string of encoded value. (arabic strings are encoded).
+        $alias = str_replace("/", '', urldecode($alias));
+
+        if (!empty($links[$lang]['query']['brand'])) {
+          $links[$lang]['query']['brand'] = $alias;
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_html().
+ */
+function alshaya_super_category_preprocess_html(&$variables) {
+  if (!\Drupal::config('alshaya_super_category.settings')->get('status')) {
+    return;
+  }
+
+  /** @var \Drupal\Core\Routing\AdminContext $admin_context */
+  $admin_context = \Drupal::service('router.admin_context');
+  // Process super category related stuff only for non admin routes.
+  if (!$admin_context->isAdminRoute()) {
+    /** @var \Drupal\alshaya_acm_product_category\ProductCategoryTreeInterface $product_category_tree */
+    $product_category_tree = \Drupal::service('alshaya_acm_product_category.product_category_tree');
+    // Get the super category term.
+    $term = $product_category_tree->getCategoryTermRequired();
+    // If current language is not english, then we need to get the
+    // english version/name of the super category term.
+    if (!empty($term)
+      && \Drupal::languageManager()->getCurrentLanguage()->getId() != 'en'
+      && !empty($term_object = Term::load($term['id']))) {
+      $term_object = \Drupal::service('entity.repository')->getTranslationFromContext($term_object, 'en');
+      $term_label = $term_object->getName();
+    }
+    else {
+      $term_label = $term['label'] ?? '';
+    }
+
+    if (!empty($term)) {
+      $variables['attributes']['class'][] = strtolower(Html::cleanCssIdentifier('super-category-' . $term_label));
+    }
+  }
+}
+
+/**
+ * Implements hook_alshaya_search_query_param_alter().
+ */
+function alshaya_super_category_alshaya_search_query_param_alter(&$query, FormStateInterface $form_state, $redirect_lang) {
+  if (!\Drupal::config('alshaya_super_category.settings')->get('status')) {
+    return;
+  }
+
+  $brand = $form_state->getValue('brand');
+  if (!is_numeric($brand)) {
+    $params = Url::fromUserInput("/$brand")->getRouteParameters();
+    if (!empty($params['taxonomy_term'])) {
+      $brand = $params['taxonomy_term'];
+    }
+  }
+
+  // Get brand path in given language to redirect.
+  $alias = \Drupal::service('path_alias.manager')->getAliasByPath('/taxonomy/term/' . $brand, $redirect_lang->getId());
+  // Decode url string of encoded value. (arabic strings are encoded).
+  if ($brand = str_replace("/", '', urldecode($alias))) {
+    $query['brand'] = $brand;
+  }
+}
+
+/**
+ * Get super category for a given the term.
+ *
+ * @param \Drupal\taxonomy\TermInterface|null $term
+ *   The term object.
+ * @param string|null $langcode
+ *   The language code.
+ *
+ * @return \Drupal\Core\Entity\EntityInterface|null|static
+ *   Super category term.
+ */
+function _alshaya_super_category_get_super_category_for_term(TermInterface $term = NULL, string $langcode = NULL) {
+  if (!empty($super_category = \Drupal::service('alshaya_acm_product_category.product_category_tree')->getCategoryTermRequired($term))) {
+    if (!empty($super_category_term = Term::load($super_category['id']))) {
+      $langcode ??= \Drupal::languageManager()->getCurrentLanguage()->getId();
+      // We doing this as we not getting translated values.
+      return \Drupal::service('entity.repository')->getTranslationFromContext($super_category_term, $langcode);
+    }
+  }
+
+  return NULL;
+}
+
+/**
+ * Implements hook_alshaya_config_save_alter().
+ */
+function alshaya_super_category_alshaya_config_save_alter(array &$data, $config_name) {
+  // Token to replace in title.
+  $token = '[supercategory:meta_title]';
+  $meta_configs = [
+    'metatag.metatag_defaults.node__advanced_page'                 => '[node:title] | ' . $token,
+    'metatag.metatag_defaults.node__acq_promotion'                 => '[node:field_acq_promotion_label] | ' . $token,
+    'metatag.metatag_defaults.taxonomy_term__acq_product_category' => '[alshaya_seo:term_name] | ' . $token . ' [alshaya_seo:country]',
+  ];
+
+  // Only for the meta tag configs.
+  if (array_key_exists($config_name, $meta_configs)) {
+    // Super category status.
+    $super_category_feature_enabled = \Drupal::config('alshaya_super_category.settings')->get('status');
+    // If super category feature is enabled.
+    if ($super_category_feature_enabled) {
+      // Just replace the title.
+      $data['tags']['title'] = $meta_configs[$config_name];
+      $data['tags']['og_title'] = $meta_configs[$config_name];
+    }
+  }
+}
+
+/**
+ * Implements hook_views_query_alter().
+ */
+function alshaya_super_category_views_query_alter(ViewExecutable $view, QueryPluginBase $query) {
+  $super_category_feature_enabled = \Drupal::config('alshaya_super_category.settings')->get('status');
+
+  if ($super_category_feature_enabled
+    && $view->id() == 'product_category_level_2_3'
+    && $view->current_display == 'block_2') {
+    foreach ($query->where as &$condition_group) {
+      foreach ($condition_group['conditions'] as &$condition) {
+        // If depth level condition, then update it as with super category
+        // feature, we have this applicable at level 3 only.
+        if ($condition['field'] == 'taxonomy_term_field_data.depth_level') {
+          $condition['value'] += 1;
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_gtm_product_attributes_alter().
+ */
+function alshaya_super_category_gtm_product_attributes_alter($product, array &$attributes) {
+  $super_category_feature_enabled = \Drupal::config('alshaya_super_category.settings')->get('status');
+
+  // If super category feature is enabled and brand attribute is enabled.
+  if ($super_category_feature_enabled && !empty($attributes['gtm-brand'])) {
+    $super_category = \Drupal::service('alshaya_acm_product_category.product_category_tree')->getCategoryTermRequired(NULL, 'en');
+    if (!empty($super_category)) {
+      $attributes['gtm-brand'] = $super_category['label'];
+    }
+  }
+}
+
+/**
+ * Implements hook_alshaya_seo_brandname_alter().
+ */
+function alshaya_super_category_alshaya_seo_brandname_alter(&$brand_name) {
+  // If super category feature is enabled.
+  if (\Drupal::config('alshaya_super_category.settings')->get('status')) {
+    $super_category = \Drupal::service('alshaya_acm_product_category.product_category_tree')->getCategoryTermRequired();
+    if (!empty($super_category) && (strcmp($brand_name, $super_category['label']) != 0)) {
+      $brand_name = $brand_name . ' ' . $super_category['label'];
+    }
+  }
+}
+
+/**
+ * Implements hook_modules_installed().
+ */
+function alshaya_super_category_modules_installed(array $modules) {
+  // Add super_category as attribute for faceting if super category is enabled
+  // and once the Algolia modules are installed.
+  if (\Drupal::config('alshaya_super_category.settings')->get('status')
+    && in_array('alshaya_algolia_react', $modules)) {
+    $index_helper = \Drupal::service('alshaya_search_algolia.index_helper');
+    try {
+      $index_helper->addCustomFacetToIndex(AlshayaSuperCategoryManager::SEARCH_FACET_NAME);
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('alshaya_super_category')
+        ->error('Error while trying to add facet to index after enabling Algolia. Error: @message', [
+          '@message' => $e->getMessage(),
+        ]);
+    }
+  }
+}

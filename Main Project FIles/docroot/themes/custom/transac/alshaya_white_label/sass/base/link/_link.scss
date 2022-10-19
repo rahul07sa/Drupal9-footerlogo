@@ -1,0 +1,12 @@
+a {
+  text-decoration: none;
+}
+
+.field--name-field-button-link button,
+.field--name-field-button-link a {
+  &:hover {
+    @include breakpoint($desktop) {
+      opacity: 0.75;
+    }
+  }
+}

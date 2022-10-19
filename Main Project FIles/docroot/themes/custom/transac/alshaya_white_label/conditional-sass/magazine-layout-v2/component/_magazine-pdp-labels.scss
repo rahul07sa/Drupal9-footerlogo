@@ -1,0 +1,22 @@
+.nodetype--acq_product {
+  .magv2-main .magv2-content {
+    position: relative;
+  }
+
+  .magv2-pdp-image {
+    @include breakpoint($only-mobile) {
+      position: relative;
+    }
+  }
+}
+
+.labels-wrapper {
+  > .labels-container {
+    &.top-left,
+    &.top-right {
+      @include breakpoint($only-mobile) {
+        top: 5.375rem !important;
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+#
+# robots-dev.txt
+#
+# This file is to prevent the crawling and indexing of any urls.
+#
+
+# Directories
+User-agent: *
+Disallow: /

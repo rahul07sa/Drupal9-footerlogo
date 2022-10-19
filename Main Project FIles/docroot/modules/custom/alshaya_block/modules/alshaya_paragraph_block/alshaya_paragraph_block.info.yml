@@ -1,0 +1,16 @@
+name: 'Alshaya Paragraph Block'
+description: 'Custom Block content type in which you can create paragraphs.'
+type: module
+core: 8.x
+core_version_requirement: ^8 || ^9
+dependencies:
+  - alshaya_paragraphs:alshaya_paragraphs
+  - drupal:block_content
+  - drupal:content_translation
+  - entity_reference_revisions:entity_reference_revisions
+  - drupal:field
+  - drupal:language
+  - machine_name_widget:machine_name_widget
+  - paragraphs:paragraphs
+  - drupal:text
+package: Alshaya

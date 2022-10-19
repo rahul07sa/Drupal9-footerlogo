@@ -1,0 +1,80 @@
+body.wishlist-enabled {
+  #wishlist-header-wrapper {
+    @include breakpoint($only-mobile) {
+      top: 1.125rem;
+    }
+
+    @include breakpoint($only-tablet) {
+      top: 0.75rem;
+    }
+  }
+
+  @include breakpoint($only-mobile) {
+    &.sub-brand-logo {
+      #wishlist-header-wrapper {
+        top: 4.65rem;
+        #{$right}: 9rem;
+      }
+
+      .wishlist-header {
+        padding-#{$right}: 0;
+      }
+
+      .wishlist-notification {
+        #{$right}: -6rem;
+      }
+
+      &.frontpage {
+        #wishlist-header-wrapper {
+          #{$right}: calc(50% - 2.5%);
+          z-index: 5;
+
+          .wishlist-notification {
+            #{$right}: -9rem;
+          }
+        }
+      }
+
+      &:not(.frontpage):not(.super-category-enabled) {
+        #wishlist-header-wrapper {
+          #{$right}: rem(128);
+        }
+      }
+    }
+  }
+
+  .wishlist-icon {
+    background-size: 104%;
+    background-position: center;
+  }
+
+  #wishlist-header-wrapper {
+    .wishlist-header {
+      padding-bottom: 0;
+    }
+  }
+
+  header {
+    .region__header {
+      .block-alshaya-react-mini-cart {
+        @include breakpoint($desktop) {
+          height: rem(24);
+        }
+      }
+    }
+  }
+
+  .filter-fixed-top {
+    .sticky-filter-wrapper {
+      .wishlist-minicart-sticky-wrapper {
+        #static-minicart-section {
+          height: rem(24);
+
+          @include breakpoint($upto-desktop) {
+            margin-top: rem(12);
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+.c-products__item {
+  .label {
+    &.bottom-right,
+    &.bottom-left {
+      @include breakpoint($tablet) {
+        bottom: 0;
+      }
+    }
+  }
+}
+
+.mobilegallery {
+  .labels-container {
+    .label {
+      &.bottom-left,
+      &.bottom-right {
+        bottom: 1rem;
+      }
+    }
+  }
+}

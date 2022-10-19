@@ -1,0 +1,30 @@
+/* Display image bellow Drupal overlay.*/
+.cloudzoom #wrap {
+  z-index: 99 !important;
+  position: relative;
+}
+
+.cloudzoom #cloud-zoom-big {
+  width: 319px !important;
+  height: 319px !important;
+}
+
+.cloudzoom .cloud-zoom-lens {
+  width: 212px !important;
+  height: 212px !important;
+  background-color: rgba(253, 253, 253, 0.44) !important;
+  border: 1px solid #ddd;
+}
+.ui-dialog {
+  z-index: 999;
+  background: #f7f7f7;
+}
+.ui-dialog-title {
+  display: none;
+}
+
+#full-image-wrapper img {
+  transition: transform 1s ease;
+  transform: scale(1);
+  cursor: move;
+}

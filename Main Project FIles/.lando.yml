@@ -1,0 +1,146 @@
+name: alshaya
+recipe: drupal9
+
+config:
+  webroot: 'docroot'
+  xdebug: true
+  php: '8.0'
+
+services:
+  database:
+    app_mount: disabled
+    type: mariadb
+    creds:
+      user: drupal
+      password: drupal
+  appserver:
+    xdebug: true
+    app_mount: delegated
+    ssl: true
+    type: php:8.0
+    composer_version: 2-latest
+    build_as_root:
+      - apt-get update -y
+      - bash /app/.lando/scripts/configure-syslog.sh
+      - bash /app/.lando/scripts/configure-xhprof.sh
+      - apt-get install netcat -y
+      - apt-get install vim -y
+      - curl -sL https://deb.nodesource.com/setup_14.x | bash -
+      - apt install nodejs -y
+      - npm install -g gulp-cli
+    run_as_root:
+      # By default disable XDEBUG, we need it enabled to ensure all configurations are loaded.
+      # Post this to enable disable lando xdebug-on and lando xdebug-off can be used.
+      - rm /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini && service apache2 reload
+      - chown www-data:www-data /run/host-services/ssh-auth.sock
+      - chmod g+w /run/host-services/ssh-auth.sock
+    overrides:
+      environment:
+        PHP_IDE_CONFIG: "serverName=alshaya"
+        SSH_AUTH_SOCK: /run/host-services/ssh-auth.sock
+      # Pass SSH keys.
+      volumes:
+        - type: bind
+          # Linux user: add 'export LANDO_SSH_AUTH_SOCK="${SSH_AUTH_SOCK}"' at the end of your ~/.bashrc:
+          # Mac user: MacOS specific path is here as the variable default value, nothing to do.
+          source: "${LANDO_SSH_AUTH_SOCK:-/run/host-services/ssh-auth.sock}"
+          target: /run/host-services/ssh-auth.sock
+#  Uncomment following lines and lines in proxy to test with Varnish.
+#  For most of the time we don't need it in local so kept commented.
+#  edge:
+#    app_mount: disabled
+#    type: varnish:4.1
+#    scanner: false
+#    backends:
+#      - appserver
+#    ssl: true
+#    config:
+#      vcl: architecture/varnish/varnish-4-lando.vcl
+  memcache:
+    app_mount: disabled
+    type: memcached:1.5.11
+    mem: 64
+  pma:
+    app_mount: disabled
+    scanner: false
+    type: phpmyadmin
+    hosts:
+      - database
+  mailhog:
+    app_mount: disabled
+    scanner: false
+    type: mailhog:v1.0.0
+    portforward: false
+    hogfrom:
+      - appserver
+
+proxy:
+#  edge:
+#    - "*.varnish.alshaya.lndo.site"
+  appserver:
+    - "*.alshaya.lndo.site"
+  pma:
+    - "pma-alshaya.lndo.site"
+  mailhog:
+    - "mail-alshaya.lndo.site"
+
+tooling:
+  blt:
+    service: appserver
+    cmd: /app/vendor/acquia/blt/bin/blt
+  npm:
+    service: appserver
+    cmd: npm
+  node:
+    service: appserver
+    cmd: node
+  gulp:
+    service: appserver
+    cmd: gulp
+  xdebug-on:
+    service: appserver
+    description: Enable xdebug for Apache.
+    cmd: docker-php-ext-enable xdebug && service apache2 reload
+    user: root
+  xdebug-off:
+    service: appserver
+    description: Disable xdebug for Apache.
+    cmd: rm /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini && service apache2 reload
+    user: root
+  behat-build:
+    description: build pre-requisites for behat testing.
+    cmd:
+      - appserver: cd /app/behat_rework && composer install
+      - appserver: cd /app/behat_rework/bin && npm install
+      - appserver: cd /app/behat_rework/ && ./behat-build.sh --rebuild=TRUE
+  behat-run:
+    description: runs behat tests
+    service: appserver
+    cmd: cd /app/behat_rework && ./bin/behat -vvv -c behat-lando.yml --format pretty
+  logs-drupal:
+    service: appserver
+    description: Displays and tails Drupal logs using syslog module (because drush wd-show no longer supports tail)
+    cmd:
+      - /app/.lando/scripts/logs-drupal.sh
+    user: root
+  ssh-fix:
+    service: appserver
+    description: Fix ssh auth sock permission for MacOS users. Lando rebuild fixes the problem as well.
+    cmd: "/bin/chgrp www-data /run/host-services/ssh-auth.sock && /bin/chmod g+w /run/host-services/ssh-auth.sock"
+    user: root
+  create-databases:
+    service: appserver
+    description: Create database for all the supported sites.
+    cmd: "bash /app/.lando/scripts/provision/database.sh"
+
+# Exclude those directories which we write a lot on server.
+# Content of these directories are usually not required by dev.
+excludes:
+  - docroot/sites/g/files
+  - docroot/middleware/var
+  - docroot/appointment/var
+  - files-private
+
+events:
+  post-start:
+    - appserver: test -e ~/.ssh/config || printf 'Host *\n  AddKeysToAgent yes\n' > ~/.ssh/config

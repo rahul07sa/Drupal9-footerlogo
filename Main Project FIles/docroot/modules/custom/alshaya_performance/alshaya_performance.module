@@ -1,0 +1,277 @@
+<?php
+
+/**
+ * @file
+ * Module file.
+ */
+
+use Drupal\alshaya_performance\Logger\AlshayaPerformanceSysLog;
+use Drupal\alshaya_performance\Plugin\QueueWorker\InvalidateCacheTags;
+use Drupal\alshaya_performance\Plugin\QueueWorker\InvalidateCacheTagsOnPriority;
+use Drupal\Core\Asset\AttachedAssetsInterface;
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Site\Settings;
+
+/**
+ * Implements hook_views_plugins_cache_alter().
+ */
+function alshaya_performance_views_plugins_cache_alter(array &$plugins) {
+  // Use custom alshaya cache plugin to avoid adding list cache tag.
+  if (isset($plugins['tag']) && isset($plugins['alshaya_tag'])) {
+    $plugins['tag']['class'] = $plugins['alshaya_tag']['class'];
+  }
+
+  if (isset($plugins['search_api_tag']) && isset($plugins['alshaya_search_api_tag'])) {
+    $plugins['search_api_tag']['class'] = $plugins['alshaya_search_api_tag']['class'];
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_view_alter().
+ */
+function alshaya_performance_node_view_alter(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display) {
+  $build['#cache']['tags'][] = 'node_type:' . $entity->bundle();
+}
+
+/**
+ * Wrapper function to queue cache tag for invalidation.
+ *
+ * @param string $tag
+ *   Tag to queue for invalidation.
+ */
+function _alshaya_performance_queue_cache_tag_for_invalidation(string $tag) {
+  /** @var \Drupal\Core\Queue\QueueInterface $queue */
+  static $queue;
+
+  // Invalidating product category cache on priority.
+  if ($tag == 'taxonomy_term:acq_product_category') {
+    $priority_queue = \Drupal::service('queue')->get(InvalidateCacheTagsOnPriority::QUEUE_NAME);
+    $priority_queue->createItem($tag);
+    return;
+  }
+
+  if (empty($queue)) {
+    $queue = \Drupal::service('queue')->get(InvalidateCacheTags::QUEUE_NAME);
+  }
+
+  $queue->createItem($tag);
+}
+
+/**
+ * Queue cache tags for invalidation based on entity and operation.
+ *
+ * @param \Drupal\Core\Entity\EntityInterface $entity
+ *   Entity on which CRUD operation is performed.
+ * @param string $operation
+ *   CRUD operation performed.
+ */
+function _alshaya_performance_process_entity_operation(EntityInterface $entity, string $operation) {
+  switch ($entity->getEntityTypeId()) {
+    case 'node':
+      // We can refactor later to use same as other types.
+      // For now continuing with what is already in use.
+      _alshaya_performance_queue_cache_tag_for_invalidation('node_type:' . $entity->bundle());
+      break;
+
+    case 'taxonomy_term':
+      // Used in ProductCategoryTree::getSubCategories().
+      if ($operation === 'insert') {
+        _alshaya_performance_queue_cache_tag_for_invalidation($entity->getEntityTypeId() . ':' . $entity->bundle() . ':' . 'new');
+      }
+
+      // One of the use case: address book area list.
+      _alshaya_performance_queue_cache_tag_for_invalidation($entity->getEntityTypeId() . ':' . $entity->bundle());
+      break;
+  }
+}
+
+/**
+ * Implements hook_entity_insert().
+ */
+function alshaya_performance_entity_insert(EntityInterface $entity) {
+  _alshaya_performance_process_entity_operation($entity, 'insert');
+}
+
+/**
+ * Implements hook_entity_update().
+ */
+function alshaya_performance_entity_update(EntityInterface $entity) {
+  _alshaya_performance_process_entity_operation($entity, 'update');
+}
+
+/**
+ * Implements hook_entity_delete().
+ */
+function alshaya_performance_entity_delete(EntityInterface $entity) {
+  _alshaya_performance_process_entity_operation($entity, 'delete');
+}
+
+/**
+ * Helper function to set log mode from settings.
+ */
+function alshaya_performance_reset_log_mode() {
+  $mode = Settings::get('alshaya_performance_log_mode');
+
+  // By default set it to production mode.
+  if (empty($mode)) {
+    $mode = AlshayaPerformanceSysLog::ALSHAYA_PERFORMANCE_PRODUCTION_MODE;
+  }
+
+  $config = \Drupal::configFactory()->getEditable('alshaya_performance.settings');
+  $config->set('mode', $mode);
+  $config->save();
+}
+
+/**
+ * Lighter version of drupal_flush_all_caches() function.
+ *
+ * This function clears frontend caches (css, js and twig) only.
+ *
+ * @param bool $include_twig
+ *   If TRUE, twig templates will be invalidated.
+ *
+ * @see drupal_flush_all_caches()
+ */
+function alshaya_performance_flush_frontend_caches($include_twig = FALSE) {
+  // Frontend data can remain in the rendered bins, so we need to empty them
+  // as well.
+  Cache::invalidateTags(['rendered']);
+
+  // Frontend data can remain in these bins, so we need to empty them as well.
+  foreach (Cache::getBins() as $cache_backend) {
+    $cache_backend->deleteAll();
+  }
+
+  // Flush asset file caches.
+  \Drupal::service('asset.css.collection_optimizer')->deleteAll();
+  \Drupal::service('asset.js.collection_optimizer')->deleteAll();
+  _drupal_flush_css_js();
+
+  if ($include_twig) {
+    \Drupal::service('twig')->invalidate();
+  }
+}
+
+/**
+ * Implements hook_page_attachments_alter().
+ */
+function alshaya_performance_page_attachments_alter(array &$attachments) {
+  $request = \Drupal::request();
+  // Adding CLS improvement only if enabled and
+  // current route is not an admin route.
+  if (\Drupal::config('alshaya_performance.settings')->get('enable_css_cls')
+    && !\Drupal::service('router.admin_context')->isAdminRoute()) {
+    $attachments['#attached']['library'][] = 'alshaya_performance/improve_cls_css';
+
+    // Attach cls common styles to all pages except checkout.
+    if (stripos($request->getPathInfo(), '/checkout') === FALSE) {
+      $attachments['#attached']['library'][] = 'alshaya_white_label/cls-initial-layout-common';
+    }
+  }
+
+  // No preloads if param present.
+  $preload_param = $request->get('preload');
+  if (isset($preload_param) && $preload_param == 0) {
+    return;
+  }
+
+  $preload = [];
+
+  \Drupal::moduleHandler()->alter('alshaya_performance_preload', $preload);
+  \Drupal::theme()->alter('alshaya_performance_preload', $preload);
+
+  foreach ($preload ?? [] as $index => $item) {
+    // Ensure preload happens as soon as possible.
+    $preload_render = [
+      '#type' => 'html_tag',
+      '#tag' => 'link',
+      '#weight' => -2,
+      '#attributes' => [
+        'rel' => 'preload',
+        'href' => $item['href'],
+        'as' => $item['as'],
+      ],
+    ];
+
+    // Only add `crossorigin` attribute when needed.
+    if (isset($item['crossorigin'])) {
+      $preload_render['#attributes']['crossorigin'] = $item['crossorigin'];
+    }
+
+    // Only add `type` attribute when needed.
+    if (isset($item['type'])) {
+      $preload_render['#attributes']['type'] = $item['type'];
+    }
+
+    $attachments['#attached']['html_head'][$item['href']] = [
+      $preload_render,
+      'alshaya_performance_preload_' . $index,
+    ];
+  }
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function alshaya_performance_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'js_settings_alter') {
+    $group = $implementations['alshaya_performance'];
+    unset($implementations['alshaya_performance']);
+    $implementations['alshaya_performance'] = $group;
+  }
+}
+
+/**
+ * Implements hook_js_settings_alter().
+ */
+function alshaya_performance_js_settings_alter(&$settings, AttachedAssetsInterface $assets) {
+  // Ensure user settings are not set from cacheable requests.
+  $get = \Drupal::request()->query->all();
+  if (isset($get['cacheable'])) {
+    unset($settings['user']);
+  }
+}
+
+/**
+ * Implements hook_js_alter().
+ */
+function alshaya_performance_js_alter(&$javascript, AttachedAssetsInterface $assets) {
+  // Unset external Js for the Performance check up.
+  $external = \Drupal::request()->get('external');
+  if (isset($external) && $external == 0) {
+    foreach ($javascript as $path => $file) {
+      if ($file['type'] === "external") {
+        unset($javascript[$path]);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_css_alter().
+ */
+function alshaya_performance_css_alter(&$css, AttachedAssetsInterface $assets) {
+  // Unset external CSS for the Performance check up.
+  $external = \Drupal::request()->get('external');
+  if (isset($external) && $external == 0) {
+    foreach ($css as $path => $file) {
+      if ($file['type'] === "external") {
+        unset($css[$path]);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_html().
+ */
+function alshaya_performance_preprocess_html(&$variables) {
+  // Adding CLS improvement only if enabled and
+  // current route is not an admin route.
+  if (\Drupal::config('alshaya_performance.settings')->get('enable_css_cls')
+    && !\Drupal::service('router.admin_context')->isAdminRoute()) {
+    $variables['attributes']['class'][] = 'cls-initial-layout';
+  }
+}

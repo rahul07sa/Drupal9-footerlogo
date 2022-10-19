@@ -1,0 +1,210 @@
+.c-facet {
+  a {
+    font-family: $hnm-regular;
+    line-height: 1.83;
+    font-weight: normal;
+  }
+
+  ul[data-drupal-facet-id=category],
+  ul[data-drupal-facet-id=promotion_category_facet],
+  ul[data-drupal-facet-id=plp_category_facet] {
+    a {
+      margin: 0.25rem;
+      text-transform: capitalize;
+      color: $plp_facet_filter;
+    }
+  }
+
+  ul {
+    @include breakpoint($desktop) {
+      padding-top: 0.625rem;
+    }
+
+    input[type="text"] {
+      font-family: $hnm-regular;
+
+      &::placeholder {
+        color: $plp_facet_input_placeholder;
+        opacity: 1;
+      }
+    }
+
+    li {
+      margin-bottom: 1px;
+      min-height: 2.125rem;
+    }
+  }
+
+  label {
+    .facet-item__value {
+      margin-#{$left}: 0.5rem;
+
+      div {
+        @include breakpoint($only-mobile) {
+          display: inline-block;
+        }
+      }
+    }
+
+    .facet-item__count,
+    .facet-item__value {
+      text-transform: capitalize;
+      line-height: 1.57;
+      vertical-align: middle;
+      display: inline-block;
+    }
+
+    .facet-item__count {
+      font-family: $hnm-regular-nodir;
+    }
+  }
+}
+
+.c-facet__label {
+  @include arabic-letter-spacing;
+
+  margin: 0 0.5rem 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: $plp_facet_label;
+
+  @include breakpoint($desktop) {
+    font-family: $hnm-bold;
+    font-weight: normal;
+  }
+
+  .facet-item--expanded {
+    ul {
+      html[lang=ar] & {
+        padding-top: 0;
+      }
+    }
+  }
+}
+
+ul[data-drupal-facet-id=category],
+ul[data-drupal-facet-id=plp_category_facet],
+ul[data-drupal-facet-id=promotion_category_facet] {
+  > .facet-item--expanded {
+    > label {
+      &::before {
+        top: 1rem !important;
+      }
+    }
+  }
+}
+
+.block-facet-blockcategory,
+.block-facet-blockplp-category-facet {
+  .c-accordion__title {
+    @include icon(dropdown-collapse, after);
+  }
+
+  .ui-state-active {
+    @include icon(dropdown-expand, after);
+  }
+}
+
+.c-plp {
+  .block-facet-blockcategory,
+  .block-facet-blockplp-category-facet {
+    .facet-item {
+      input[type=checkbox] ~ label::before {
+        top: 0;
+      }
+    }
+  }
+}
+
+ul[data-drupal-facet-id=plp_category_facet],
+ul[data-drupal-facet-id=promotion_category_facet] {
+  > li {
+    > ul {
+      > li {
+        > label {
+          @include icon(check-box-empty);
+
+          .facet-item__value {
+            margin-#{$left}: 0.5rem;
+          }
+        }
+
+        > input[type=checkbox]:checked {
+          ~ label {
+            @include icon(check-box-filled) {
+              color: $primary_checkbox_filled;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  > li.leaf-li {
+    > label {
+      @include icon(check-box-empty);
+
+      color: $primary_checkbox_empty;
+
+      &::before {
+        position: relative;
+        font-size: 1.5rem;
+
+        @include breakpoint($tablet) {
+          font-size: 1.125rem;
+        }
+      }
+
+      .facet-item__value {
+        margin-#{$left}: 0.5rem;
+      }
+    }
+
+    > input[type=checkbox]:checked {
+      ~ label {
+        @include icon(check-box-filled) {
+          color: $primary_checkbox_filled;
+        }
+      }
+    }
+  }
+}
+
+.c-facet__blocks {
+  span {
+    &.facet-item__count {
+      margin-top: -0.375rem !important;
+
+      html[lang=ar] & {
+        margin-top: -0.25rem !important;
+      }
+    }
+  }
+
+  .item-list__checkbox,
+  .item-list__range_checkbox {
+    @include breakpoint($desktop) {
+      max-height: 14.75rem;
+    }
+  }
+
+  .facets-soft-limit-link {
+    &.open {
+      @include breakpoint($desktop) {
+        margin: 0;
+      }
+    }
+  }
+}
+
+ul[data-drupal-facet-id="category"] {
+  > li {
+    > ul {
+      > li {
+        > ul {
+          margin-#{$left}: 1rem !important;
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,98 @@
+alshaya_acm_product.product_modal:
+  path: '/product-quick-view/{code}/{js}'
+  defaults:
+    _title_callback: '\Drupal\alshaya_acm_product\Controller\ProductController::modalTitle'
+    _controller: '\Drupal\alshaya_acm_product\Controller\ProductController::modalView'
+  requirements:
+    _permission: 'access content'
+
+alshaya_acm_product.product_settings_form:
+  path: '/admin/commerce/config/product-settings'
+  defaults:
+    _form: '\Drupal\alshaya_acm_product\Form\ProductSettingsForm'
+    _title: 'Product Settings'
+  requirements:
+    _permission: 'access commerce product settings'
+
+alshaya_acm_product.pdp_modal_links_settings_form:
+  path: '/admin/commerce/config/pdp-modal-links-settings'
+  defaults:
+    _form: '\Drupal\alshaya_acm_product\Form\PDPModalLinksForm'
+    _title: 'PDP modal links'
+  requirements:
+    _permission: 'administer PDP modal links settings'
+
+alshaya_acm_product.basket_delivery_settings_form:
+  path: '/admin/commerce/config/basket-delivery'
+  defaults:
+    _form: '\Drupal\alshaya_acm_product\Form\BasketDeliverySettingsForm'
+    _title: 'ACM Basket Delivery settings'
+  requirements:
+    _permission: 'access commerce administration pages'
+
+alshaya_acm_product.product_home_delivery_settings_form:
+  path: '/admin/commerce/config/product-home-delivery'
+  defaults:
+    _form: '\Drupal\alshaya_acm_product\Form\ProductHomeDeliverySettingsForm'
+    _title: 'ACM Product Home Delivery settings'
+  requirements:
+    _permission: 'access commerce administration pages'
+
+alshaya_acm_product.pdp_modal_links:
+  path: '/modal-link-views/{type}'
+  defaults:
+    _controller: '\Drupal\alshaya_acm_product\Controller\ProductController::pdpModalLinkView'
+    _title: 'Size guide'
+  requirements:
+    _permission: 'access content'
+
+alshaya_acm_product.add_to_cart_submit:
+  path: '/add-to-cart-submit/{entity}'
+  defaults:
+    _controller: '\Drupal\alshaya_acm_product\Controller\ProductStockController::addToCartSubmit'
+    _title: ''
+  requirements:
+    _permission: 'access content'
+  methods: [POST]
+  options:
+    parameters:
+      entity:
+        type: entity:acq_sku
+
+alshaya_acm_product.product_display_settings:
+  path: '/admin/config/alshaya/product-display'
+  defaults:
+    _form: '\Drupal\alshaya_acm_product\Form\ProductDisplaySettingsForm'
+    _title: 'Product display settings'
+  requirements:
+    _permission: 'administer alshaya config'
+
+alshaya_acm_product.product_sku_export:
+  path: '/admin/commerce/sku-export-data'
+  defaults:
+    _controller: '\Drupal\alshaya_acm_product\Controller\ProductReportController::downloadReport'
+    _title: ''
+  requirements:
+    _role: 'webmaster+administrator'
+
+alshaya_acm_product.cart_linked_skus:
+  path: '/products/cart-linked-skus'
+  defaults:
+      _title: ''
+      _controller: '\Drupal\alshaya_acm_product\Controller\CartLinkedSkusController::getLinkedSkusForCart'
+  requirements:
+    _permission: 'access content'
+
+alshaya_acm_product.product_sku_export_category:
+  path: '/admin/commerce/sku-export-data-category'
+  defaults:
+    _controller: '\Drupal\alshaya_acm_product\Controller\ProductReportController::downloadProductReportWithCategory'
+    _title: ''
+  requirements:
+    _role: 'webmaster+administrator'
+alshaya_acm_product.get_related_products:
+  path: '/related-products/{sku}/{type}/{device}'
+  defaults:
+    _controller: '\Drupal\alshaya_acm_product\Controller\ProductController::getRelatedProducts'
+  requirements:
+    _permission: 'access content'

@@ -1,0 +1,280 @@
+.c-menu-secondary {
+  background: $mm_bg;
+
+  @include breakpoint($only-tablet) {
+    width: 20rem;
+  }
+
+  li {
+    @include breakpoint($upto-desktop) {
+      border-bottom: none;
+
+      &::after {
+        content: '';
+      }
+    }
+  }
+
+  a {
+    @include arabic-letter-spacing;
+
+    font-family: $hnm-regular;
+
+    @include breakpoint($upto-desktop) {
+      color: $seconday_menu_link;
+      text-transform: capitalize;
+      font-size: 1.25rem;
+
+      &:hover {
+        color: inherit;
+        background: none;
+      }
+
+      &::after {
+        content: ' ';
+        background: url('../imgs/icons/forward-arrow.svg') center #{$right}/100% no-repeat;
+        display: block;
+        height: 100%;
+        position: absolute;
+        #{$right}: 1.25rem;
+        top: 0;
+        width: 1rem;
+
+        html[lang=ar] & {
+          transform: rotate(180deg);
+        }
+      }
+    }
+
+    @include breakpoint($desktop) {
+      color: $seconday_menu_link;
+      display: block;
+      font-size: 0.8125rem;
+      line-height: 1.2;
+      vertical-align: middle;
+      letter-spacing: 0.8px;
+      text-transform: capitalize;
+      padding: 0.375rem 0.75rem;
+
+      &:hover {
+        background-color: $default_background_color;
+        color: $seconday_menu_link_hover;
+      }
+
+      &:hover:active {
+        color: $default-anchor-link-hover;
+      }
+
+      &.language-link {
+        font-family: $hnm-arabic-regular !important;
+        letter-spacing: normal;
+
+        html[lang='ar'] & {
+          letter-spacing: 0.8px;
+          font-family: $hnm-regular !important;
+        }
+      }
+    }
+
+    line-height: 1;
+
+    &:hover:active {
+      background-color: $default_background_color;
+      color: $default-anchor-link-hover;
+    }
+
+    &.is-active {
+      background: $default_background_color;
+      color: $seconday_menu_link;
+    }
+  }
+
+  .menu--account {
+    @include breakpoint($desktop) {
+      .register-link,
+      li:first-child a {
+        &:hover,
+        &.is-active {
+          background-color: $mm_l1_link_desktop_active_bg;
+        }
+      }
+    }
+  }
+}
+
+.c-my-account-nav {
+  @include breakpoint($only-tablet) {
+    width: 20rem !important;
+    max-width: 84.375%;
+  }
+
+  h3 {
+    @include arabic-letter-spacing;
+
+    color: $mm_l1_link;
+    font-size: 0.75rem;
+    font-family: $hnm-bold;
+
+    @include breakpoint($upto-desktop) {
+      color: $mm_l1_link;
+      font-family: $hnm-bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+  }
+
+  li {
+    font-family: $hnm-regular;
+
+    &:hover {
+      a {
+        color: $mm_l1_link;
+      }
+    }
+
+    @include icon(chevron#{$right}, after) {
+      color: $mm_mobile_icon;
+      font-weight: bold;
+    }
+  }
+}
+
+.menu--three__list-item {
+  a.menu--three__link {
+    @include breakpoint($upto-desktop) {
+      @include icon(chevron#{$right}, after) {
+        color: $mm_mobile_icon;
+        font-weight: bold;
+        font-size: 1.313rem;
+        cursor: pointer;
+        pointer-events: none;
+        margin-top: -0.25rem;
+      }
+    }
+  }
+}
+
+.branding__menu {
+  @include breakpoint($desktop) {
+    z-index: 6;
+  }
+
+  @include breakpoint($only-tablet) {
+    height: 4.535rem;
+
+    &::before {
+      height: inherit;
+    }
+
+    &.show-overlay {
+      &::before {
+        bottom: -1px;
+      }
+    }
+  }
+}
+
+.header--fixed {
+  @include breakpoint($desktop) {
+    margin-top: 7.125rem;
+  }
+}
+
+body {
+  @include breakpoint($only-mobile) {
+    margin-top: 3.625rem !important;
+
+    &.logged-in.toolbar-vertical {
+      margin-top: 5.9375rem !important;
+      padding-top: 0 !important;
+    }
+
+    &.logged-in.toolbar-vertical .branding__menu {
+      top: 2.4375rem;
+    }
+  }
+
+  @include breakpoint($only-tablet) {
+    margin-top: 4.5rem !important;
+
+    &.logged-in.toolbar-vertical {
+      margin-top: 7rem !important;
+      padding-top: 0 !important;
+    }
+
+    &.logged-in.toolbar-vertical .branding__menu {
+      top: 2.4375rem;
+    }
+  }
+}
+
+@include breakpoint($desktop) {
+  .c-menu-secondary {
+    .region__menu-secondary {
+      text-align: center;
+    }
+
+    .block-language-blocklanguage-interface {
+      .ar,
+      .en {
+        a {
+          &::before {
+            content: unset;
+          }
+
+          &::after {
+            content: unset;
+          }
+        }
+      }
+    }
+
+    .menu--account {
+      li {
+        &:last-child,
+        &:first-child,
+        &:nth-child(2) {
+          a {
+            &::before {
+              content: unset !important;
+            }
+          }
+        }
+      }
+    }
+
+    .stores-finder {
+      &::before {
+        content: unset;
+      }
+    }
+  }
+}
+
+html[lang='ar'] {
+  .c-menu-secondary {
+    a {
+      font-family: $hnm-arabic-regular;
+    }
+  }
+}
+
+@include breakpoint($upto-desktop) {
+  #block-account-menu {
+    ul {
+      background-color: $default_background_color;
+    }
+  }
+}
+
+@include breakpoint($upto-desktop) {
+  .my-account-nav {
+    li {
+      a {
+        &::before {
+          content: unset;
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,11 @@
+%tooltip-after {
+  border-bottom-color: $tooltip_border;
+}
+
+%tooltip-before {
+  border-bottom-color: $tooltip_border_2;
+}
+
+.price-type__wrapper .simple-tooltip-wrap {
+  #{$right}: -1.2rem;
+}

@@ -1,0 +1,14 @@
+langcode: en
+status: true
+dependencies: {  }
+name: 320x168
+label: 320x168
+effects:
+  935c2af3-51e1-4dc0-9ee7-830ec82cc152:
+    uuid: 935c2af3-51e1-4dc0-9ee7-830ec82cc152
+    id: image_scale
+    weight: 2
+    data:
+      width: 760
+      height: null
+      upscale: false

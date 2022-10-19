@@ -1,0 +1,65 @@
+alshaya_spc.settings:
+  type: config_object
+  label: 'Alshaya spc configuration'
+  mapping:
+    order_id_fallback:
+      type: string
+      label: 'Order id fallback if new encrypted parameter not available'
+    subtotal_after_discount:
+      type: boolean
+      label: 'To show/hide subtotal after discount on cart/checkout page.'
+
+alshaya_spc.click_n_collect:
+  type: config_object
+  label: 'spc click and collect configuration'
+  mapping:
+    country_center:
+      type: mapping
+      label: 'Center of Country to fetch stores'
+      mapping:
+        latitude:
+          type: float
+          label: 'latitude'
+        longitude:
+          type: float
+          label: 'longitude'
+        zoom:
+          type: integer
+          label: 'map zoom for country.'
+    cnc_stores_limit:
+      type: integer
+      label: 'CnC stores limit'
+
+alshaya_spc.advantage_card:
+  type: config_object
+  label: 'Advantage Card configuration'
+  mapping:
+    advantageCardEnabled:
+      type: boolean
+      label: 'Advantage card status'
+    advantageCardPrefix:
+      type: string
+      label: 'Advantage card prefix'
+
+alshaya_spc.express_delivery:
+  type: config_object
+  label: 'Delivery options configuration'
+  mapping:
+    same_day_delivery_status:
+      type: boolean
+      label: 'Same Day delivery status'
+    express_delivery_status:
+      type: boolean
+      label: 'Express delivery status'
+    delivery_options_order:
+      type: sequence
+      label: 'Delivery options order'
+      sequence:
+        type: string
+        label: 'Delivery option type'
+    same_day_delivery_label:
+      type: string
+      label: 'Same Day Delivery Label'
+    express_delivery_label:
+      type: string
+      label: 'Express Delivery Label'

@@ -1,0 +1,287 @@
+<?php
+
+/**
+ * @file
+ * Install, uninstall, update function for alshaya_aeo_transac.
+ */
+
+use Drupal\alshaya_config\AlshayaConfigManager;
+
+/**
+ * Implements hook_update_N().
+ *
+ * Configure map marker on checkout for CnC.
+ * Override `attribute_weights and sortable_options`.
+ */
+function alshaya_mu_transac_update_8008() {
+  \Drupal::configFactory()->getEditable('alshaya_stores_finder.settings')
+    ->set('map_marker.active', '/modules/brands/alshaya_mu/images/mu-pin-active.svg')
+    ->set('map_marker.in_active', '/modules/brands/alshaya_mu/images/mu-pin-inactive.svg')
+    ->save();
+
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+
+  $manager->updateConfigs(
+    ['acq_sku.configurable_form_settings'],
+    'acq_sku'
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * [6.9.0] Fix the Cardinality for color field in SKU entity.
+ */
+function alshaya_mu_transac_update_8007() {
+  // It seems the way we handle the fields in acq_sku.base_field_additions,
+  // overrides don't work well for the Cardinality
+  // Cardinality for Color is still set to -1 but it expected to be 1.
+  // Fixing it here.
+  $base_definition = \Drupal::entityDefinitionUpdateManager()->getFieldStorageDefinition('attr_color', 'acq_sku');
+  if ($base_definition->getCardinality() != 1) {
+    $base_definition->setCardinality(1);
+    \Drupal::entityDefinitionUpdateManager()->updateFieldStorageDefinition($base_definition);
+
+    $entity_type = \Drupal::entityTypeManager()->getDefinition('acq_sku');
+    \Drupal::entityDefinitionUpdateManager()->installEntityType($entity_type);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update type string => text_long for spec_en.
+ * Migrate existing attribute data to the new ones.
+ */
+function alshaya_mu_transac_update_8006() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(['alshaya_acm_product.sku_base_fields'], 'alshaya_acm_product');
+  /** @var \Drupal\acq_sku\SKUFieldsManager $sku_fields_manager */
+  $sku_fields_manager = \Drupal::service('acq_sku.fields_manager');
+  $sku_fields_manager->updateFieldType(['attr_spec_en']);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * [6.4.0] Add field for new attribute `season_code` and
+ * enable `alshaya_product_lpn`.
+ */
+function alshaya_mu_transac_update_8005() {
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.sku_base_fields'],
+    'alshaya_acm_product'
+  );
+
+  \Drupal::service('acq_sku.fields_manager')->addFields();
+
+  // Enable alshaya_product_lpn module.
+  \Drupal::service('module_installer')->install(['alshaya_product_lpn']);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Set image_thumb_gallery => false to use single image gallery on
+ * listing pages.
+ */
+function alshaya_mu_transac_update_8004() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.display_settings'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_RESAVE
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * [5.7.0] Add field for new attribute `white_glove_delivery`.
+ * Update type for attributes `short_description1`, `short_description2`.
+ */
+function alshaya_mu_transac_update_8003() {
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    [
+      'alshaya_acm_product.sku_base_fields',
+      'alshaya_acm_product.pdp_modal_links',
+    ],
+    'alshaya_acm_product'
+  );
+
+  \Drupal::service('acq_sku.fields_manager')->addFields();
+
+  /** @var \Drupal\acq_sku\SKUFieldsManager $fieldsManager */
+  $fieldsManager = \Drupal::service('acq_sku.fields_manager');
+  $fieldsManager->resetBaseFields();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * [5.6.0] Update acquia search facet configuration.
+ */
+function alshaya_mu_transac_update_8002() {
+  // Updating configuration file for acquia solr search.
+  alshaya_config_install_configs(
+    ['search_api.index.acquia_search_index'],
+    'alshaya_search',
+    'optional'
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Change the path alias for PLPs.
+ */
+function alshaya_mu_transac_update_8001() {
+  // Change path pattern for PLPs to show first parent followed by term name.
+  \Drupal::configFactory()
+    ->getEditable('pathauto.pattern.product_category_pathauto')
+    ->set('pattern', '/[term:parents:first]-[term:name]')
+    ->save();
+
+  // Now run batch process to update the term aliases.
+  // @see Drupal\pathauto\Commands\PathautoCommands::generateAliases().
+  $batch = [
+    'title' => t('Bulk updating URL aliases'),
+    'operations' => [
+      ['Drupal\pathauto\Form\PathautoBulkUpdateForm::batchStart', []],
+      ['Drupal\pathauto\Form\PathautoBulkUpdateForm::batchProcess',
+        [
+          'canonical_entities:taxonomy_term',
+          'all',
+        ],
+      ],
+    ],
+    'finished' => '_alshaya_mu_transac_term_alias_update_batch_finished',
+    'progressive' => FALSE,
+  ];
+
+  batch_set($batch);
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_mu_transac_install() {
+  // Enable and set alshaya_muji as default theme and set,
+  // the site logo favicon icon and email logo path.
+  _alshaya_master_initialize_brand_theme('alshaya_muji');
+
+  /** @var \Drupal\alshaya_acm\AlshayaAcmConfigCheck $config_check */
+  $config_check = \Drupal::service('alshaya_acm.config_check');
+  $config_check->checkConfig(TRUE);
+
+  // Set google map marker.
+  if (\Drupal::moduleHandler()->moduleExists('alshaya_stores_finder')) {
+    alshaya_stores_finder_set_default_marker_icon('alshaya_mu_transac');
+  }
+
+  // Configure map marker on checkout for CnC.
+  \Drupal::configFactory()->getEditable('alshaya_stores_finder.settings')
+    ->set('map_marker.active', '/modules/brands/alshaya_mu/images/mu-pin-active.svg')
+    ->set('map_marker.in_active', '/modules/brands/alshaya_mu/images/mu-pin-inactive.svg')
+    ->save();
+  // Add string translations.
+  $strings = [
+    'our company' => [
+      'ar' => 'شركتنا',
+    ],
+    'Connect with us' => [
+      'ar' => 'اتصل بنا',
+    ],
+    'Customer care' => [
+      'ar' => ' خدمة الزبائن ',
+    ],
+    'Discover' => [
+      'ar' => ' تعرفي إلينا ',
+    ],
+    'I would like to receive exclusive deals from MUJI.' => [
+      'ar' => 'أود الحصول على عروض حصرية من MUJI',
+    ],
+    '@group_name/@sku_name' => [
+      'ar' => '@sku_name/@group_name',
+    ],
+    'seo_brand_name' => [
+      'en' => 'MUJI',
+      'ar' => 'MUJI',
+    ],
+    'division_name' => [
+      'en' => 'Gender',
+      'ar' => 'الجنس',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+
+  _alshaya_mu_transac_get_metatag_translations();
+
+  // Change path pattern for PLPs to show first parent followed by term name.
+  \Drupal::configFactory()
+    ->getEditable('pathauto.pattern.product_category_pathauto')
+    ->set('pattern', '/[term:parents:first]-[term:name]')
+    ->save();
+}
+
+/**
+ * Get translations of metatag.
+ */
+function _alshaya_mu_transac_get_metatag_translations() {
+  $strings = [
+    'alshaya_seo_sale_desc_start' => [
+      'en' => 'Get [current-date:html_year] [alshaya_seo:gender] [term:name] Sale from [site:name]. Explore our [term:parent:name] sale for our [current-date:html_year] luxury and high-quality [term:name] collection',
+      'ar' => 'احصل على عروض [current-date:html_year] على [term:name] من [site:name]. اكتشف عروض التصفية على مجموعاتنا الفاخرة وعالية الجودة [term:name]',
+    ],
+    'alshaya_seo_desc_start' => [
+      'en' => 'Shop luxury and high-quality [term:name]',
+      'ar' => 'شراء رفاهية عالية الجودة [term:name] جمع',
+    ],
+    'alshaya_seo_sale_title_sub_suffix' => [
+      'en' => '- [term:parent:name]',
+      'ar' => '- [term:parent:name]',
+    ],
+    'alshaya_seo_title_sub_suffix' => [
+      'en' => '- [term:parent:name]',
+      'ar' => '- [term:parent:name]',
+    ],
+    'alshaya_seo_sale_title_suffix' => [
+      'en' => ' Sale [alshaya_seo:title_sub_suffix]',
+      'ar' => ' Sale [alshaya_seo:title_sub_suffix]',
+    ],
+    'alshaya_seo_sale_keywords' => [
+      'en' => '[term:name] sale, [term:name] promotions, [term:name], [term:name] sale in [alshaya_seo:country], [term:name] sale in [alshaya_seo:city1], [term:name] sale in [alshaya_seo:city2], [term:name] offers, [term:name] online offers, [term:name] online sale, [alshaya_seo:brand_name] [term:name] sale, [alshaya_seo:brand_name] [term:name] offers, [alshaya_seo:brand_name] [term:name] offers for , [alshaya_seo:brand_name] [term:name] sale[term:name] sale, [term:name] promotions, [term:name], [term:name] sale in [alshaya_seo:country], [term:name] sale in [alshaya_seo:city1], [term:name] sale in [alshaya_seo:city2], [term:name] offers, [term:name] online offers, [term:name] online sale, [alshaya_seo:brand_name] [term:name] sale, [alshaya_seo:brand_name] [term:name] offers, [alshaya_seo:brand_name] [term:name] offers, [alshaya_seo:brand_name] [term:name] sale, [alshaya_seo:brand_name] [term:name] sale [alshaya_seo:top_category]',
+      'ar' => 'تسوق [term:name]المنتجات عبر الإنترنت، تسوق [term:name] إكسسوارات في [alshaya_seo:country]، تسوق [term:name] إكسسوارات، تسوق [term:name]',
+    ],
+    'alshaya_seo_keywords' => [
+      'en' => 'Shop [term:name] Products Online, Buy [term:name] in [alshaya_seo:country], Shop [term:name] Products in [alshaya_seo:city1], Shop [term:name] Products in [alshaya_seo:city2]',
+      'ar' => 'تسوق مستلزمات [term:name] اونلاين, تسوق مجموعة اكسسوارات [term:name], اشتري اكسسوارات [term:name] اون لاين, تسوق اكسسوارات [term:name] من [alshaya_seo:brand_name], تسوق مستلزمات [term:name] من [alshaya_seo:brand_name], تسوق مستلزمات ال[term:name] اونلاين في [alshaya_seo:country], تسوق منتجات [term:name] في city1، تسوق منتجات [term:name] في [alshaya_seo:city2]، تسوق منتجات [term:name] في [alshaya_seo:country]',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Batch finished callback for generating taxonomy term aliases.
+ *
+ * @see alshaya_mu_transac_update_8001()
+ */
+function _alshaya_mu_transac_term_alias_update_batch_finished($success, $results, $operations) {
+  if ($success) {
+    // If no term alias was actually updated, final output should show 0.
+    \Drupal::logger('alshaya_mu_transac')->notice('Generated @count URL aliases.', [
+      '@count' => $results['updates'] ?? 0,
+    ]);
+  }
+  else {
+    \Drupal::logger('alshaya_mu_transac')->notice('An error occurred while updating term aliases');
+  }
+}

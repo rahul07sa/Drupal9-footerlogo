@@ -1,0 +1,49 @@
+alshaya_acm_promotion.free_gifts_list:
+  path: '/free-gifts-list/{node}'
+  defaults:
+    _title_callback: '\Drupal\alshaya_acm_promotion\Controller\PromotionController::listFreeGiftsTitle'
+    _controller: '\Drupal\alshaya_acm_promotion\Controller\PromotionController::listFreeGiftsBody'
+  requirements:
+    _permission: 'access content'
+
+alshaya_acm_promotion.select_free_gift:
+  path: '/select-free-gift'
+  defaults:
+    _title: ''
+    _controller: '\Drupal\alshaya_acm_promotion\Controller\PromotionController::selectFreeGift'
+  options:
+    no_cache: TRUE
+  requirements:
+    _permission: 'access content'
+
+alshaya_acm_promotion.free_gift_modal:
+  path: '/free-gift/{acq_sku}'
+  defaults:
+    _title: ''
+    _controller: '\Drupal\alshaya_acm_promotion\Controller\FreeGiftController::viewProduct'
+  requirements:
+    _permission: 'access content'
+
+alshaya_acm_promotion.promotions_dynamic_labels_product:
+  path: '/promotions/dynamic-label-product/{sku}'
+  defaults:
+      _title: ''
+      _controller: '\Drupal\alshaya_acm_promotion\Controller\PromotionController::getPromotionDynamicLabelForProduct'
+  requirements:
+    _permission: 'access content'
+
+alshaya_acm_promotion.promotions_dynamic_labels_cart:
+  path: '/promotions/dynamic-label-cart'
+  defaults:
+      _title: ''
+      _controller: '\Drupal\alshaya_acm_promotion\Controller\PromotionController::getPromotionDynamicLabelForCart'
+  requirements:
+    _permission: 'access content'
+
+alshaya_acm_promotion.promotions_dynamic_labels_cart_v2:
+  path: '/v2/promotions/dynamic-label-cart'
+  defaults:
+      _title: ''
+      _controller: '\Drupal\alshaya_acm_promotion\Controller\PromotionControllerV2::getPromotionDynamicLabelForCartV2'
+  requirements:
+    _permission: 'access content'

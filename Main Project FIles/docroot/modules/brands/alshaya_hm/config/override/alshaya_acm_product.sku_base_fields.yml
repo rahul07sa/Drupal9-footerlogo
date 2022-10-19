@@ -1,0 +1,222 @@
+fields:
+  rgb_color:
+    label: 'RGB color'
+    type: 'string'
+
+  color_label:
+    label: 'Color label'
+    type: 'string'
+    configurable: 1
+    display_configurable_for: 'article_castor_id'
+    index: 1
+
+  concept:
+    label: 'Concept'
+    cardinality: -1
+    facet: 1
+
+  washing_instructions:
+    label: 'Washing Instructions'
+    cardinality: -1
+
+  dry_cleaning_instructions:
+    label: 'Dry Cleaning Instructions'
+    cardinality: -1
+
+  article_visual_description:
+    label: 'Visual description'
+    description: 'A visual description of the article.'
+    type: 'string'
+    index: 1
+
+  product_designer_collection:
+    label: 'Product Designer Collection'
+    cardinality: -1
+    index: 1
+
+  product_feature:
+    label: 'Product Feature'
+    cardinality: -1
+    index: 1
+
+  product_environment:
+    label: 'Product Environment'
+    cardinality: -1
+
+  product_quality:
+    label: 'Product Quality'
+    cardinality: -1
+
+  color_name:
+    label: 'Color name'
+    type: 'string'
+
+  article_pattern:
+    label: 'Article Pattern'
+    cardinality: -1
+    index: 1
+
+  article_license_company:
+    label: 'Article License Company'
+    cardinality: -1
+    index: 1
+
+  article_license_item:
+    label: 'Article License Item'
+    cardinality: -1
+    index: 1
+
+  article_fragrance_description:
+    label: 'Article Fragrance Description'
+    cardinality: -1
+    index: 1
+
+  article_warning:
+    label: 'Article Warning'
+    type: 'string'
+
+  composition:
+    label: 'Composition'
+    description: 'Product Composition.'
+    type: 'text_long'
+
+  color_family:
+    label: 'Colour'
+    type: 'string'
+    cardinality: -1
+    index: 1
+    facet: 1
+    swatch: 1
+
+  size_group_code:
+    label: 'Size group code'
+    description: 'Size group attribute for the product.'
+    index: 1
+
+  title_name:
+    label: 'Title Name'
+    type: 'string'
+
+  function:
+    label: 'Function'
+    cardinality: -1
+    index: 1
+    facet: 1
+
+  age_group:
+    label: 'Age Group'
+    cardinality: -1
+    index: 1
+    facet: 1
+
+  presentation_product_type:
+    label: 'Presentation Product Type'
+    cardinality: -1
+    index: 1
+    facet: 1
+
+  context:
+    label: 'Context'
+    cardinality: -1
+    index: 1
+    facet: 1
+
+  style:
+    label: 'Style'
+    description: 'Part of description.'
+    type: 'attribute'
+    cardinality: -1
+    index: 1
+    facet: 1
+
+  clothing_style:
+    label: 'Clothing Style'
+    cardinality: -1
+    index: 1
+    facet: 1
+
+  collar_style:
+    label: 'Collar Style'
+    cardinality: -1
+    index: 1
+    facet: 1
+
+  neckline_style:
+    label: 'Neckline Style'
+    cardinality: -1
+    index: 1
+    facet: 1
+
+  accessories_style:
+    label: 'Accessories Style'
+    cardinality: -1
+    index: 1
+    facet: 1
+
+  footwear_style:
+    label: 'Footwear Style'
+    cardinality: -1
+    index: 1
+    facet: 1
+
+  fit:
+    label: 'Fit'
+    cardinality: -1
+    index: 1
+    facet: 1
+
+  descriptive_length:
+    label: 'Descriptive Length'
+    cardinality: -1
+    index: 1
+    facet: 1
+
+  garment_length:
+    label: 'Garment Length'
+    cardinality: -1
+    index: 1
+    facet: 1
+
+  sleeve_length:
+    label: 'Sleeve Length'
+    cardinality: -1
+    index: 1
+    facet: 1
+
+  waist_rise:
+    label: 'Waist Rise'
+    cardinality: -1
+    index: 1
+    facet: 1
+
+  heel_height:
+    label: 'Heel Height'
+    cardinality: -1
+    index: 1
+    facet: 1
+
+  measurements_in_cm:
+    label: 'Measurements In CM'
+    description: 'Measurements In CM attribute for the product.'
+
+  article_description:
+    label: 'Article Description'
+    type: 'string'
+
+  fragrance_name:
+    label: 'Fragrance name'
+    type: 'string'
+
+  textual_print:
+    label: 'Textual Print'
+    type: 'string'
+
+  occasion:
+    label: 'Occasion'
+    cardinality: -1
+    index: 1
+    facet: 1
+
+  season_code:
+    label: 'Season Code'
+    type: 'string'

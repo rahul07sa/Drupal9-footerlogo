@@ -1,0 +1,294 @@
+<?php
+
+/**
+ * @file
+ * Contains general hooks and alters.
+ */
+
+use Drupal\block\Entity\Block;
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Site\Settings;
+
+/**
+ * Implements hook_theme().
+ */
+function alshaya_acm_checkout_theme($existing, $type, $theme, $path) {
+  $items = [];
+
+  $items['alshaya_address'] = [
+    'render element' => 'elements',
+    'variables' => [
+      'address' => [],
+    ],
+  ];
+
+  $items['checkout_summary'] = [
+    'variables' => [
+      'cart_link' => '',
+      'number_of_items' => '',
+      'products' => '',
+      'totals' => [],
+      'currency_format' => '',
+      'currency_code_position' => '',
+      'delivery' => [],
+      'vat_text' => '',
+      'surcharge_label' => '',
+    ],
+    'template' => 'block--checkout-summary',
+  ];
+
+  $items['checkout_selected_address'] = [
+    'render element' => 'elements',
+    'variables' => [
+      'delivery_to' => NULL,
+      'delivery_address' => NULL,
+      'contact_no' => NULL,
+      'change_address' => NULL,
+    ],
+  ];
+
+  return $items;
+}
+
+/**
+ * Implements hook_theme_registry_alter().
+ */
+function alshaya_acm_checkout_theme_registry_alter(&$theme_registry) {
+  $theme_registry['acq_commerce_price']['variables']['tooltip'] = '';
+}
+
+/**
+ * Format price value with currency.
+ *
+ * Default template: acq-commerce-price.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - price: a price value.
+ */
+function template_preprocess_alshaya_address(array &$variables) {
+  $country_list = \Drupal::service('address.country_repository')->getList();
+  $variables['address']['country'] = $country_list[$variables['address']['country_code']];
+}
+
+/**
+ * Implements hook_acq_checkout_pane_pane_info_alter().
+ */
+function alshaya_acm_checkout_acq_checkout_pane_pane_info_alter(array &$definitions) {
+  // Remove all default panes.
+  unset($definitions['billing_information']);
+  unset($definitions['shipping_information']);
+  unset($definitions['review']);
+  unset($definitions['completion_message']);
+  unset($definitions['payment_methods']);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_presave().
+ */
+function alshaya_acm_checkout_taxonomy_term_presave(EntityInterface $entity) {
+  /** @var \Drupal\taxonomy\Entity\Term $entity */
+  if ($entity->bundle() == 'payment_method') {
+    if ($entity->get('field_payment_default')->getString() == 1) {
+      /** @var \Drupal\alshaya_acm_checkout\CheckoutOptionsManager $checkout_options_manager */
+      $checkout_options_manager = \Drupal::service('alshaya_acm_checkout.options_manager');
+      if ($current_default = $checkout_options_manager->getDefaultPayment()) {
+        if ($current_default->id() != $entity->id()) {
+          $current_default->get('field_payment_default')->setValue(2);
+          $current_default->save();
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Helper function to clean address array.
+ *
+ * @param mixed $address
+ *   Address array or object.
+ *
+ * @return array
+ *   Cleaned address array.
+ */
+function _alshaya_acm_checkout_clean_address($address) {
+  /** @var \Drupal\alshaya_acm_checkout\CheckoutHelper $helper */
+  $helper = \Drupal::service('alshaya_acm_checkout.checkout_helper');
+  return $helper->cleanCheckoutAddress($address);
+}
+
+/**
+ * Helper function to clean address phone number.
+ *
+ * @param mixed $phone
+ *   Phone string, array or object.
+ *
+ * @return string
+ *   Phone number in string.
+ */
+function _alshaya_acm_checkout_clean_address_phone($phone) {
+  $phone_string = '';
+
+  if (is_string($phone)) {
+    $phone_string = $phone;
+  }
+  elseif (is_array($phone) || is_object($phone)) {
+    $phone = (array) $phone;
+    if (isset($phone['country_code'])) {
+      $phone_string = \Drupal::service('mobile_number.util')->getPhoneNumberAsString($phone['mobile'], $phone['country_code']);
+    }
+    elseif (isset($phone['country-code'])) {
+      $phone_string = \Drupal::service('mobile_number.util')->getPhoneNumberAsString($phone['mobile'], $phone['country-code']);
+    }
+    elseif (isset($phone['value'])) {
+      $phone_string = $phone['value'];
+    }
+  }
+
+  return str_replace(' ', '', $phone_string);
+}
+
+/**
+ * Implements hook_alshaya_profile_installed_final_task().
+ */
+function alshaya_acm_checkout_alshaya_profile_installed_final_task($profile, array $modules) {
+  if (in_array('alshaya_i18n', $modules)) {
+    // Array of language translation strings.
+    $strings = [
+      'CUSTOMER SERVICE' => [
+        'ar' => 'خدمة العملاء',
+      ],
+      '<p>For Kuwait <span class="light no-direction">+965 XXX XX XX</span></p><p>For other regions <span class="light no-direction">8 (800) XXX XX X</span></p><p><span class="light">We are open from Sunday – Saturday from 9:30 am – 8:30 pm (Kuwait Local Time, GMT +3)</span></p>' => [
+        'ar' => '<p>الكويت <span class="light no-direction">+965 XXX XX XX</span></p><p>المناطق الأخرى <span class="light no-direction">8 (800) XXX XX X</span></p><p><span class="light">مواعيد العمل: الأحد إلى السبت من الساعة 9:30 صباحًا حتى الساعة 8:30 مساءً (حسب التوقيت المحلي للكويت، و3+ بتوقيت غرينتش)</span></p>',
+      ],
+      'Username does not contain a valid email.' => [
+        'ar' => 'اسم المستخدم لا يشمل عنوان بريد إلكتروني صحيح',
+      ],
+    ];
+
+    alshaya_i18n_save_translations($strings);
+
+    /** @var \Drupal\alshaya_acm_checkout\CheckoutOptionsManager $checkout_options_manager */
+    $checkout_options_manager = \Drupal::service('alshaya_acm_checkout.options_manager');
+
+    // Create all payment plugins in taxonomy terms.
+    /** @var \Drupal\acq_payment\Annotation\ACQPaymentMethod $payment_plugins */
+    $payment_plugins = \Drupal::service('plugin.manager.acq_payment_method')->getDefinitions();
+    foreach ($payment_plugins as $plugin) {
+      $checkout_options_manager->loadPaymentMethod($plugin['id'], $plugin['label']->render());
+    }
+
+    // Add translations for specific payment methods by default.
+    // Cash on Delivery.
+    $cod = $checkout_options_manager->loadPaymentMethod('cashondelivery');
+    $cod_ar = $cod->addTranslation('ar', []);
+    $cod_ar->setName('نقداً عند التسليم');
+    $cod_ar->save();
+
+    $country_code = Settings::get('country_code');
+
+    // Checkout.com.
+    $checkout_com = $checkout_options_manager->loadPaymentMethod('checkout_com');
+    // Set checkout.com to default during install.
+    if ($country_code !== 'KW') {
+      $checkout_com->get('field_payment_default')->setValue(1);
+    }
+    $checkout_com->save();
+  }
+
+  $acq_checkout_settings = \Drupal::config('alshaya_acm_checkout.settings');
+
+  // Create shipping method term for click and collect during install.
+  /** @var \Drupal\alshaya_acm_checkout\CheckoutOptionsManager $checkout_options_manager */
+  $checkout_options_manager = \Drupal::service('alshaya_acm_checkout.options_manager');
+
+  // Get the code based on rules of combining carrier and method codes.
+  $code = $checkout_options_manager->getClickandColectShippingMethod();
+
+  $default_name = t('Click and collect');
+  $default_order_description = t('Your order will be available for pickup at the following store');
+
+  // This is just to create click and collect method term during install.
+  $checkout_options_manager->loadShippingMethod($code, $default_name, '', $acq_checkout_settings->get('click_collect_method_carrier_code'), $acq_checkout_settings->get('click_collect_method_method_code'), $default_order_description);
+
+}
+
+/**
+ * Helper function to get region code.
+ *
+ * @param string $region
+ *   Region to get region code for. It could be region code itself.
+ * @param string $country_code
+ *   Country code.
+ *
+ * @return mixed|string
+ *   Region code.
+ */
+function alshaya_acm_checkout_get_region_id_from_name($region, $country_code = 'US') {
+  $subdivision_repo = \Drupal::service('address.subdivision_repository');
+  $regions = $subdivision_repo->getList([$country_code]);
+
+  // Country has no regions.
+  if (empty($regions)) {
+    return '';
+  }
+
+  // Region is already the code.
+  if (isset($regions[$region])) {
+    return $region;
+  }
+
+  // Region is name and we have the code.
+  if ($region_key = array_search($region, $regions)) {
+    return $region_key;
+  }
+
+  // Invalid value for region, we log warning and return empty string.
+  \Drupal::logger('alshaya_acm_checkout')->warning('Invalid region @region passed for country code @country_code', [
+    '@region' => $region,
+    '@country_code' => $country_code,
+  ]);
+
+  return '';
+}
+
+/**
+ * Helper function to return order from session.
+ *
+ * @return array
+ *   Order array if found.
+ */
+function _alshaya_acm_checkout_get_last_order_from_session() {
+  return \Drupal::service('alshaya_spc.order_helper')->getLastOrder();
+}
+
+/**
+ * Implements hook_block_access().
+ */
+function alshaya_acm_checkout_block_access(Block $block, $operation, AccountInterface $account) {
+  // Add "join the club" block only if user has not entered loyalty card
+  // number in basket.
+  if ($operation == 'view' && $block->id() == 'jointheclub_checkout_confirm') {
+    $current_route = \Drupal::routeMatch();
+    if ($current_route->getRouteName() == 'acq_checkout.form'
+        && $current_route->getParameter('step') == 'confirmation') {
+      $order = _alshaya_acm_checkout_get_last_order_from_session();
+      // We check if we have valid order id.
+      if (!empty($order)) {
+        return AccessResult::forbiddenIf(!empty($order['extension']['loyalty_card']));
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_alshaya_acm_checkout_payment_methods_list_alter().
+ */
+function alshaya_acm_checkout_alshaya_acm_checkout_payment_methods_list_alter(array &$payment_methods) {
+  if ($checkout_settings = \Drupal::config('alshaya_acm_checkout.settings')->get('exclude_payment_methods')) {
+    $method_codes = array_filter($checkout_settings);
+    $payment_methods = array_filter($payment_methods, fn($payment_method) => !in_array($payment_method['id'], $method_codes));
+  }
+}

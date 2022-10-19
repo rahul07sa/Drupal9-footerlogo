@@ -1,0 +1,148 @@
+<?php
+
+/**
+ * @file
+ * Super category install file.
+ */
+
+use Drupal\alshaya_config\AlshayaConfigManager;
+
+/**
+ * Implements hook_update_N().
+ *
+ * Added Super category logo fields to product category terms.
+ */
+function alshaya_super_category_update_8007() {
+  \Drupal::service('alshaya_config.manager')
+    ->updateConfigs(
+      [
+        'field.storage.taxonomy_term.field_logo_active_image',
+        'field.storage.taxonomy_term.field_logo_header_image',
+        'field.storage.taxonomy_term.field_logo_inactive_image',
+        'field.field.taxonomy_term.acq_product_category.field_logo_active_image',
+        'field.field.taxonomy_term.acq_product_category.field_logo_header_image',
+        'field.field.taxonomy_term.acq_product_category.field_logo_inactive_image',
+      ],
+      'alshaya_super_category',
+      'install'
+    );
+  \Drupal::service('alshaya_config.manager')
+    ->updateConfigs(
+      [
+        'core.entity_form_display.taxonomy_term.acq_product_category.default',
+        'core.entity_view_display.taxonomy_term.acq_product_category.default',
+      ],
+      'alshaya_acm_product_category',
+      'install',
+      AlshayaConfigManager::MODE_RESAVE
+    );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding arabic translations for the LHN.
+ */
+function alshaya_super_category_update_8006() {
+  $strings = [
+    'Brands' => [
+      'ar' => 'العلامات التجارية',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding arabic translations for the LHN.
+ */
+function alshaya_super_category_update_8005() {
+  $strings = [
+    'Brands/Category' => [
+      'ar' => 'الماركات/الفئة',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add alshaya_remove_supercategory_term processor to SRP/PLP category facet.
+ */
+function alshaya_super_category_update_8004() {
+  \Drupal::configFactory()->getEditable('facets.facet.category')->save();
+  \Drupal::configFactory()->getEditable('facets.facet.plp_category_facet')->save();
+  \Drupal::configFactory()->getEditable('facets.facet.category_promotion')->save();
+}
+
+/**
+ * Implements hook_update_dependencies().
+ */
+function alshaya_super_category_update_dependencies() {
+  return [
+    'alshaya_super_category' => [
+      '8002' => [
+        'alshaya_seo_transac' => '8401',
+      ],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_update_n().
+ *
+ * Update meta tag title token for promotion content type.
+ */
+function alshaya_super_category_update_8003() {
+  \Drupal::configFactory()->getEditable('metatag.metatag_defaults.node__acq_promotion')
+    ->set('tags.title', '[node:field_acq_promotion_label] | [supercategory:meta_title]')->save();
+}
+
+/**
+ * Implements hook_update_n().
+ *
+ * Update meta tag title token for product, advanced page and product category.
+ */
+function alshaya_super_category_update_8002() {
+  // Only if super category feature is enabled.
+  if (\Drupal::configFactory()->get('alshaya_super_category.settings')->get('status')) {
+    \Drupal::configFactory()->getEditable('metatag.metatag_defaults.node__advanced_page')
+      ->set('tags.title', '[node:title] | [supercategory:meta_title]')->save();
+    \Drupal::configFactory()->getEditable('metatag.metatag_defaults.node__acq_product')
+      ->set('tags.title', '[node:title] | [supercategory:meta_title]')->save();
+    \Drupal::configFactory()->getEditable('metatag.metatag_defaults.node__acq_promotion')
+      ->set('tags.title', '[node:field_acq_promotion_label] | [supercategory:meta_title]')->save();
+    \Drupal::configFactory()->getEditable('metatag.metatag_defaults.taxonomy_term__acq_product_category')
+      ->set('tags.title', '[term:name] | [supercategory:meta_title]')->save();
+  }
+}
+
+/**
+ * Implements hook_update_n().
+ */
+function alshaya_super_category_update_8001() {
+  \Drupal::configFactory()
+    ->getEditable('alshaya_super_category.settings')
+    ->set('solr_boost', 21)
+    ->save(TRUE);
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_super_category_install() {
+  $strings = [
+    'Brands/Category' => [
+      'ar' => 'الماركات/الفئة',
+    ],
+    'Brands' => [
+      'ar' => 'العلامات التجارية',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}

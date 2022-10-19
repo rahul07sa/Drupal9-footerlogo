@@ -1,0 +1,27 @@
+{#
+/**
+ * @file
+ * Theme override for a breadcrumb trail.
+ *
+ * Here we are using RDFa syntax to support breadcrumbs.
+ *
+ * Available variables:
+ * - breadcrumb: Breadcrumb trail items.
+ */
+#}
+{% if breadcrumb %}
+  <ol itemscope itemtype="https://schema.org/BreadcrumbList">
+    {% for item in breadcrumb %}
+      <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        {% if item.url %}
+          <a itemprop="item" href="{{ item.url }}" class="{{ item.class }}" title="{{ item.text }}">
+            <span itemprop="name">{{ item.text }}</span>
+          </a>
+        {% else %}
+          <span itemprop="name">{{ item.text }}</span>
+        {% endif %}
+        <meta itemprop="position" content="{{ loop.index }}">
+      </li>
+    {% endfor %}
+  </ol>
+{% endif %} 

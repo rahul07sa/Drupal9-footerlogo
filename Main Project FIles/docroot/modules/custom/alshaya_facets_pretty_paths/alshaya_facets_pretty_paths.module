@@ -1,0 +1,393 @@
+<?php
+
+/**
+ * @file
+ * Module file.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\alshaya_facets_pretty_paths\AlshayaFacetsPrettyPathsHelper;
+use Drupal\Core\Site\Settings;
+use Drupal\Core\Language\LanguageInterface;
+use Drupal\Core\Url;
+use Drupal\taxonomy\TermInterface;
+use Drupal\alshaya_search_algolia\Service\AlshayaAlgoliaIndexHelper;
+
+/**
+ * Mappings for specific listing page type to make updates dynamic.
+ *
+ * @return array
+ *   Mappings.
+ */
+function _alshaya_facets_pretty_paths_get_mappings() {
+  $mappings = [
+    'plp' => [
+      'id' => 'views_block__alshaya_product_list__block_1',
+      'summary' => 'filter_bar_plp',
+      'alias' => [
+        'skus_sku_reference_final_price' => 'price',
+        'plp_selling_price' => 'price_range',
+        'plp_actual_color_label_code' => 'color_family',
+        'plp_color_family' => 'color_family',
+      ],
+    ],
+    'promo' => [
+      'id' => 'views_block__alshaya_product_list__block_2',
+      'summary' => 'filter_bar_promotions',
+      'alias' => [
+        'promotion_price_facet' => 'price',
+        'promo_selling_price' => 'price_range',
+        'promo_actual_color_label_code' => 'color_family',
+        'promo_color_family' => 'color_family',
+      ],
+    ],
+    'search' => [
+      'id' => 'views_page__search__page',
+      'summary' => 'filter_bar',
+      'alias' => [
+        'final_price' => 'price',
+        'selling_price' => 'price_range',
+        'actual_color_label_code' => 'color_family',
+        'color_family' => 'color_family',
+        'category_facet_search' => 'category',
+      ],
+    ],
+  ];
+
+  return $mappings;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function alshaya_facets_pretty_paths_form_facets_facet_edit_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  $form_build_info = $form_state->getBuildInfo();
+  $facet = $form_build_info['callback_object']->getEntity();
+  $pretty_path_settings = $facet->getThirdPartySettings('alshaya_facets_pretty_paths');
+  if (isset($pretty_path_settings['meta_info_type'])) {
+    $meta_info_type = $pretty_path_settings['meta_info_type'];
+    $options = [
+      AlshayaFacetsPrettyPathsHelper::FACET_META_TYPE_IGNORE => t('Ignore'),
+      AlshayaFacetsPrettyPathsHelper::FACET_META_TYPE_PREFIX => t('Prefix'),
+      AlshayaFacetsPrettyPathsHelper::FACET_META_TYPE_SUFFIX => t('Suffix'),
+    ];
+    $visibility = [
+      AlshayaFacetsPrettyPathsHelper::VISIBLE_IN_META_TITLE => t('Title'),
+      AlshayaFacetsPrettyPathsHelper::VISIBLE_IN_META_DESCRIPTION => t('Description'),
+    ];
+
+    $form['meta_info_type'] = [
+      '#type' => 'fieldset',
+      '#title' => t('Meta Info Type'),
+    ];
+
+    $form['meta_info_type']['type'] = [
+      '#type' => 'select',
+      '#title' => t('Select Meta Info Type'),
+      '#options' => $options,
+      '#attributes' => [
+        'name' => 'meta_info_type',
+      ],
+      '#default_value' => $meta_info_type['type'] ?? AlshayaFacetsPrettyPathsHelper::FACET_META_TYPE_IGNORE,
+      '#description' => t('Select an option to set the facet value in the meta title of a PLP page'),
+    ];
+    $form['meta_info_type']['prefix_text'] = [
+      '#type' => 'textfield',
+      '#title' => t('Prefix Text'),
+      '#description' => t('Enter the prefix text to be added before the facet value'),
+      '#default_value' => $meta_info_type['prefix_text'] ?? NULL,
+      '#states' => [
+        // Show this textfield only if the type is prefix/suffix.
+        'visible' => [
+          ['select[name="meta_info_type"]' => ['value' => AlshayaFacetsPrettyPathsHelper::FACET_META_TYPE_PREFIX]],
+          ['select[name="meta_info_type"]' => ['value' => AlshayaFacetsPrettyPathsHelper::FACET_META_TYPE_SUFFIX]],
+        ],
+      ],
+    ];
+
+    $form['meta_info_type']['suffix_text'] = [
+      '#type' => 'textfield',
+      '#title' => t('Suffix Text'),
+      '#description' => t('Enter the suffix text to be added after the facet value'),
+      '#default_value' => $meta_info_type['suffix_text'] ?? NULL,
+      '#states' => [
+        // Show this textfield only if the type is prefix/suffix.
+        'visible' => [
+          ['select[name="meta_info_type"]' => ['value' => AlshayaFacetsPrettyPathsHelper::FACET_META_TYPE_PREFIX]],
+          ['select[name="meta_info_type"]' => ['value' => AlshayaFacetsPrettyPathsHelper::FACET_META_TYPE_SUFFIX]],
+        ],
+      ],
+    ];
+
+    $form['meta_info_type']['visibility'] = [
+      '#type' => 'checkboxes',
+      '#title' => t('To be shown in:'),
+      '#options' => $visibility,
+      '#description' => t('Check to allow the facet to be visible in the mentioned areas.'),
+      '#default_value' => $meta_info_type['visibility'] ?? NULL,
+      '#required' => TRUE,
+      '#states' => [
+        // Show this textfield only if the type is prefix/suffix.
+        'visible' => [
+          ['select[name="meta_info_type"]' => ['value' => AlshayaFacetsPrettyPathsHelper::FACET_META_TYPE_PREFIX]],
+          ['select[name="meta_info_type"]' => ['value' => AlshayaFacetsPrettyPathsHelper::FACET_META_TYPE_SUFFIX]],
+        ],
+      ],
+    ];
+  }
+}
+
+/**
+ * Implements hook_page_attachments_alter().
+ *
+ * If a page has more than one active filter, then we do not want search engines
+ * to index that page.
+ */
+function alshaya_facets_pretty_paths_page_attachments_alter(array &$page) {
+  // First, check if we're on a product landing page by checking for a
+  // taxonomy term, and then checking the bundle type.
+  $routematch = \Drupal::routeMatch();
+
+  if (empty($routematch) || $routematch->getRouteName() != 'entity.taxonomy_term.canonical') {
+    return;
+  }
+
+  $term = $routematch->getParameter('taxonomy_term');
+
+  if (empty($term) || $term->bundle() != 'acq_product_category') {
+    return;
+  }
+
+  /** @var \Drupal\alshaya_facets_pretty_paths\AlshayaFacetsPrettyPathsHelper $pretty_paths_helper */
+  $pretty_paths_helper = \Drupal::service('alshaya_facets_pretty_paths.pretty_paths_helper');
+
+  if ($pretty_paths_helper->isPrettyPathEnabled('plp')) {
+    $summary = $pretty_paths_helper->getFacetSummary('plp');
+
+    // If we have more than two filters, add robots meta.
+    // Add one to default count as summary also has clear all link.
+    if (count($summary) > Settings::get('nonindexable_plp_filter_count') + 1) {
+      // Add robots meta tag to page.
+      $page['#attached']['html_head']['robots'] = [
+        [
+          '#tag' => 'meta',
+          '#attributes' => [
+            'name' => 'robots',
+            'content' => 'noindex',
+          ],
+        ],
+        'noindex',
+      ];
+    }
+  }
+
+  $hreflang_languages = [];
+
+  // Adding hreflang tags as per current route.
+  // Making sure we add alternate tags for other languages.
+  // Also current pretty path url is being added.
+  foreach (alshaya_facets_pretty_paths_language_get_translations() as $translated_path) {
+    $hreflang = $translated_path['language']->getId();
+    $page['#attached']['html_head'][] = [
+      [
+        '#tag' => 'link',
+        '#attributes' => [
+          'rel' => 'alternate',
+          'hreflang' => $hreflang,
+          'href' => $translated_path['url_absolute'],
+        ],
+      ],
+      'language:alternate:' . $hreflang . ':' . $translated_path['url_absolute'],
+    ];
+
+    $hreflang_languages[] = $hreflang;
+  }
+
+  // Default hreflang links does not have pretty path urls.
+  // Unsetting "html_head_link" structure coming from content_translation.
+  // Refer CORE-17204 for more info.
+  foreach ($page['#attached']['html_head_link'] as $key => $element) {
+    if (isset($element[0]['hreflang']) && in_array($element[0]['hreflang'], $hreflang_languages)) {
+      unset($page['#attached']['html_head_link'][$key]);
+    }
+  }
+}
+
+/**
+ * Get translations for current route.
+ */
+function alshaya_facets_pretty_paths_language_get_translations() {
+  // When route does not exists.
+  if (\Drupal::requestStack()->getCurrentRequest()->attributes->get('exception')) {
+    return [];
+  }
+
+  $paths = [];
+  if (\Drupal::languageManager()->isMultilingual()) {
+    $languages = \Drupal::languageManager()->getLanguages(LanguageInterface::STATE_CONFIGURABLE);
+
+    foreach ($languages as $lang) {
+      $url = Url::fromRoute('<current>', [], ['language' => $lang]);
+      if ($url) {
+        $path = [
+          'language' => $lang,
+          'access' => FALSE,
+        ];
+        // Enabling access for path if url is valid.
+        if (\Drupal::pathValidator()->getUrlIfValid($url->toString())) {
+          $path['access'] = TRUE;
+        }
+        // Making sure front page url is set as per existing settings.
+        if (\Drupal::service('path.matcher')->matchPath('/' . $url->getInternalPath(), '<front>')) {
+          $url = Url::fromRoute('<front>', [], ['language' => $lang]);
+        }
+        $path['url'] = $url->toString();
+        $path['url_absolute'] = $url->setAbsolute()->toString();
+        if ($path['access']) {
+          $paths[] = $path;
+        }
+      }
+    }
+  }
+
+  return $paths;
+}
+
+/**
+ * Implements hook_editor_js_settings_alter().
+ */
+function alshaya_facets_pretty_paths_js_settings_alter(array &$settings) {
+  $language = \Drupal::languageManager()->getCurrentLanguage()->getId();
+
+  // Replace all aliases with internal paths to ensure we do not face
+  // 404 or 500 when aliases are modified but page is still served from cache
+  // or users haven't reloaded page for older aliases.
+  foreach ($settings['views']['ajaxViews'] ?? [] as $dom_id => $ajax_view) {
+    if (!str_contains($dom_id, 'alshaya_product_list')) {
+      continue;
+    }
+
+    $view_path = $ajax_view['view_path'];
+
+    $current_request = FALSE;
+    if ($view_path === \Drupal::request()->getRequestUri()) {
+      $current_request = TRUE;
+    }
+
+    $view_path = trim($view_path, '/');
+
+    // Remove language.
+    $view_path = str_replace(
+      $language . '/',
+      '',
+      $view_path
+    );
+
+    // Remove facets if any before getting internal path.
+    $facets_path = '';
+    if (str_contains($view_path, '/--')) {
+      $view_path_parts = explode('/--', $view_path);
+      $view_path = $view_path_parts[0];
+      $facets_path = '--' . $view_path_parts[1];
+    }
+
+    $internal_path = \Drupal::service('path_alias.manager')->getPathByAlias('/' . $view_path);
+
+    $path_parts = [
+      $language,
+      trim($internal_path, '/'),
+    ];
+
+    $ajax_view['view_raw_path'] = [
+      'alias' => $view_path,
+      'internal' => trim($internal_path, '/'),
+    ];
+
+    if ($facets_path) {
+      $path_parts[] = $facets_path;
+    }
+
+    $ajax_view['view_path'] = '/' . implode('/', $path_parts) . '/';
+
+    $settings['views']['ajaxViews'][$dom_id] = $ajax_view;
+
+    if ($current_request) {
+      $settings['currentRequestInternalPath'] = $ajax_view['view_path'];
+    }
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_insert().
+ */
+function alshaya_facets_pretty_paths_taxonomy_term_insert(TermInterface $term) {
+  if ($term->bundle() == 'sku_product_option') {
+    // Get facet alias from attribute code.
+    $pretty_paths_helper = \Drupal::service('alshaya_facets_pretty_paths.pretty_paths_helper');
+    $attribute_code = $term->get('field_sku_attribute_code')->getString();
+    $facet_alias = $pretty_paths_helper->getFacetAlias($attribute_code);
+    if (empty($facet_alias)) {
+      return;
+    }
+
+    $langcode = $term->language()->getId();
+
+    // Insert facet alias.
+    $pretty_paths_helper->encodeFacetUrlComponents(
+      AlshayaAlgoliaIndexHelper::FACET_SOURCE,
+      $facet_alias,
+      $term->getName(),
+      $langcode
+    );
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_update().
+ */
+function alshaya_facets_pretty_paths_taxonomy_term_update(TermInterface $term) {
+  if ($term->bundle() == 'sku_product_option') {
+    // Get facet alias from attribute code.
+    $pretty_paths_helper = \Drupal::service('alshaya_facets_pretty_paths.pretty_paths_helper');
+    $attribute_code = $term->get('field_sku_attribute_code')->getString();
+    $facet_alias = $pretty_paths_helper->getFacetAlias($attribute_code);
+    if (empty($facet_alias)) {
+      return;
+    }
+
+    $langcode = $term->language()->getId();
+    $pretty_paths_helper->encodeFacetUrlComponents(
+      AlshayaAlgoliaIndexHelper::FACET_SOURCE,
+      $facet_alias,
+      $term->getName(),
+      $langcode
+    );
+
+  }
+}
+
+/**
+ * Implements hook_taxonomy_term_delete().
+ */
+function alshaya_facets_pretty_paths_taxonomy_term_delete(TermInterface $term) {
+  if ($term->bundle() == 'sku_product_option') {
+    $attribute_code = $term->get('field_sku_attribute_code')->getString();
+    $pretty_paths_helper = \Drupal::service('alshaya_facets_pretty_paths.pretty_paths_helper');
+    $facet_alias = $pretty_paths_helper->getFacetAlias($attribute_code);
+    if (empty($facet_alias)) {
+      return;
+    }
+
+    $database = \Drupal::database();
+    // Delete facet alias.
+    foreach ($term->getTranslationLanguages() as $langcode => $language) {
+      $term_translation = $term->getTranslation($langcode);
+
+      $database->delete('facets_pretty_path')
+        ->condition('value', $term_translation->getName(), '=')
+        ->condition('facet_alias', $facet_alias, '=')
+        ->condition('language', $langcode, '=')
+        ->execute();
+    }
+  }
+}

@@ -1,0 +1,37 @@
+services:
+  alshaya_acm_customer.route_subscriber:
+    class: Drupal\alshaya_acm_customer\Routing\RouteSubscriber
+    tags:
+      - { name: event_subscriber }
+
+  alshaya_acm_customer.orders_manager:
+    class: Drupal\alshaya_acm_customer\OrdersManager
+    arguments:
+      - '@alshaya_api.api'
+      - '@config.factory'
+      - '@cache.orders'
+      - '@language_manager'
+      - '@logger.factory'
+      - '@cache.orders_count'
+      - '@acq_sku.product_info_helper'
+      - '@request_stack'
+      - '@module_handler'
+
+  alshaya_acm_customer.helper:
+    class: Drupal\alshaya_acm_customer\CustomerHelper
+    arguments:
+      - '@acq_commerce.api'
+
+  cache.orders:
+    class: Drupal\Core\Cache\CacheBackendInterface
+    tags:
+      - { name: cache.bin }
+    factory: cache_factory:get
+    arguments: [orders]
+
+  cache.orders_count:
+    class: Drupal\Core\Cache\CacheBackendInterface
+    tags:
+      - { name: cache.bin, default_backend: cache.backend.permanent_database }
+    factory: cache_factory:get
+    arguments: [orders_count]

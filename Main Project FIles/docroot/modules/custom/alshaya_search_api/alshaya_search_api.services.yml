@@ -1,0 +1,57 @@
+services:
+  alshaya_search_api.alshaya_facets_manager:
+    decorates: facets.manager
+    decoration_priority: 9
+    public: false
+    class: Drupal\alshaya_search_api\FacetManager\AlshayaSearchApiFacetsManager
+    arguments:
+      - '@plugin.manager.facets.query_type'
+      - '@plugin.manager.facets.facet_source'
+      - '@plugin.manager.facets.processor'
+      - '@entity_type.manager'
+
+  alshaya_search_api.facets_manager:
+    class: Drupal\alshaya_search_api\AlshayaSearchApiFacetsManager
+    arguments:
+      - '@config.factory'
+      - '@language_manager'
+      - '@theme.manager'
+      - '@facets.manager'
+      - '@entity_type.manager'
+
+  alshaya_search_api.helper:
+    class: Drupal\alshaya_search_api\AlshayaSearchApiHelper
+    arguments:
+      - '@entity_type.manager'
+      - '@module_handler'
+
+  alshaya_search_api.product_updated_event:
+    class: Drupal\alshaya_search_api\EventSubscriber\AlshayaSearchApiProductProcessedEventSubscriber
+    arguments:
+    - '@alshaya_acm_product.skumanager'
+    - '@queue'
+    - '@alshaya_search_api.data_helper'
+    tags:
+    - { name: 'event_subscriber' }
+
+  alshaya_search_api.data_helper:
+    class: Drupal\alshaya_search_api\AlshayaSearchApiDataHelper
+    arguments:
+      - '@database'
+      - '@entity_type.manager'
+
+  alshaya_search_api.listing_settings_subscriber:
+    class: Drupal\alshaya_search_api\EventSubscriber\ProductListingSettingsSubscriber
+    tags:
+      - { name: 'event_subscriber' }
+
+  alshaya_search_api.ajax_response_subscriber:
+    class: Drupal\alshaya_search_api\EventSubscriber\AjaxResponseSubscriber
+    arguments:
+      - '@request_stack'
+      - '@config.factory'
+      - '@language_manager'
+      - '@alshaya_search_api.helper'
+      - '@logger.factory'
+    tags:
+      - { name: event_subscriber }

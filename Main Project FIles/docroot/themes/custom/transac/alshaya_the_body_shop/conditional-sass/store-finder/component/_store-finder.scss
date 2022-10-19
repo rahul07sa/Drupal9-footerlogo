@@ -1,0 +1,62 @@
+.path--store-finder {
+  .view-display-id-page_2 {
+    .view-header {
+      font-family: $tbs-recoleta-semibold;
+    }
+  }
+
+  .by--alphabet {
+    .rows {
+      a {
+        color: $store-finder-glossary;
+      }
+    }
+  }
+}
+
+.path--store-finder,
+.nodetype--store {
+  .list-view-locator {
+    .views-field-field-store-open-hours {
+      .hours--wrapper .open--hours,
+      .hours--wrapper .hours--label {
+        border-bottom: 1px solid $store_finder_individual_hour_border;
+      }
+    }
+  }
+
+  .c-side-1 {
+    @include breakpoint($only-mobile) {
+      border-top: 1px solid $store_finder_search_results_border;
+    }
+  }
+
+  .label--location {
+    &::before {
+      background: url('../../../imgs/icons/store-search.svg') no-repeat;
+    }
+  }
+}
+
+.geolocation-common-map-container {
+  [aria-hidden=true] {
+    color: $store_finder_map_marker_text !important;
+    padding-top: rem(17);
+    font-weight: bold;
+  }
+}
+
+.path--store-finder,
+.nodetype--store {
+  .geolocation-google-map {
+    [aria-hidden='true'] {
+      color: $store_finder_map_marker_text !important;
+      font-weight: bold;
+      padding-bottom: 0;
+
+      html[lang='ar'] & {
+        padding-right: rem(1);
+      }
+    }
+  }
+}

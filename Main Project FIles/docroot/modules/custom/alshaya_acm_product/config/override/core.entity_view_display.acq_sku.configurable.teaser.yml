@@ -1,0 +1,40 @@
+content:
+  attr_special_price:
+    region: content
+  image:
+    region: content
+  name:
+    region: content
+  sku:
+    region: content
+hidden:
+  attr_assets: true
+  attr_at_glance: true
+  attr_brand_logo: true
+  attr_bullet_points: true
+  attr_collection: true
+  attr_color: true
+  attr_is_buyable: true
+  attr_labels: true
+  attr_product_brand: true
+  attr_product_collection: true
+  attr_reserve_and_collect: true
+  attr_season: true
+  attr_ship_to_store: true
+  attr_size: true
+  attr_style: true
+  attr_whats_in_the_box: true
+  attribute_set: true
+  attributes: true
+  crosssell: true
+  field_acq_sku_promotions: true
+  field_configurable_attributes: true
+  field_configured_skus: true
+  final_price: true
+  langcode: true
+  media: true
+  price: true
+  product_id: true
+  special_price: true
+  stock: true
+  upsell: true

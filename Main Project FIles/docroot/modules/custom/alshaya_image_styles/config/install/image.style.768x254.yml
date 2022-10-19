@@ -1,0 +1,14 @@
+langcode: en
+status: true
+dependencies: {  }
+name: 768x254
+label: 768x254
+effects:
+  9d590514-5e44-413a-b3fb-219be8f6ff5f:
+    uuid: 9d590514-5e44-413a-b3fb-219be8f6ff5f
+    id: image_scale
+    weight: 2
+    data:
+      width: 1150
+      height: null
+      upscale: false

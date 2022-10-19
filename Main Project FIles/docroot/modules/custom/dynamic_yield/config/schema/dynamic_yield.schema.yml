@@ -1,0 +1,32 @@
+# Schema for the configuration files of the Dynamic yield module.
+dynamic_yield.settings:
+  type: config_object
+  label: 'Dynamic yield settings'
+  mapping:
+    section_id:
+      type: int
+      label: 'Section ID'
+    mode:
+      type: string
+      label: 'DY Mode'
+    host_url:
+      type: string
+      label: 'Host URL'
+    feeds:
+      type: sequence
+      label: 'Feed details'
+      sequence:
+        type: mapping
+        mapping:
+          id:
+            type: string
+            label: 'Id'
+          context:
+            type: string
+            label: 'Context'
+          api_key:
+            type: string
+            label: 'API Key'
+    dy_script_init:
+      type: string
+      label: 'DY Script injection type'

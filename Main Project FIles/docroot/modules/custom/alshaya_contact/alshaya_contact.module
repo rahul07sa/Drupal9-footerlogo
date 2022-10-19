@@ -1,0 +1,130 @@
+<?php
+
+/**
+ * @file
+ * Module file.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\webform\WebformSubmissionInterface;
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function alshaya_contact_form_webform_submission_alshaya_contact_add_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  $form['#attributes']['class'][] = 'webform-submission-alshaya-contact-form';
+
+  $form['elements']['first_name']['#attributes']['specialchar'] = 'specialchar';
+  $form['elements']['last_name']['#attributes']['specialchar'] = 'specialchar';
+  $form['elements']['first_name']['#maxlength'] = 50;
+  $form['elements']['last_name']['#maxlength'] = 50;
+  $form['elements']['order_number']['#title'] = t('Order number') . ' <span>(' . t('Optional') . ')</span>';
+  $form['elements']['missing_items']['#title'] = t('Missing items') . ' <span>(' . t('Optional') . ')</span>';
+
+  // request_from field hide on add form.
+  $form['elements']['request_from']['#access'] = FALSE;
+  // Override mail validation pattern.
+  $form['#attached']['library'][] = 'alshaya_user/email_validator_override';
+
+  // Custom validation for contact form.
+  $form['#validate'][] = '_alshaya_contact_alshaya_contact_form_validate';
+
+  // Including convert to select js.
+  $form['#attached']['library'][] = 'alshaya_white_label/convert_to_select2';
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function alshaya_contact_form_webform_submission_alshaya_contact_edit_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  $entity = $form_state->getFormObject()->getEntity();
+  $mobile_number = $entity->getData()['mobile_number'];
+
+  if (is_string($mobile_number)) {
+    $form['elements']['mobile_number']['#default_value'] = [
+      'value' => $mobile_number,
+    ];
+  }
+}
+
+/**
+ * Custom validation for alshaya contact form.
+ */
+function _alshaya_contact_alshaya_contact_form_validate(&$form, FormStateInterface $form_state) {
+  // Validate if mobile number is entered if preference of channel of
+  // communication is mobile.
+  $values = $form_state->getValues();
+  if ($values['select_your_preference_of_channel_of_communication'] == 'Mobile') {
+    if (strlen($values['mobile_number']['mobile']) < 5) {
+      $form_state->setErrorByName('mobile_number', t('@title is required.', ['@title' => $form['elements']['mobile_number']['#title']]));
+    }
+  }
+}
+
+/**
+ * Implements hook_element_info_alter().
+ */
+function alshaya_contact_element_info_alter(array &$info) {
+  if (isset($info['mobile_number']['#process'])) {
+    $info['mobile_number']['#process'][] = '_alshaya_contact_mobile_number_process';
+    array_unshift($info['mobile_number']['#process'], '_alshaya_contact_mobile_number_process_fix_default');
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_presave().
+ */
+function alshaya_contact_webform_submission_presave(WebformSubmissionInterface $submission) {
+  if ($submission->bundle() !== 'alshaya_contact') {
+    return;
+  }
+
+  $mobile_number = $submission->getElementData('mobile_number');
+  if (is_string($mobile_number)) {
+    $submission->setElementData('mobile_number', ['value' => $mobile_number]);
+  }
+  elseif (is_array($mobile_number) && count($mobile_number) > 1 && isset($mobile_number['value'])) {
+    $submission->setElementData('mobile_number', ['value' => $mobile_number['value']]);
+  }
+}
+
+/**
+ * Processor for the mobile number field to disable the country code.
+ */
+function _alshaya_contact_mobile_number_process_fix_default(array &$element, FormStateInterface $form_state) {
+  if (!str_contains($form_state->getBuildInfo()['form_id'], '_api_form')) {
+    return $element;
+  }
+
+  // Workaround to avoid 500 error in MobileNumber::process.
+  if (isset($element['#default_value']) && is_string($element['#default_value'])) {
+    $user_input = $form_state->getValue('mobile_number');
+
+    $element['#default_value'] = [];
+    $element['#default_value']['value'] = $user_input;
+    $element['#default_value']['mobile'] = $user_input;
+
+    $form_state->setValue('mobile_number', [
+      'value' => $user_input,
+      'mobile' => $user_input,
+    ]);
+  }
+
+  return $element;
+}
+
+/**
+ * Processor for the mobile number field to disable the country code.
+ */
+function _alshaya_contact_mobile_number_process(array &$element, FormStateInterface $form_state) {
+  if ($form_state->getBuildInfo()['form_id'] == 'webform_submission_alshaya_contact_add_form') {
+    $element['mobile']['#required'] = FALSE;
+    $element['mobile']['#states'] = [
+      'required' => [
+        ['input[name="select_your_preference_of_channel_of_communication"]' => ['value' => 'Mobile']],
+      ],
+    ];
+  }
+
+  return $element;
+}

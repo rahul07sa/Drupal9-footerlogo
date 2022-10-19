@@ -1,0 +1,223 @@
+<?php
+
+/**
+ * @file
+ * Install file.
+ */
+
+use Drupal\alshaya_config\AlshayaConfigManager;
+
+/**
+ * Implements hook_update_N().
+ *
+ * Added top_facets limit to alshaya_algolia_react.settings config.
+ */
+function alshaya_algolia_react_update_8007() {
+  $config = \Drupal::configFactory()->getEditable('alshaya_algolia_react.settings');
+  $config->set('top_facets_limit', 5)->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Added product elements alignment config to frames.
+ */
+function alshaya_algolia_react_update_8006() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+
+  $manager->updateConfigs(
+    ['alshaya_algolia_react.product_frames'],
+    'alshaya_algolia_react',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Added product teaser frames settings.
+ */
+function alshaya_algolia_react_update_8005() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+
+  $manager->updateConfigs(
+    ['alshaya_algolia_react.product_frames'],
+    'alshaya_algolia_react',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+
+  $strings = [
+    'Shop all products in this offer' => [
+      'ar' => 'تسوق جميع المنتجات المشمولة بهذا العرض',
+    ],
+    'Offers available' => [
+      'ar' => 'العروض متوفرة',
+    ],
+    'You can combine promotions but only one offer code can be used per transaction' => [
+      'ar' => 'يمكنك الجمع بين العروض الترويجية ولكن لا يمكن استخدام إلا رمز عرض واحد لكل معاملة تجارية',
+    ],
+  ];
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add translations - CORE 23468.
+ */
+function alshaya_algolia_react_update_8004() {
+  $strings = [
+    'clear filters' => [
+      'ar' => 'مسح الاختيارات',
+    ],
+    'Promotions' => [
+      'ar' => 'العروض',
+    ],
+  ];
+  alshaya_i18n_save_translations($strings);
+  \Drupal::languageManager()->getLanguageConfigOverride('ar', 'block.block.promotions')
+    ->set('settings.label', 'العروض')
+    ->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Prepare for using Algolia on listing pages.
+ */
+function alshaya_algolia_react_update_8003() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+
+  /** @var \Drupal\alshaya_search_algolia\Service\AlshayaAlgoliaIndexHelper $helper */
+  $helper = \Drupal::service('alshaya_search_algolia.index_helper');
+
+  /** @var \Drupal\acq_sku\SKUFieldsManager $fields_manager */
+  $fields_manager = \Drupal::service('acq_sku.fields_manager');
+
+  // Ensure new configurations are added and defaults set.
+  $manager->updateConfigs(
+    ['alshaya_algolia_react.settings'],
+    'alshaya_algolia_react',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+
+  // Install react blocks and update weight.
+  $manager->updateConfigs(
+    [
+      'block.block.alshaya_algolia_react_plp',
+      'block.block.alshayaalgoliareactpromotion',
+    ],
+    'alshaya_algolia_react',
+    'install'
+  );
+
+  // Update block weight of algolia react plp to match what was there for
+  // views plp block.
+  $existing = \Drupal::configFactory()->get('block.block.views_block__alshaya_product_list_block_1');
+  $new = \Drupal::configFactory()->getEditable('block.block.alshaya_algolia_react_plp');
+  $new->set('weight', $existing->get('weight'));
+  $new->save();
+
+  // Update block weight of algolia react promotion to match what was there for
+  // views promotion block.
+  $existing = \Drupal::configFactory()->get('block.block.views_block__alshaya_product_list_block_2');
+  $new = \Drupal::configFactory()->getEditable('block.block.alshayaalgoliareactpromotion');
+  $new->set('weight', $existing->get('weight'));
+  $new->save();
+
+  // Add new facets required for PLP (promotion_nid and lhn_category).
+  $facets = [
+    'field_category_name',
+    'lhn_category',
+    'promotion_nid',
+  ];
+
+  // Ensure no facets are missing from existing sku_base_fields.
+  $fields = $fields_manager->getFieldAdditions();
+  $facet_fields = array_keys(array_filter($fields, fn($item) => isset($item['facet']) && $item['facet']));
+  array_walk($facet_fields, function (&$field_code) {
+    $field_code = "attr_{$field_code}";
+  });
+
+  $facets = array_merge($facets, $facet_fields);
+  $helper->addCustomFacetToIndex($facets);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add config attributes_to_sort_by_name.
+ */
+function alshaya_algolia_react_update_8002() {
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_algolia_react.settings'],
+    'alshaya_algolia_react'
+  );
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_algolia_react_update_8001() {
+  \Drupal::service('alshaya_config.manager')
+    ->updateConfigs(
+      ['views.view.search'],
+      'alshaya_search',
+      'optional',
+      AlshayaConfigManager::MODE_MERGE
+    );
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_algolia_react_install() {
+  // Move top search block to proper theme.
+  alshaya_block_move_blocks_theme_to_theme(
+    \Drupal::service('theme_handler')->getDefault(),
+    'alshaya_white_label'
+  );
+
+  // Update block weight of search bar to match what was there for existing
+  // keywords exposed form block.
+  $existing = \Drupal::configFactory()->get('block.block.keywordsearchblock');
+  $new = \Drupal::configFactory()->getEditable('block.block.alshayaalgoliareactautocomplete');
+  $new->set('weight', $existing->get('weight'));
+  $new->save();
+
+  $strings = [
+    'top suggestions' => [
+      'ar' => 'أفضل الإقتراحات',
+    ],
+    'showing @current of @total items' => [
+      'ar' => 'عرض @current من إجمالي @total',
+    ],
+    'Load more products' => [
+      'ar' => 'تحميل المزيد من المنتجات',
+    ],
+    'clear filters' => [
+      'ar' => 'مسح الاختيارات',
+    ],
+    'Promotions' => [
+      'ar' => 'العروض',
+    ],
+    'Shop all products in this offer' => [
+      'ar' => 'تسوق جميع المنتجات المشمولة بهذا العرض',
+    ],
+    'Offers available' => [
+      'ar' => 'العروض متوفرة',
+    ],
+    'You can combine promotions but only one offer code can be used per transaction' => [
+      'ar' => 'يمكنك الجمع بين العروض الترويجية ولكن لا يمكن استخدام إلا رمز عرض واحد لكل معاملة تجارية',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}

@@ -1,0 +1,583 @@
+<?php
+
+/**
+ * @file
+ * Install file.
+ */
+
+use Symfony\Component\Lock\Store\PdoStore;
+use Drupal\Core\Database\Database;
+use Doctrine\DBAL\DBALException;
+use Drupal\Core\Utility\UpdateException;
+use Drupal\taxonomy\Entity\Term;
+use Drupal\alshaya_config\AlshayaConfigManager;
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding translations for string related to ICT.
+ */
+function alshaya_spc_update_8027() {
+  // Adding translations.
+  module_load_include('inc', 'alshaya_spc', 'alshaya_spc.translations');
+  $translations = _alshaya_spc_get_translations('v15');
+  if ($translations) {
+    alshaya_i18n_save_translations($translations);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding translations for subtotal after discount label.
+ * Add alshaya_spc config for subtotal_after_discount.
+ */
+function alshaya_spc_update_8026() {
+  // Adding translations.
+  module_load_include('inc', 'alshaya_spc', 'alshaya_spc.translations');
+  $translations = _alshaya_spc_get_translations('v14');
+  if ($translations) {
+    alshaya_i18n_save_translations($translations);
+  }
+  // Add alshaya_spc.settings config.
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_spc.settings'],
+    'alshaya_spc',
+    'install'
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding translations for the `Online Booking` feature.
+ */
+function alshaya_spc_update_8025() {
+  // Adding translations.
+  module_load_include('inc', 'alshaya_spc', 'alshaya_spc.translations');
+  $translations = _alshaya_spc_get_translations('v13');
+  if ($translations) {
+    alshaya_i18n_save_translations($translations);
+  }
+}
+
+/**
+ * Implements hook_update().
+ *
+ * Add alshaya_spc config for order_id_fallback.
+ */
+function alshaya_spc_update_8024() {
+  // Add alshaya_spc.settings config.
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_spc.settings'],
+    'alshaya_spc',
+    'install'
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add separate configs for same day and express delivery config.
+ */
+function alshaya_spc_update_8023() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_spc.express_delivery'],
+    'alshaya_spc',
+    'install',
+    AlshayaConfigManager::MODE_REPLACE
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update translations for express delivery feature
+ * with context.
+ */
+function alshaya_spc_update_8022() {
+  // Add translations.
+  module_load_include('inc', 'alshaya_spc', 'alshaya_spc.translations');
+  $translations = _alshaya_spc_get_translations('v11');
+  if ($translations) {
+    alshaya_i18n_save_translations($translations);
+  }
+  $translations = _alshaya_spc_get_translations('v12');
+  if ($translations) {
+    alshaya_i18n_save_translations($translations);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add delivery labels in express delivery config.
+ */
+function alshaya_spc_update_8021() {
+  // Add translations.
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_spc.express_delivery'],
+    'alshaya_spc',
+    'install'
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update translations for express delivery feature.
+ */
+function alshaya_spc_update_8020() {
+  // Add translations.
+  module_load_include('inc', 'alshaya_spc', 'alshaya_spc.translations');
+  $translations = _alshaya_spc_get_translations('v10');
+  if ($translations) {
+    alshaya_i18n_save_translations($translations);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update express delivery config.
+ * Add translations for express delivery feature.
+ */
+function alshaya_spc_update_8019() {
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_spc.express_delivery'],
+    'alshaya_spc',
+    'install'
+  );
+  // Add translations.
+  module_load_include('inc', 'alshaya_spc', 'alshaya_spc.translations');
+  $translations = _alshaya_spc_get_translations('v10');
+  if ($translations) {
+    alshaya_i18n_save_translations($translations);
+  }
+}
+
+/**
+ * Implements hook_update().
+ *
+ * Update the advantage card settings.
+ * Add click and collect collection point translations.
+ */
+function alshaya_spc_update_8018() {
+  // Add translations.
+  module_load_include('inc', 'alshaya_spc', 'alshaya_spc.translations');
+  $translations = _alshaya_spc_get_translations('v9');
+  if ($translations) {
+    alshaya_i18n_save_translations($translations);
+  }
+
+  // Add cnc_stores_limit config.
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_spc.click_n_collect'],
+    'alshaya_spc',
+    'install'
+  );
+}
+
+/**
+ * Implements hook_update().
+ *
+ * Adds Benefit Pay payment method and other related data.
+ */
+function alshaya_spc_update_8017() {
+  /** @var \Drupal\alshaya_acm_checkout\CheckoutOptionsManager $checkout_options_manager */
+  $checkout_options_manager = \Drupal::service('alshaya_acm_checkout.options_manager');
+  $benefitPay = $checkout_options_manager->loadPaymentMethod('checkout_com_upapi_benefitpay', 'Benefit Pay');
+  $benefitPay = $benefitPay->hasTranslation('ar')
+    ? $benefitPay->getTranslation('ar')
+    : $benefitPay->addTranslation('ar', []);
+  $benefitPay->setName('بينفت باي');
+  $benefitPay->save();
+
+  // Disable new benefitpay method by default.
+  $config = \Drupal::configFactory()->getEditable('alshaya_acm_checkout.settings');
+  $exclude_payment_methods = $config->get('exclude_payment_methods');
+  $exclude_payment_methods['checkout_com_upapi_benefitpay'] = 'checkout_com_upapi_benefitpay';
+  $config->set('exclude_payment_methods', $exclude_payment_methods);
+  $refund_exclude_payment_methods = $config->get('refund_exclude_payment_methods');
+  $refund_exclude_payment_methods['checkout_com_upapi_benefitpay'] = 'checkout_com_upapi_benefitpay';
+  $config->set('refund_exclude_payment_methods', $refund_exclude_payment_methods);
+  $config->save();
+
+  // Add translations.
+  module_load_include('inc', 'alshaya_spc', 'alshaya_spc.translations');
+  $translations = _alshaya_spc_get_translations('v8');
+  if ($translations) {
+    alshaya_i18n_save_translations($translations);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update the advantage card settings.
+ */
+function alshaya_spc_update_8016() {
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_spc.advantage_card'],
+    'alshaya_spc',
+    'install'
+  );
+  // Add translations.
+  module_load_include('inc', 'alshaya_spc', 'alshaya_spc.translations');
+  $translations = _alshaya_spc_get_translations('v7');
+  if ($translations) {
+    alshaya_i18n_save_translations($translations);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add translations for CVV error.
+ */
+function alshaya_spc_update_8015() {
+  // Add translations.
+  module_load_include('inc', 'alshaya_spc', 'alshaya_spc.translations');
+  $translations = _alshaya_spc_get_translations('v6');
+  if ($translations) {
+    alshaya_i18n_save_translations($translations);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add click and collect collection point configs and translations.
+ */
+function alshaya_spc_update_8014() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_spc.collection_points'],
+    'alshaya_spc',
+    'install'
+  );
+
+  // Add translations.
+  module_load_include('inc', 'alshaya_spc', 'alshaya_spc.translations');
+  $translations = _alshaya_spc_get_translations('v5');
+  if ($translations) {
+    alshaya_i18n_save_translations($translations);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add translations for V2.
+ */
+function alshaya_spc_update_8013() {
+  // Add translations.
+  module_load_include('inc', 'alshaya_spc', 'alshaya_spc.translations');
+  $translations = _alshaya_spc_get_translations('v4');
+  if ($translations) {
+    alshaya_i18n_save_translations($translations);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * [6.3.0] Remove old cybersource payment method.
+ */
+function alshaya_spc_update_8012() {
+  $config = \Drupal::configFactory()->getEditable('alshaya_acm_checkout.settings');
+
+  // Remove from excluded payment methods.
+  $exclude_payment_methods_data = $config->get('exclude_payment_methods');
+  unset($exclude_payment_methods_data['cybersource']);
+  $config->set('exclude_payment_methods', $exclude_payment_methods_data);
+
+  // Remove from refund_exclude_payment_methods.
+  $refund_exclude_payment_methods_data = $config->get('refund_exclude_payment_methods');
+  unset($refund_exclude_payment_methods_data['cybersource']);
+  $config->set('refund_exclude_payment_methods', $refund_exclude_payment_methods_data);
+
+  $config->save();
+
+  // Delete the KNET payment method taxonomy term.
+  $payment_method_term = \Drupal::service('alshaya_acm_checkout.options_manager')->loadPaymentMethod('cybersource');
+  if ($payment_method_term instanceof Term) {
+    $payment_method_term->delete();
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adds Fawry payment method and other related data.
+ */
+function alshaya_spc_update_8011() {
+  /** @var \Drupal\alshaya_acm_checkout\CheckoutOptionsManager $checkout_options_manager */
+  $checkout_options_manager = \Drupal::service('alshaya_acm_checkout.options_manager');
+  $checkoutcom_upapi_fawry = $checkout_options_manager->loadPaymentMethod('checkout_com_upapi_fawry', 'FAWRY');
+  $checkoutcom_upapi_fawry = $checkoutcom_upapi_fawry->hasTranslation('ar')
+    ? $checkoutcom_upapi_fawry->getTranslation('ar')
+    : $checkoutcom_upapi_fawry->addTranslation('ar', []);
+  $checkoutcom_upapi_fawry->setName('فوري');
+  $checkoutcom_upapi_fawry->save();
+
+  // Disable new fawry method by default.
+  $config = \Drupal::configFactory()->getEditable('alshaya_acm_checkout.settings');
+  $data = $config->get('exclude_payment_methods');
+  $data['checkout_com_upapi_fawry'] = 'checkout_com_upapi_fawry';
+  $config->set('exclude_payment_methods', $data);
+  $config->set('refund_exclude_payment_methods', $data);
+  $config->save();
+
+  // Add translations.
+  module_load_include('inc', 'alshaya_spc', 'alshaya_spc.translations');
+  $translations = _alshaya_spc_get_translations('v3');
+  if ($translations) {
+    alshaya_i18n_save_translations($translations);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new Checkout Settings resource.
+ */
+function alshaya_spc_update_8010() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs([
+    'rest.resource.checkout_settings',
+  ],
+    'alshaya_spc',
+    'install'
+  );
+
+  \Drupal::configFactory()->getEditable('user.role.anonymous')->save();
+  \Drupal::configFactory()->getEditable('user.role.authenticated')->save();
+
+  // Rebuild router.
+  \Drupal::service('router.builder')->rebuild();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * [6.1.0] Remove old KNET payment method.
+ */
+function alshaya_spc_update_8009() {
+  $config = \Drupal::configFactory()->getEditable('alshaya_acm_checkout.settings');
+
+  // Remove from excluded payment methods.
+  $data = $config->get('exclude_payment_methods');
+  unset($data['knet']);
+  $config->set('exclude_payment_methods', $data);
+
+  // Remove from partial fullfilment excluded payment methods.
+  $data = $config->get('refund_exclude_payment_methods');
+  unset($data['knet']);
+  $config->set('refund_exclude_payment_methods', $data);
+
+  $config->save(TRUE);
+
+  // Delete the KNET payment method taxonomy term.
+  $payment_method_term = \Drupal::service('alshaya_acm_checkout.options_manager')->loadPaymentMethod('knet');
+  if ($payment_method_term instanceof Term) {
+    $payment_method_term->delete();
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Disable new checkout_com_upapi_applepay payment method by default.
+ */
+function alshaya_spc_update_8008() {
+  $config = \Drupal::configFactory()->getEditable('alshaya_acm_checkout.settings');
+  $data = $config->get('exclude_payment_methods');
+  $data['checkout_com_upapi_applepay'] = 'checkout_com_upapi_applepay';
+  $config->set('exclude_payment_methods', $data);
+  $config->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * [5.12.0] Deploy new checkout_com_upapi payment method as disabled.
+ * Add new translations.
+ */
+function alshaya_spc_update_8007() {
+  $config = \Drupal::configFactory()->getEditable('alshaya_acm_checkout.settings');
+  $data = $config->get('exclude_payment_methods');
+  $data['checkout_com_upapi'] = 'checkout_com_upapi';
+  $config->set('exclude_payment_methods', $data);
+  $config->save();
+
+  // Add translations.
+  module_load_include('inc', 'alshaya_spc', 'alshaya_spc.translations');
+  $translations = _alshaya_spc_get_translations('v2');
+  if ($translations) {
+    alshaya_i18n_save_translations($translations);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * [5.8.0] Disable new qpay/knet (checkout.com) payment methods.
+ */
+function alshaya_spc_update_8006() {
+  $config = \Drupal::configFactory()->getEditable('alshaya_acm_checkout.settings');
+  $data = $config->get('exclude_payment_methods');
+  $data['checkout_com_upapi_knet'] = 'checkout_com_upapi_knet';
+  $data['checkout_com_upapi_qpay'] = 'checkout_com_upapi_qpay';
+  $config->set('exclude_payment_methods', $data);
+  $config->save(TRUE);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * [5.2.0] Remove unnecessary country_center key.
+ */
+function alshaya_spc_update_8005() {
+  // Remove unnecessary country_center key.
+  $config = \Drupal::configFactory()->getEditable('alshaya_stores_finder.settings');
+  if ($config && $config->get('country_center')) {
+    $config->clear('country_center');
+    $config->save(TRUE);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * [5.1.0] Add translations for same day delivery.
+ */
+function alshaya_spc_update_8004() {
+  // Add translations for same day delivery.
+  $strings = [
+    'Same day' => [
+      'ar' => 'نفس اليوم',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new string translations.
+ */
+function alshaya_spc_update_8003() {
+  $strings = [
+    'Delivery Information is incomplete. Please update and try again.' => [
+      'ar' => 'معلومات التوصيل غير مكتملة. يرجى التحديث والمحاولة مرة أخرى.',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Install schema for symfony locking component.
+ */
+function alshaya_spc_update_8002() {
+  // Get connection details and PDO object.
+  $connection = Database::getConnection();
+  $getConnectionOptions = $connection->getConnectionOptions();
+  $pdo = $connection::open($getConnectionOptions);
+
+  $store = new PdoStore($pdo);
+
+  try {
+    $store->createTable();
+  }
+  catch (DBALException $exception) {
+    throw new UpdateException($exception->getMessage(), $exception->getCode(), $exception);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update SPC translation strings.
+ */
+function alshaya_spc_update_8001() {
+  // Add translations.
+  module_load_include('inc', 'alshaya_spc', 'alshaya_spc.translations');
+  if ($translations = _alshaya_spc_get_translations()) {
+    alshaya_i18n_save_translations($translations);
+  }
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_spc_install() {
+  // Add translations.
+  module_load_include('inc', 'alshaya_spc', 'alshaya_spc.translations');
+  if ($translations = _alshaya_spc_get_translations()) {
+    alshaya_i18n_save_translations($translations);
+  }
+
+  // Get connection details and PDO object.
+  $connection = Database::getConnection();
+  $getConnectionOptions = $connection->getConnectionOptions();
+  $pdo = $connection::open($getConnectionOptions);
+
+  $store = new PdoStore($pdo);
+  $store->createTable();
+}
+
+/**
+ * Implements hook_schema().
+ */
+function alshaya_spc_schema() {
+  $schema = [];
+
+  $schema['middleware_payment_data'] = [
+    'description' => 'Stores payment data info from middleware.',
+    'fields' => [
+      'cart_id' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Cart or Quote id.',
+      ],
+      'unique_id' => [
+        'type' => 'varchar_ascii',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Payment token id.',
+      ],
+      'data' => [
+        'type' => 'blob',
+        'not null' => TRUE,
+        'size' => 'big',
+        'description' => 'Serialized array containing payment data.',
+      ],
+      'timestamp' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp of when the data was saved.',
+      ],
+    ],
+    'primary key' => ['cart_id'],
+    'unique keys' => ['middleware_payment_data__unique_id' => ['unique_id']],
+  ];
+
+  return $schema;
+}

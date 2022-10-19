@@ -1,0 +1,434 @@
+<?php
+
+/**
+ * @file
+ * Module file.
+ */
+
+use Drupal\alshaya_custom\AlshayaDynamicConfigValueBase;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\StringTranslation\PluralTranslatableMarkup;
+use Drupal\Core\Url;
+use Drupal\search_api\Entity\Index;
+use Drupal\search_api\Query\QueryInterface as SearchApiQueryInterface;
+use Drupal\views\ViewExecutable;
+use Solarium\Core\Query\QueryInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Drupal\alshaya_search_api\AlshayaSearchApiHelper;
+
+/**
+ * Implements hook_acsf_registry().
+ *
+ * Adding our custom class to the registry that changes Alshaya configuration.
+ */
+function alshaya_search_acsf_registry() {
+  return [
+    'events' => [
+      [
+        'weight' => 15,
+        'type' => 'site_duplication_scrub',
+        'class' => '\Drupal\alshaya_search\Event\AlshayaAcsfDuplicationScrubConfigurationHandler',
+      ],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_views_pre_render().
+ */
+function alshaya_search_views_pre_render(ViewExecutable $view) {
+  if ($view->id() == 'search') {
+    if (!empty($view->getExposedInput()['keywords'])) {
+      $view->setTitle(t('Search results for "@keyword"', ['@keyword' => $view->getExposedInput()['keywords']]));
+    }
+    else {
+      $view->setTitle(t('Search results'));
+    }
+
+    // Add search library to search page.
+    $view->element['#attached']['library'][] = 'alshaya_search/alshaya_search';
+  }
+
+  // Override the 'result summary' header for PLP and Search.
+  if ($view->id() == 'search' || $view->id() == 'alshaya_product_list') {
+    // Override the 'result summary' header.
+    $format_plural = new PluralTranslatableMarkup($view->total_rows, '1 item', '@count items');
+    $view->header['result']->options['content'] = $format_plural;
+
+    $view->element['#attached']['library'][] = 'alshaya_search/alshaya_search';
+    $view->element['#attached']['drupalSettings']['alshayaSearch']['waitForAjax'] = TRUE;
+  }
+}
+
+/**
+ * Implements hook_views_pre_build().
+ */
+function alshaya_search_views_pre_build(ViewExecutable $view) {
+  if (in_array($view->id(), ['search', 'alshaya_product_list'])) {
+    $view->display_handler->display['cache_metadata']['contexts'][] = 'facets';
+    $view->element['#cache']['contexts'][] = 'facets';
+  }
+
+  if (in_array($view->id(), ['search', 'alshaya_product_list'])) {
+    // If AND operator setting is enabled, change operator to AND.
+    if (\Drupal::config('alshaya_config.settings')->get('alshaya_search_and_operator')) {
+      $view->filter['search_api_fulltext']->operator = 'and';
+    }
+  }
+
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function alshaya_search_form_views_exposed_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  if (($form['#id'] === 'views-exposed-form-search-page') ||
+      ($form['#id'] === 'views-exposed-form-alshaya-product-list-block-1') ||
+      ($form['#id'] === 'views-exposed-form-alshaya-product-list-block-2') ||
+      ($form['#id'] === 'views-exposed-form-alshaya-product-list-block-3')) {
+    $form['facets_container'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => 'facets-hidden-container',
+      ],
+    ];
+
+    $form['#attached']['library'][] = 'alshaya_search/alshaya_search';
+    $form['keywords']['#attributes'] = ['data-bef-auto-submit-exclude' => ''];
+
+    if ($form['#id'] === 'views-exposed-form-search-page') {
+      array_unshift($form['#submit'], 'alshaya_search_keyword_language_redirect');
+
+      // Best relevance ascending option removed.
+      if (isset($form['sort_bef_combine']['#options']['search_api_relevance ASC'])) {
+        unset($form['sort_bef_combine']['#options']['search_api_relevance ASC']);
+      }
+
+      // New In ascending option removed.
+      if (isset($form['sort_bef_combine']['#options']['created ASC'])) {
+        unset($form['sort_bef_combine']['#options']['created ASC']);
+      }
+
+      // Disable sort options if not enabled.
+      $enabled_sorts = _alshaya_search_get_config();
+      if (!$enabled_sorts) {
+        $form['#access'] = FALSE;
+      }
+      else {
+        $labels = _alshaya_search_get_config(TRUE);
+
+        array_walk($form['sort_bef_combine']['#options'], function (&$value, $key) use ($labels) {
+          $value = !empty($labels[$key]) ? $labels[$key] : $value;
+        });
+
+        foreach ($enabled_sorts as $key => $sort) {
+          if (!$sort) {
+            if (isset($form['sort_bef_combine']['#options']["$key ASC"])) {
+              unset($form['sort_bef_combine']['#options']["$key ASC"]);
+            }
+            if (isset($form['sort_bef_combine']['#options']["$key DESC"])) {
+              unset($form['sort_bef_combine']['#options']["$key DESC"]);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_theme_registry_alter().
+ */
+function alshaya_search_theme_registry_alter(array &$theme_registry) {
+  if (isset($theme_registry['facets_result_item'])) {
+    $theme_registry['facets_result_item']['path'] = drupal_get_path('module', 'alshaya_search') . '/templates';
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function alshaya_search_theme($existing, $type, $theme, $path) {
+  return [
+    'alshaya_search_gallery' => [
+      'variables' => [
+        'mainImage' => [],
+        'thumbnails' => [],
+        'class' => NULL,
+        'losanges' => '',
+      ],
+      'template' => 'alshaya_search_gallery',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_facets_search_api_query_type_mapping_alter().
+ */
+function alshaya_search_facets_search_api_query_type_mapping_alter($backend_plugin_id, array &$query_types) {
+  // For some reason the SKU Final Price shows as a string, so we need to
+  // manually add numeric as an option.
+  // We want these all to use alshaya_search_granular which is a customization
+  // of search_api_granular.
+  $query_types['numeric'] = 'alshaya_search_granular';
+}
+
+/**
+ * Implements hook_page_attachments_alter().
+ */
+function alshaya_search_page_attachments_alter(array &$attachments) {
+  $current_path = \Drupal::service('path.current')->getPath();
+  // Remove canonical link for search page.
+  if ($current_path == '/search') {
+    foreach ($attachments['#attached']['html_head'] as $key => $value) {
+      if ($value[1] == 'canonical_url') {
+        unset($attachments['#attached']['html_head'][$key]);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_ajax_render_alter().
+ */
+function alshaya_search_ajax_render_alter(array &$data) {
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  $valid_routes = [
+    'views.ajax',
+  ];
+
+  // Only for ajax route.
+  if (in_array($route_name, $valid_routes)) {
+    foreach ($data as &$command) {
+      if ($command['command'] == 'settings' && isset($command['settings']['views']['ajaxViews'])) {
+        $dom_id = key($command['settings']['views']['ajaxViews']);
+        $view_name = $command['settings']['views']['ajaxViews'][$dom_id]['view_name'];
+        // If 'search' view.
+        if ($view_name == 'search') {
+          // Adding a command.
+          $data[] = [
+            'selector' => NULL,
+            'command' => 'invoke',
+            'method' => 'alshayaSearchHeaderUpdate',
+            'args' => [],
+          ];
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_search_api_solr_query_alter().
+ */
+function alshaya_search_search_api_solr_query_alter(QueryInterface $solarium_query, SearchApiQueryInterface $query) {
+  $current_langcode = \Drupal::languageManager()->getCurrentLanguage()->getId();
+  $solarium_query->addParam('fq', 'ss_search_api_language:"' . $current_langcode . '"');
+}
+
+/**
+ * Submit function to redirect user to correct language, based on keyword.
+ */
+function alshaya_search_keyword_language_redirect($form, FormStateInterface $form_state) {
+  // Do not redirect if it is an ajax request,
+  // so that autocomplete works correctly.
+  if (\Drupal::request()->isXmlHttpRequest()) {
+    return;
+  }
+
+  $keyword = $form_state->getValue('keywords');
+
+  // Don't process if some notorious guy reached search page directly.
+  if (empty($keyword) || is_numeric($keyword)) {
+    return;
+  }
+
+  // Redirect to correct language, based on user input.
+  $languages = \Drupal::languageManager()->getLanguages();
+  if (count($languages) > 1 && array_key_exists('ar', $languages)) {
+    // Identify a non arabic language in the list of language.
+    if (\Drupal::languageManager()->getDefaultLanguage() != 'ar') {
+      // Pick the default language if it is not arabic.
+      $default_language = \Drupal::languageManager()->getDefaultLanguage();
+    }
+    else {
+      unset($languages['ar']);
+      $default_language = current($languages);
+    }
+
+    $redirect = FALSE;
+    if (\Drupal::languageManager()->getCurrentLanguage()->getId() == 'ar') {
+      // If none of the characters of the keywords are in arabic.
+      if (!preg_match("/\p{Arabic}/u", $keyword)) {
+        $redirect = TRUE;
+        $redirect_lang = $default_language;
+      }
+    }
+    elseif (preg_match("/\p{Arabic}+$/u", $keyword)) {
+      // Redirect to arabic, if all characters are in arabic.
+      $redirect = TRUE;
+      $redirect_lang = $languages['ar'];
+    }
+
+    if ($redirect) {
+      $query = ['keywords' => $keyword];
+      \Drupal::moduleHandler()->alter('alshaya_search_query_param', $query, $form_state, $redirect_lang);
+
+      // Redirect to keyword language.
+      $url = Url::fromUserInput('/search', [
+        'query' => $query,
+        'absolute' => TRUE,
+        'language' => $redirect_lang,
+      ])->toString();
+      $response = new RedirectResponse($url);
+      $response->send();
+    }
+  }
+}
+
+/**
+ * Function to get SRP sort options config.
+ *
+ * @param bool $label
+ *   (Optional) True to get label else returns enabled options.
+ *
+ * @return array
+ *   Array of enabled options / label of options.
+ */
+function _alshaya_search_get_config($label = FALSE) {
+  $position = \Drupal::config('alshaya_search.settings');
+  if ($label) {
+    return AlshayaDynamicConfigValueBase::schemaArrayToKeyValue((array) $position->get('sort_options_labels'));
+  }
+  return $position->get('sort_options');
+}
+
+/**
+ * Implements hook_alshaya_i18n_onetime_translation_add().
+ */
+function alshaya_search_alshaya_i18n_onetime_translation_add() {
+  _alshaya_search_translate_search_view_config();
+}
+
+/**
+ * Translates the search view settings / config.
+ */
+function _alshaya_search_translate_search_view_config() {
+  $search_view = \Drupal::languageManager()->getLanguageConfigOverride('ar', 'views.view.search');
+
+  $search_view->set('display.default.display_options.exposed_form.options.exposed_sorts_label', 'رتب حسب');
+  $search_view->set('display.default.display_options.exposed_form.options.bef.sort.advanced.combine_rewrite', 'التطابق تنازلي|التطابق
+الاسم تصاعدي|الاسم من أ إلى ي
+الاسم تنازلي|الاسم من ي إلى أ
+السعر تنازلي|السعر من الأعلى إلى الأدنى
+السعر تصاعدي|السعر من الأدنى إلى الأعلى');
+  $search_view->set('display.default.display_options.exposed_form.options.sort_asc_label', 'تصاعدي');
+  $search_view->set('display.default.display_options.exposed_form.options.sort_desc_label', 'تنازلي');
+  $search_view->set('display.default.display_options.sorts.search_api_relevance.expose.label', 'التطابق');
+  $search_view->set('display.default.display_options.sorts.final_price.expose.label', 'السعر');
+  $search_view->set('display.default.display_options.sorts.title.expose.label', 'الاسم');
+  $search_view->set('display.default.display_options.empty.area.content.value', "<p>لا يوجد نتائج لبحثك</p>\r\n");
+  $search_view->set('display.default.display_options.header.result.content', '@total القطع');
+  $search_view->set('display.default.display_options.pager.options.views_infinite_scroll.button_text', 'عرض المزيد');
+
+  $search_view->save();
+}
+
+/**
+ * Helper function to clear all indexed items resave indexes.
+ *
+ * Since we will add/update lot of attributes, best to re-use the code.
+ *
+ * @param array $indexes
+ *   Indexes to resave.
+ *
+ * @throws \Exception
+ */
+function _alshaya_search_resave_indexes(array $indexes = []) {
+  if (empty($indexes)) {
+    $indexes = ['product', 'acquia_search_index', 'alshaya_algolia_index'];
+    if (AlshayaSearchApiHelper::isIndexEnabled('alshaya_algolia_product_list_index')) {
+      $indexes[] = 'alshaya_algolia_product_list_index';
+    }
+  }
+
+  foreach ($indexes as $index_name) {
+    try {
+      // Queue items for re-indexing. Required specifically for search_api_db to
+      // avoid creating tables with numeric prefixes when indexing content.
+      $index = Index::load($index_name);
+
+      // Re-index all items.
+      $index->reindex();
+
+      // Save index to reflect new category field.
+      $index->save();
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('alshaya_search')->warning('Exception occurred while trying to resave index @index : @message', [
+        '@index' => $index_name,
+        '@message' => $e->getMessage(),
+      ]);
+    }
+  }
+}
+
+/**
+ * Implements hook_acq_sku_base_fields_updated().
+ */
+function alshaya_search_acq_sku_base_fields_updated(array $fields, $op = 'add') {
+  /** @var \Drupal\alshaya_search_api\AlshayaSearchApiFacetsManager $facet_manager */
+  $facet_manager = \Drupal::service('alshaya_search_api.facets_manager');
+
+  $facet_source_id = 'search_api:views_page__search__page';
+  $filter_bar_id = 'facets_summary.facets_summary.filter_bar';
+  $prefix = '';
+
+  switch ($op) {
+    case 'add':
+      alshaya_config_install_configs(['search_api.index.acquia_search_index'], 'alshaya_search', 'optional');
+
+      foreach ($fields as $field_code => $field) {
+        if (empty($field['facet'])) {
+          // We use add even when resetting. Remove facet if available.
+          $facet_manager->removeFacet($field_code, $filter_bar_id, $prefix);
+          continue;
+        }
+
+        // Prepare overrides data for the facet.
+        $overrides['name'] = $field['label'];
+
+        // If widget data is present in fields array, include that in overrides
+        // to ensure correct widget information is added while creating facets.
+        if (isset($field['widget'])) {
+          foreach ($field['widget'] as $key => $widget) {
+            $overrides['widget'][$key] = $widget;
+          }
+        }
+        $facet_manager->createFacet($field_code, $facet_source_id, $filter_bar_id, $prefix, $overrides);
+      }
+      break;
+
+    case 'remove':
+      foreach ($fields as $field_code => $field) {
+        $index_field_code = 'attr_' . $field_code;
+        _alshaya_search_api_remove_field_from_indexes($index_field_code, 'acquia_search_index');
+
+        // Remove from facets if facet is 1.
+        if (!empty($field['facet'])) {
+          $facet_manager->removeFacet($field_code, $filter_bar_id, $prefix);
+        }
+      }
+      break;
+  }
+}
+
+/**
+ * Implements hook_local_tasks_alter().
+ */
+function alshaya_search_local_tasks_alter(&$local_tasks) {
+  // Change config translation local task hierarchy.
+  if (isset($local_tasks['config_translation.local_tasks:config_translation.item.overview.alshaya_search.srp_sort_settings_form'])) {
+    $local_tasks['config_translation.local_tasks:config_translation.item.overview.alshaya_search.srp_sort_settings_form']['parent_id'] = 'alshaya_search.srp_sort_settings_form';
+  }
+}

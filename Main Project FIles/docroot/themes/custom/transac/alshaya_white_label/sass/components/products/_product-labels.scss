@@ -1,0 +1,105 @@
+.labels-container {
+  .label {
+    max-width: 5rem;
+    z-index: 0;
+    line-height: 0;
+
+    .c-pdp & {
+      z-index: 5;
+    }
+
+    .c-plp & {
+      z-index: 1;
+    }
+  }
+}
+
+.sell--image,
+.view-product-slider {
+  .labels-container {
+    .label {
+      &.bottom {
+        &-left,
+        &-right {
+          bottom: 0;
+        }
+      }
+    }
+  }
+}
+
+.acq-content-product-modal {
+  .cloudzoom__herocontainer .product-labels {
+    height: auto;
+  }
+
+  .gallery-wrapper {
+    .labels-container {
+      .label {
+        z-index: 1;
+
+        &.bottom {
+          &-left,
+          &-right {
+            bottom: 0;
+          }
+        }
+      }
+    }
+  }
+}
+
+.mob-imagegallery {
+  .labels-container {
+    .label {
+      &.bottom {
+        &-left,
+        &-right {
+          bottom: 9.5rem;
+        }
+      }
+    }
+  }
+}
+
+.gallery-wrapper {
+  .labels-container {
+    .label {
+      &.bottom {
+        &-left,
+        &-right {
+          @include breakpoint($desktop) {
+            bottom: 0;
+          }
+        }
+      }
+    }
+  }
+}
+
+.mobilegallery {
+  .labels-container {
+    .label {
+      &.bottom {
+        &-left,
+        &-right {
+          bottom: 1.1rem;
+        }
+      }
+    }
+  }
+}
+
+.image-label-wrapper,
+.spc-product-recommended-image {
+  position: relative;
+
+  .labels-container {
+    &.bottom {
+      &-left,
+      &-right {
+        bottom: 0;
+      }
+    }
+  }
+}

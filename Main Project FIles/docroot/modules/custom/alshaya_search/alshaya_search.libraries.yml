@@ -1,0 +1,11 @@
+alshaya_search:
+  js:
+    js/alshaya_search.js: {}
+  dependencies:
+    - alshaya_master/common_functions
+    - core/drupalSettings
+    - alshaya_white_label/slick
+
+disable_keyword_ajax:
+  js:
+    js/disable_keyword_ajax.js: {}

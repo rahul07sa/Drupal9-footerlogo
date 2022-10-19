@@ -1,0 +1,28 @@
+.size-guide-link {
+  top: 0.125rem;
+}
+
+.short-description-wrapper {
+  .read-more-description-link-mobile,
+  .read-more-description-link,
+  .read-more-description-link-gift {
+    font-size: 0.75rem;
+    font-weight: normal;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.content__title_wrapper {
+  .price {
+    font-size: 1rem;
+  }
+}
+
+.description-wrapper a {
+  font-size: 0.75rem;
+  font-weight: normal;
+  line-height: normal;
+}

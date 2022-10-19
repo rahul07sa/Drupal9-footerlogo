@@ -1,0 +1,135 @@
+<?php
+
+/**
+ * @file
+ * Dynamic yield.
+ *
+ * Adds the required Javascript to your site to allow tracking by the Dynamic
+ * yield.
+ */
+
+use Drupal\dynamic_yield\Event\DyPageType;
+use Drupal\Component\Serialization\Json;
+
+/**
+ * Implements hook_page_attachments().
+ */
+function dynamic_yield_page_attachments(array &$page) {
+  // For performance testing & debugging purposes adding a quick bypass for
+  // escaping DY JS on a page.
+  // Usage: ?DY=BLOCK (OR) ?external=0.
+  $param = \Drupal::request()->get('DY');
+  $external = \Drupal::request()->get('external');
+  if ((isset($external) && $external == 0) || $param === 'BLOCK') {
+    return;
+  }
+
+  /** @var \Drupal\dynamic_yield\DynamicYieldService $dynamic_yield */
+  $dynamic_yield = \Drupal::service('dynamic_yield.dynamic_yield');
+
+  if (!(\Drupal::service('router.admin_context')->isAdminRoute()) && $dynamic_yield->getSectionId()) {
+    // Add DY script tags to header.
+    // Based on the type of dy script injection, add the script.
+    $dy_script_init = \Drupal::config('dynamic_yield.settings')->get('dy_script_init');
+    if ($dy_script_init === 'automatic') {
+      $static_script = [[
+        '#tag' => 'script',
+        '#attributes' => [
+          'src' => $dynamic_yield->getDynamicYieldStaticScriptCode(),
+        ],
+      ],
+        'spath',
+      ];
+      array_unshift($page['#attached']['html_head'], $static_script);
+      $dynamic_script = [[
+        '#tag' => 'script',
+        '#attributes' => [
+          'src' => $dynamic_yield->getDynamicYieldDynamicScriptCode(),
+        ],
+      ],
+        'dpath',
+      ];
+      array_unshift($page['#attached']['html_head'], $dynamic_script);
+    }
+
+    // Dispatch the DyPageType event to set the context.
+    $event = new DyPageType();
+    if (\Drupal::state()->get('system.maintenance_mode')) {
+      $event->setDyContext('OTHER');
+    }
+    else {
+      \Drupal::service('event_dispatcher')->dispatch(DyPageType::DY_SET_CONTEXT, $event);
+    }
+    if ($event && $event instanceof DyPageType) {
+      $context = [
+        'type' => $event->getDyContext(),
+        'lng' => 'en_US',
+      ];
+      if (!empty($event->getDyContextData())) {
+        $context['data'] = $event->getDyContextData();
+      }
+    }
+    // Allow other module to alter the DY context.
+    \Drupal::moduleHandler()->alter('dynamic_yield_context', $context['lng']);
+    $page['#attached']['drupalSettings']['dynamicYield']['lng'] = $context['lng'];
+    // Add the source id in the drupal Settings.
+    $page['#attached']['drupalSettings']['dynamicYield']['sourceId'] = \Drupal::config('dynamic_yield.settings')->get('section_id') ?? '';
+    $js = PHP_EOL . 'window.DY = window.DY || {};' . PHP_EOL;
+    $js = $js . 'DY.recommendationContext = ' . Json::encode($context) . ';' . PHP_EOL;
+    $context_script = [[
+      '#type' => 'html_tag',
+      '#tag' => 'script',
+      '#value' => $js,
+    ],
+      'dycontext',
+    ];
+    array_unshift($page['#attached']['html_head'], $context_script);
+
+    // Add DY preconnect and dns-prefetch link tags to header.
+    $prefetch_urls = [
+      '//rcom-eu.dynamicyield.com',
+      '//st-eu.dynamicyield.com',
+      '//cdn-eu.dynamicyield.com',
+    ];
+    foreach ($prefetch_urls as $key => $prefetch_url) {
+      $rel = 'dns-prefetch';
+      $tag = 'dy_dns_prefetch' . $key;
+      $link_tag = _dynamic_yield_get_head_link_tag($rel, $prefetch_url, $tag);
+      array_unshift($page['#attached']['html_head'], $link_tag);
+    }
+    foreach ($prefetch_urls as $key => $prefetch_url) {
+      $rel = 'preconnect';
+      $tag = 'dy_preconnect' . $key;
+      $link_tag = _dynamic_yield_get_head_link_tag($rel, $prefetch_url, $tag);
+      array_unshift($page['#attached']['html_head'], $link_tag);
+    }
+    $page['#attached']['library'][] = 'dynamic_yield/dynamic_yield.intelligent_tracking';
+  }
+  $page['#cache']['tags'][] = 'config:dynamic_yield.settings';
+}
+
+/**
+ * Get prefetch link tags.
+ *
+ * @param string $rel
+ *   Rel attribute.
+ * @param string $href
+ *   Link tag href.
+ * @param string $tag
+ *   HTML head tag for alter.
+ *
+ * @return array
+ *   Link tag array.
+ */
+function _dynamic_yield_get_head_link_tag($rel, $href, $tag) {
+  return [
+    [
+      '#tag' => 'link',
+      '#attributes' => [
+        'rel' => $rel,
+        'href' => $href,
+      ],
+    ],
+    $tag,
+  ];
+}

@@ -1,0 +1,36 @@
+.c-accordion__title {
+  text-transform: uppercase;
+  padding-#{$right}: 1.875rem;
+
+  @include facet-arrow(after, down, 0.375rem, 0, 0.375rem, 0.5rem) {
+    #{$right}: 0.625rem;
+    top: 1.25rem;
+  }
+}
+
+.c-facet.c-accordion .c-accordion__title {
+  @include facet-arrow(after, down) {
+    top: 1.25rem;
+    #{$right}: 1rem;
+  }
+
+  &.active {
+    &::after {
+      transform: rotate(270deg);
+    }
+  }
+}
+
+.c-accordion__title,
+.c-collapse__title {
+  &.ui-state-active {
+    @include facet-arrow(after, up, 0.375rem, 0, 0.375rem, 0.5rem) {
+      #{$right}: 0.625rem;
+      top: 1.25rem;
+    }
+  }
+}
+
+.c-facet.c-accordion:last-child {
+  border-bottom-color: transparent;
+}

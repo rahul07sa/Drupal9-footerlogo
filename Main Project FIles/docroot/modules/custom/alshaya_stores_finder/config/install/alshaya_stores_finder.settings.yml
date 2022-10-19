@@ -1,0 +1,19 @@
+filter_path: 'storeLocator/search?searchCriteria[filter_groups][0][filters][0][field]=status&searchCriteria[filter_groups][0][filters][0][value]=1&searchCriteria[filter_groups][1][filters][0][field]=pudo_service&searchCriteria[filter_groups][1][filters][0][value]=0'
+stores_finder_page_status: 1
+enable_disable_store_finder_search: 1
+load_more_item_limit: 10
+search_proximity_radius: 5
+marker:
+  path: ''
+  url: ''
+  use_default: true
+  label_position:
+    x: 15
+    y: 15
+    single_x: 15
+    single_y: 15
+store_list_label: 'List of all Stores'
+store_search_placeholder: 'e.g. Salmiya'
+map_marker:
+  active: ''
+  in_active: ''

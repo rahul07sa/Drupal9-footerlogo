@@ -1,0 +1,43 @@
+.c-category-list__title {
+  @include arabic-letter-spacing;
+
+  font-size: 1rem;
+  line-height: 1.25rem;
+  font-family: $hnm-bold;
+  text-transform: capitalize;
+  letter-spacing: 0.4px;
+  color: $title;
+
+  a {
+    color: $title;
+  }
+
+  @include breakpoint($upto-desktop) {
+    font-family: $hnm-regular;
+  }
+}
+
+.c-category-list__item {
+  text-transform: capitalize;
+
+  a {
+    @include arabic-letter-spacing;
+
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+    color: $hnm-black-three;
+    font-family: $hnm-regular;
+    letter-spacing: 0.5px;
+
+    .c-department & {
+      &:hover {
+        text-decoration: underline;
+        color: $default-anchor-link-hover;
+
+        &:active {
+          text-decoration: none;
+        }
+      }
+    }
+  }
+}

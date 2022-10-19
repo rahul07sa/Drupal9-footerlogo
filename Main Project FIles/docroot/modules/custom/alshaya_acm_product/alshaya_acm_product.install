@@ -1,0 +1,1692 @@
+<?php
+
+/**
+ * @file
+ * Contains install, update, uninstall hooks for alshaya_acm_product module.
+ */
+
+use Drupal\acq_sku\ProductOptionsManager;
+use Drupal\acq_sku\SKUFieldsManager;
+use Drupal\alshaya_config\AlshayaConfigManager;
+use Drupal\node\Entity\Node;
+use Drupal\user\Entity\Role;
+use Drupal\search_api\Item\Field;
+use Drupal\facets\Entity\Facet;
+
+/**
+ * Implements hook_update_N().
+ *
+ * Remove all the custom cache tags from the cachetags table and clear out the
+ * product_processed_data cache bin.
+ */
+function alshaya_acm_product_update_8081() {
+  // Delete custom cache tags present in cachetags.
+  $query = \Drupal::database()->delete('cachetags');
+  $query->condition('tag', 'alshaya_sku:%', 'like');
+  $query->execute();
+
+  // Clear out the product_processed_data cache bin.
+  \Drupal::cache('product_processed_data')->deleteAll();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new config which contains configurable field label, error and label when
+ * a value is selected.
+ */
+function alshaya_acm_product_update_8080() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.fields_labels_n_error'],
+    'alshaya_acm_product'
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * New configuration 'show_size_guide_on_pdp_page'.
+ */
+function alshaya_acm_product_update_8079() {
+  $config_factory = \Drupal::configFactory();
+  $config = $config_factory->getEditable('alshaya_acm_product.pdp_modal_links');
+  $config->set('show_size_guide_on_pdp_page', 0);
+  $config->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * [6.9.0] Add the config value for the brand name display in plp.
+ */
+function alshaya_acm_product_update_8078() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs([
+    'alshaya_acm_product.display_settings',
+  ],
+      'alshaya_acm_product',
+      'install',
+      AlshayaConfigManager::MODE_ADD_MISSING,
+    );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add granularity processor to range_checkbox type Facets.
+ */
+function alshaya_acm_product_update_8077() {
+  foreach (Facet::loadMultiple() as $facet) {
+    $widget = $facet->getWidget();
+    // Checking widget type range_checkbox.
+    if ($widget['type'] === 'range_checkbox') {
+      // Migrate widget to processor settings.
+      $settings = [
+        'granularity' => !empty($widget['config']['granularity']) ? $widget['config']['granularity'] : 5,
+      ];
+      $facet->addProcessor([
+        'processor_id' => 'granularity_item',
+        'weights' => ['build' => 35],
+        'settings' => $settings,
+      ]);
+      $facet->save();
+    }
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Creating Delivery Ways facet field under
+ * product Search API Index if does not exist.
+ */
+function alshaya_acm_product_update_8076() {
+  // Search API Index storage object.
+  $index_storage = \Drupal::entityTypeManager()
+    ->getStorage('search_api_index');
+  // Product Search API Index.
+  $index = $index_storage->load('product');
+
+  // Check if attr_delivery_ways facet field not added to index.
+  if (!array_key_exists('attr_delivery_ways', $index->getFields())) {
+    // Index the attr_delivery_ways field.
+    $field_delivery_ways = new Field($index, 'attr_delivery_ways');
+    $field_delivery_ways->setLabel('SKUs » SKU Reference » Different Delivery Types');
+    $field_delivery_ways->setDatasourceId('entity:node');
+    $field_delivery_ways->setPropertyPath('field_skus:entity:attr_delivery_ways');
+    $field_delivery_ways->setType('string');
+
+    $index->addField($field_delivery_ways);
+
+    $index->save();
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new settings for swatch attribute images roles and
+ * for excluding swatch attributes from PLP pages.
+ */
+function alshaya_acm_product_update_8075() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.display_settings'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Re-saving the stock resource to moved outside mobile app.
+ * Add new settings for local storage cache time for product data.
+ */
+function alshaya_acm_product_update_8074() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.settings'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add attr_delivery_ways to facets in algolia.
+ */
+function alshaya_acm_product_update_8073() {
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.sku_base_fields'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_MERGE
+  );
+  \Drupal::service('acq_sku.fields_manager')->addFields();
+  // Adding fields in search_api index.
+  $manager->updateConfigs(
+    ['search_api.index.product'],
+    'alshaya_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING_RECURSIVE
+  );
+  $manager->updateConfigs(
+    ['search_api.index.acquia_search_index'],
+    'alshaya_search',
+    'optional',
+    AlshayaConfigManager::MODE_ADD_MISSING_RECURSIVE
+  );
+
+  $blocks = [
+    'deliveryways' => 'alshaya_search_facets_block_all',
+    'promodeliveryways' => 'alshaya_promo_facets_block_all',
+    'plpdeliveryways' => 'alshaya_plp_facets_block_all',
+    'productlistdeliveryways' => 'alshaya_productlist_facets_block_all',
+  ];
+  foreach ($blocks as $facet_block_id => $all_filter_block_id) {
+    // Add string translation for the block label.
+    \Drupal::languageManager()->getLanguageConfigOverride('ar', 'block.block.' . $facet_block_id)
+      ->set('settings.label', 'نوع التوصيل')
+      ->save();
+  }
+  $facet_ids = [
+    'plp_delivery_ways',
+    'promo_delivery_ways',
+    'delivery_ways',
+  ];
+  foreach ($facet_ids as $facet_id) {
+    \Drupal::configFactory()->getEditable('facets.facet.' . $facet_id)
+      ->set('widget.type', 'delivery_ways')
+      ->save();
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new Product Linked SKU resource v2.
+ */
+function alshaya_acm_product_update_8072() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs([
+    'rest.resource.product_linked_skus_v2',
+  ],
+    'alshaya_acm_product',
+    'install'
+  );
+
+  \Drupal::configFactory()->getEditable('user.role.anonymous')->save();
+  \Drupal::configFactory()->getEditable('user.role.authenticated')->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * [6.2.0] Add the config value for the color attribute display.
+ */
+function alshaya_acm_product_update_8071() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs([
+    'alshaya_acm_product.display_settings',
+  ],
+      'alshaya_acm_product',
+      'install',
+      AlshayaConfigManager::MODE_ADD_MISSING,
+    );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * [6.2.0] Delete the configs for /skus/list API.
+ */
+function alshaya_acm_product_update_8070() {
+  // Deleting the memory limit policy for /skus/list API.
+  \Drupal::configFactory()->getEditable('memory_limit_policy.memory_limit_policy.path_based_memory')->delete();
+  // Deleting the sku_images rest config.
+  \Drupal::configFactory()->getEditable('rest.resource.sku_images')->delete();
+  // Disable the resource related permissions.
+  $role = Role::load('alshaya_magento_consumer');
+  if ($role->hasPermission('restful post sku_images')) {
+    $role->revokePermission('restful post sku_images');
+  }
+  $role->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new Product Status resource.
+ */
+function alshaya_acm_product_update_8069() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs([
+    'rest.resource.product_status',
+  ],
+    'alshaya_acm_product',
+    'install'
+  );
+
+  \Drupal::configFactory()->getEditable('user.role.anonymous')->save();
+  \Drupal::configFactory()->getEditable('user.role.authenticated')->save();
+
+  // Rebuild router.
+  \Drupal::service('router.builder')->rebuild();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Change in a local storage cache time.
+ */
+function alshaya_acm_product_update_8068() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.settings'],
+    'alshaya_acm_product',
+    'install',
+    $manager::MODE_REPLACE_KEY,
+    ['replace_keys' => ['local_storage_cache_time']]
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add translations for error_code 604.
+ */
+function alshaya_acm_product_update_8067() {
+  $strings = [
+    'The product that you are trying to add is not available.' => [
+      'ar' => 'المنتج الذي تحاول إضافته غير متوفر.',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new Product and Stock resource v2.
+ */
+function alshaya_acm_product_update_8066() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs([
+    'rest.resource.stock_v2',
+    'rest.resource.product_v2',
+  ],
+    'alshaya_acm_product',
+    'install'
+  );
+
+  \Drupal::configFactory()->getEditable('user.role.anonymous')->save();
+  \Drupal::configFactory()->getEditable('user.role.authenticated')->save();
+
+  // Rebuild router.
+  \Drupal::service('router.builder')->rebuild();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new fields and index them.
+ */
+function alshaya_acm_product_update_8065() {
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.sku_base_fields'],
+    'alshaya_acm_product'
+  );
+
+  \Drupal::service('acq_sku.fields_manager')->addFields();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * [5.9.0] Re-install alshaya_brand module for sites which have the module
+ * enabled but do not have the alshaya_brand.settings configuration installed.
+ * This should have occurred because of some error during installation so we
+ * re-install the module.
+ */
+function alshaya_acm_product_update_8064() {
+  $module = 'alshaya_brand';
+  $config_factory = \Drupal::configFactory();
+  $extension_config = $config_factory->getEditable('core.extension');
+  $fields = $extension_config->getRawData();
+  // If alshaya_brand.settings does not exist, schema version of alshaya_brand
+  // is -1 and module name exists in core.extsion config we perform
+  // reinstallation of the module.
+  if (empty($config_factory->get("$module.settings")->getRawData())
+    && (drupal_get_installed_schema_version($module) == '-1')
+    && ($fields['module'][$module] === 0)) {
+    // Remove module from core.extension config to allow full re-installation
+    // of the module.
+    unset($fields['module'][$module]);
+    $extension_config->setData($fields)->save();
+    // Uninstall the module configuration which might be existing in the system.
+    // If we do not do this then we get the exception
+    // "In PreExistingConfigException.php line 65:
+    // Configuration objects (alshaya_brand.settings) provided by alshaya_brand
+    // already exist in active configuration.".
+    \Drupal::service('config.manager')->uninstall('module', $module);
+    // Install the module.
+    \Drupal::service('module_installer')->install([$module]);
+  }
+}
+
+/**
+ * Implemens hook_update_N().
+ *
+ * [5.7.0] Create new table to store processed product data.
+ */
+function alshaya_acm_product_update_8063() {
+  $schema = alshaya_acm_product_schema();
+
+  \Drupal::database()
+    ->schema()
+    ->createTable('product_processed', $schema['product_processed']);
+
+  // For now just mark all products as processed to start with.
+  \Drupal::database()->query('INSERT INTO {product_processed} SELECT DISTINCT SKU from {acq_sku_field_data}');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add translations for free gift labels.
+ */
+function alshaya_acm_product_update_8062() {
+  $strings = [
+    'Free Gift with Purchase' => [
+      'ar' => 'هدية مجانية عند الشراء',
+    ],
+    'Free Gift' => [
+      'ar' => 'هدية مجانية',
+    ],
+    'with this product' => [
+      'ar' => 'مع هذا المنتج',
+    ],
+    'Use Code <span class="coupon-code">@promo_code</span> with this product' => [
+      'ar' => 'استخدم الرمز <span class="coupon-code">@promo_code</span> مع هذا المنتج',
+    ],
+    'Click <span class="coupon-code">@promotion.coupon_code</span> to get a Free Gift' => [
+      'ar' => 'اضغط <span class="coupon-code">@promotion.coupon_code</span> للحصول على هدية مجانية',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Convert "brand_logo" field type from attribute to string.
+ */
+function alshaya_acm_product_update_8061() {
+  // Make brand_logo field type attribute from type string.
+  $config = \Drupal::configFactory()->getEditable(SKUFieldsManager::BASE_FIELD_ADDITIONS_CONFIG);
+  $attr_brand_logo = $config->get('brand_logo');
+  $attr_brand_logo['type'] = 'string';
+  $config->set('brand_logo', $attr_brand_logo);
+  $config->save();
+
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.sku_base_fields'],
+    'alshaya_acm_product'
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding `non_refundable_products` and `same_day_delivery` attribute
+ * to the product.
+ */
+function alshaya_acm_product_update_8060() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.sku_base_fields'],
+    'alshaya_acm_product'
+  );
+
+  \Drupal::service('acq_sku.fields_manager')->addFields();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add translation for label.
+ */
+function alshaya_acm_product_update_8059() {
+  $strings = [
+    'Details' => [
+      'ar' => 'تفاصيل',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Re-saving the stock resource to moved outside mobile app.
+ * Add new settings for local storage cache time for product data.
+ */
+function alshaya_acm_product_update_8058() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $configs = [
+    'rest.resource.stock',
+  ];
+  $manager->updateConfigs($configs, 'alshaya_acm_product');
+
+  \Drupal::configFactory()->getEditable('user.role.anonymous')->save();
+  \Drupal::configFactory()->getEditable('user.role.authenticated')->save();
+
+  $manager->updateConfigs(
+    ['alshaya_acm_product.settings'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add config to turn video download on/off.
+ * Enable alshaya_brand module.
+ */
+function alshaya_acm_product_update_8057() {
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.settings'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+  \Drupal::service('module_installer')->install(['alshaya_brand']);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Invalidate cache for promotions and requeue all impacted products.
+ */
+function alshaya_acm_product_update_8056() {
+  // Code here removed as functions used here are no longer supported.
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new settings as enable_size_grouping_filter.
+ */
+function alshaya_acm_product_update_8055() {
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.settings'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Re-saving the linked sku and PDP resource to moved outside mobile app.
+ */
+function alshaya_acm_product_update_8054() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $configs = [
+    'rest.resource.product_linked_skus',
+    'rest.resource.product',
+  ];
+  $manager->updateConfigs($configs, 'alshaya_acm_product');
+
+  \Drupal::configFactory()->getEditable('user.role.anonymous')->save();
+  \Drupal::configFactory()->getEditable('user.role.authenticated')->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Remove empty images to avoid 500 error.
+ */
+function alshaya_acm_product_update_8053() {
+  $connection = \Drupal::database();
+  // Find all files with file size 0.
+  $find_empty_file = "SELECT fid FROM {file_managed} WHERE filesize=0 AND (uri LIKE '%public://media%' OR uri LIKE '%public://assets%')";
+  $result = $connection->query($find_empty_file);
+  if ($result) {
+    // Work on each fid.
+    while ($row = $result->fetchAssoc()) {
+      $fid = $row['fid'];
+      // Delete the file now that its references are deleted.
+      \Drupal::entityTypeManager()->getStorage('file')->load($fid)->delete();
+    }
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable queue_unique.
+ */
+function alshaya_acm_product_update_8052() {
+  \Drupal::service('module_installer')->install(['queue_unique']);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update site uuid for taxonomy term fields missing them.
+ */
+function alshaya_acm_product_update_8051() {
+  $fields_missing_uuid = [
+    "field_display_as_clickable_link",
+    "field_pdp_layout",
+    "field_plp_layout",
+    "field_sorting_options",
+    "field_sorting_labels",
+    "field_commerce_status",
+  ];
+
+  $uuid_generator = \Drupal::service('uuid');
+  foreach ($fields_missing_uuid as $field_missing_uuid) {
+    $uuid = $uuid_generator->generate();
+    $field_storage_config = \Drupal::configFactory()->getEditable('field.storage.taxonomy_term.' . $field_missing_uuid);
+    if (!$field_storage_config->get('uuid')) {
+      $field_storage_config->set('uuid', $uuid)->save();
+    }
+
+    $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+    $field_storage_definition = $entity_definition_update_manager->getFieldStorageDefinition($field_missing_uuid, 'taxonomy_term');
+    if (!$field_storage_definition->getUniqueStorageIdentifier()) {
+      $field_storage_definition->set('uuid', $uuid);
+      $entity_definition_update_manager->updateFieldStorageDefinition($field_storage_definition);
+    }
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update config for showing images of specific color product in listing.
+ * This is done when filtered by color.
+ */
+function alshaya_acm_product_update_8050() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+
+  $manager->updateConfigs(
+    ['alshaya_acm_product.display_settings'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Split pathauto pattern for product and add .html suffix.
+ */
+function alshaya_acm_product_update_8049() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(['pathauto.pattern.content_pathauto'], 'alshaya_acm');
+  $manager->updateConfigs(['pathauto.pattern.product_pathauto'], 'alshaya_acm_product');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Resave image.settings config so that overrides take effect.
+ */
+function alshaya_acm_product_update_8048() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['image.settings'],
+    'image'
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Correct the path for memory limit policy config.
+ */
+function alshaya_acm_product_update_8047() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['memory_limit_policy.memory_limit_policy.path_based_memory'],
+    'alshaya_acm_product',
+    'optional'
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new config key for listing page display of hover images.
+ * Clear product cache after code changes to reduce data in cache and to rebuild
+ * swatches data.
+ */
+function alshaya_acm_product_update_8046() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+
+  $manager->updateConfigs(
+    ['alshaya_acm_product.display_settings'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+
+  /** @var \Drupal\pcb\Cache\PermanentDatabaseBackend $cache */
+  $cache = \Drupal::service('cache.alshaya_product');
+  $cache->deleteAllPermanent();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding `is_sale` and `is_new` attribute to the product.
+ */
+function alshaya_acm_product_update_8045() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.sku_base_fields'],
+    'alshaya_acm_product'
+  );
+
+  \Drupal::service('acq_sku.fields_manager')->addFields();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new config key for listing page display of hover images.
+ * Clear product cache after code changes to reduce data in cache and to rebuild
+ * swatches data.
+ */
+function alshaya_acm_product_update_8044() {
+  // Done now in 8046. Because of back-merges and feature branch flow it was not
+  // getting executed.
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable the `meta tag` field for `acq_product` bundle form display.
+ */
+function alshaya_acm_product_update_8043() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['core.entity_form_display.node.acq_product.default'],
+    'acq_sku'
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Index selling_price along with final_price.
+ */
+function alshaya_acm_product_update_8042() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  // Updating cardinality config for the attribute.
+  $manager->updateConfigs(
+    ['alshaya_acm_product.sku_base_fields'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING_RECURSIVE
+  );
+
+  /** @var \Drupal\acq_sku\SKUFieldsManager $sku_fields_manager */
+  $sku_fields_manager = \Drupal::service('acq_sku.fields_manager');
+  $sku_fields_manager->addFields();
+
+  alshaya_config_install_configs(['search_api.index.product'], 'alshaya_product');
+  alshaya_config_install_configs(['search_api.index.acquia_search_index'], 'alshaya_search', 'optional');
+  _alshaya_search_resave_indexes();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add config for image roles to hide in gallery.
+ */
+function alshaya_acm_product_update_8041() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.display_settings'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add config to exclude attribute option.
+ */
+function alshaya_acm_product_update_8040() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.settings'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding AR translation for "save upto x%".
+ */
+function alshaya_acm_product_update_8039() {
+  $string = [
+    'Save upto @discount%' => [
+      'ar' => '%@discount وفّر لغاية',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($string);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add config for display of price (simple / from_to).
+ */
+function alshaya_acm_product_update_8038() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.display_settings'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Clear product cache to rebuild image sitemap urls.
+ */
+function alshaya_acm_product_update_8037() {
+  /** @var \Drupal\pcb\Cache\PermanentDatabaseBackend $cache */
+  $cache = \Drupal::service('cache.alshaya_product');
+  $cache->deleteAllPermanent();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add config for showing product image on hover.
+ */
+function alshaya_acm_product_update_8036() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.display_settings'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add config for memory limit policy module.
+ * Clear alshaya_product cache to use cache tags.
+ */
+function alshaya_acm_product_update_8035() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['memory_limit_policy.memory_limit_policy.path_based_memory'],
+    'alshaya_acm_product',
+    'optional'
+  );
+
+  /** @var \Drupal\pcb\Cache\PermanentDatabaseBackend $cache */
+  $cache = \Drupal::service('cache.alshaya_product');
+  $cache->deleteAllPermanent();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable creating product nodes for colors.
+ */
+function alshaya_acm_product_update_8034() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+
+  $manager->updateConfigs(
+    [
+      'field.storage.node.field_product_color',
+      'field.field.node.acq_product.field_product_color',
+    ],
+    'alshaya_acm_product'
+  );
+
+  $manager->updateConfigs(
+    [
+      'core.entity_view_display.node.acq_product.modal',
+      'core.entity_view_display.node.acq_product.product_category_carousel',
+      'views.view.alshaya_product_list',
+    ],
+    'alshaya_product'
+  );
+
+  $manager->updateConfigs(
+    ['core.entity_view_display.node.acq_product.search_result'],
+    'alshaya_search'
+  );
+
+  $manager->updateConfigs(
+    [
+      'core.entity_view_display.node.acq_product.default',
+      'core.entity_form_display.node.acq_product.default',
+    ],
+    'acq_sku'
+  );
+
+  $manager->updateConfigs(
+    ['alshaya_acm_product.display_settings'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+
+  // Update alshaya product index to reflect created field.
+  alshaya_config_install_configs(['search_api.index.product'], 'alshaya_product');
+
+  _alshaya_search_resave_indexes(['product']);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * To show the color swatches hover & active effects
+ * on PDP.
+ */
+function alshaya_acm_product_update_8033() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.display_settings'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING_RECURSIVE
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Set the number of items to show in a product/colour
+ * Swatch on PDP.
+ */
+function alshaya_acm_product_update_8032() {
+  // Set default number of swatches items need to show on PDP..
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.settings'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING_RECURSIVE
+  );
+}
+
+/**
+ * Implements hook_post_update_NAME().
+ *
+ * Re-save index to create required tables.
+ */
+function alshaya_acm_product_post_update_8030(&$sandbox) {
+  // This is required because with deleting and re-adding the attribute,
+  // also deletes/removes the attribute info from search api.
+  _alshaya_search_resave_indexes();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Change 'product_collection' sku attribute cardinality to unlimited.
+ * Add config for the PDP layout and Update settings config to have value
+ * for short_desc_text_summary.
+ */
+function alshaya_acm_product_update_8030() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  // Updating cardinality config for the attribute.
+  $manager->updateConfigs(
+    ['alshaya_acm_product.sku_base_fields'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING_RECURSIVE
+  );
+
+  // Fetch and store existing attribute data in temporary variable.
+  $source_column = 'attr_product_collection';
+  $connection = \Drupal::database();
+  $query = $connection->select('acq_sku_field_data', 'ac');
+  $query->fields('ac', ['id', 'type', 'langcode', $source_column]);
+  $query->isNotNull('ac.' . $source_column);
+  $result = $query->execute()->fetchAll();
+
+  /** @var \Drupal\acq_sku\SKUFieldsManager $sku_fields_manager */
+  $sku_fields_manager = \Drupal::service('acq_sku.fields_manager');
+  // First remove the field. This is required or drupal won't allow the change
+  // in storage of the field. This is also required because with cardinality
+  // change, drupal stores data in new table 'acq_sku__attr_product_collection'
+  // while earlier it stores the data in same 'acq_sku_field_data' table.
+  $sku_fields_manager->removeField('product_collection');
+  // Then re-add the field.
+  $sku_fields_manager->addFields();
+
+  // If data is available in temporary variable, then re-store it in new table.
+  if (!empty($result)) {
+    $data = [];
+    $destination_table = 'acq_sku__' . $source_column;
+    $destination_column = $source_column . '_value';
+
+    // Prepare data array.
+    foreach ($result as $rs) {
+      $data[] = [
+        'bundle' => $rs->type,
+        'deleted' => 0,
+        'entity_id' => $rs->id,
+        'revision_id' => $rs->id,
+        'langcode' => $rs->langcode,
+        'delta' => 0,
+        $destination_column => $rs->{$source_column},
+      ];
+    }
+
+    // Insert data in new destination attribute table.
+    $query = $connection->insert($destination_table)->fields([
+      'bundle',
+      'deleted',
+      'entity_id',
+      'revision_id',
+      'langcode',
+      'delta',
+      $destination_column,
+    ]);
+    foreach ($data as $record) {
+      $query->values($record);
+    }
+    $query->execute();
+  }
+
+  // Add config for the PDP layout and Update settings config to have
+  // value for short_desc_text_summary.
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.settings'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update settings config to have value for pdp_slider_items_number_cs_us.
+ */
+function alshaya_acm_product_update_8029() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.settings'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING_RECURSIVE
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update hook to wrap delivery option sub-title in brackets.
+ * Update display_settings config to have value for
+ * show_child_images_after_selecting and show_parent_images_in_child.
+ */
+function alshaya_acm_product_update_8028() {
+  $options_standard_subtitle = \Drupal::configFactory()->get('alshaya_acm_product.home_delivery')->get('options_standard_subtitle');
+
+  // If subtitle is set, wrap it in brackets & save config.
+  if ($options_standard_subtitle) {
+    \Drupal::configFactory()->getEditable('alshaya_acm_product.home_delivery')->set('options_standard_subtitle', '(' . $options_standard_subtitle . ')')->save();
+  }
+
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.display_settings'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update display_settings config to have value for
+ * configurable_use_parent_images and hide_not_required_option.
+ */
+function alshaya_acm_product_update_8027() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.display_settings'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+}
+
+/**
+ * Implements hook_post_update_NAME().
+ *
+ * Re-save index to create required tables.
+ *
+ * We do this in post update hook as it doesn't work together with config update
+ * in normal hook_update.
+ */
+function alshaya_acm_product_post_update_8026(&$sandbox) {
+  _alshaya_search_resave_indexes();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Changing 'size_guide' config to 'pdp_modal_links'.
+ */
+function alshaya_acm_product_update_8026() {
+  $existing_config = \Drupal::configFactory()->getEditable('alshaya_acm_product.size_guide');
+  // Get existing config.
+  $existing_data = $existing_config->getRawData();
+  // Delete the configuration.
+  $existing_config->delete();
+
+  // Set the attribute for the delivery.
+  $existing_data['delivery_content_attribute'] = 'delivery';
+
+  // Save the configuration.
+  \Drupal::configFactory()->getEditable('alshaya_acm_product.pdp_modal_links')
+    ->setData($existing_data)->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Remove fields specific to HnM from core.
+ */
+function alshaya_acm_product_update_8025() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.sku_base_fields'],
+    'alshaya_acm_product'
+  );
+
+  $sku_fields_manager = \Drupal::service('acq_sku.fields_manager');
+
+  // Remove color description field for all brands.
+  $sku_fields_manager->removeField('color_description');
+
+  // Remove fields from all sites except HnM.
+  if (!\Drupal::moduleHandler()->moduleExists('alshaya_hm')) {
+    $removed_fields = [
+      'concept',
+      'washing_instructions',
+      'dry_cleaning_instructions',
+      'rgb_color',
+      'color_label',
+      'article_visual_description',
+      'product_designer_collection',
+      'product_feature',
+      'product_environment',
+      'product_quality',
+      'article_pattern',
+      'article_license_company',
+      'article_license_item',
+      'article_fragrance_description',
+      'article_warning',
+      'composition',
+    ];
+    foreach ($removed_fields as $field) {
+      $sku_fields_manager->removeField($field);
+    }
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new config which contains configurable field label, error and label when
+ * a value is selected.
+ * Clear alshaya_product cache as there is change in data structure.
+ */
+function alshaya_acm_product_update_8024() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.fields_labels_n_error'],
+    'alshaya_acm_product'
+  );
+
+  /** @var \Drupal\pcb\Cache\PermanentDatabaseBackend $cache */
+  $cache = \Drupal::service('cache.alshaya_product');
+  $cache->deleteAllPermanent();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Remove height config from plp slider config.
+ * Set the number of items to show in a product carousel
+ * on Department and Home page.
+ * Set the number of items to show in a related product carousel on Basket page.
+ */
+function alshaya_acm_product_update_8023() {
+  // Set default number of image items need to show in slider on PDP..
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.settings'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING_RECURSIVE
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding description field to SKU.
+ */
+function alshaya_acm_product_update_8022() {
+  alshaya_config_install_configs(['alshaya_acm_product.sku_base_fields'], 'alshaya_acm_product');
+  \Drupal::service('acq_sku.fields_manager')->addFields();
+
+  $strings = [
+    'Free Gift with Purchase' => [
+      'ar' => 'هدية مجانية عند الشراء',
+    ],
+    'Free Gift' => [
+      'ar' => 'هدية مجانية',
+    ],
+    'with this product' => [
+      'ar' => 'مع هذا المنتج',
+    ],
+    'Use Code <span class="coupon-code">@promo_code</span> with this product' => [
+      'ar' => 'استخدم الرمز <span class="coupon-code">@promo_code</span> مع هذا المنتج',
+    ],
+    'Click <span class="coupon-code">@promotion.coupon_code</span> to get a Free Gift' => [
+      'ar' => 'اضغط <span class="coupon-code">@promotion.coupon_code</span> للحصول على هدية مجانية',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update display settings to allow swatch field configuration.
+ * Add 'short_desc_characters' config.
+ * Add new config value for size guide attributes.
+ */
+function alshaya_acm_product_update_8021() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.display_settings'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+
+  $manager->updateConfigs(
+    ['alshaya_acm_product.size_guide'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Set the number of items to show in a gallery on PDP.
+ */
+function alshaya_acm_product_update_8020() {
+  // Set default number of image items need to show in slider on PDP..
+  \Drupal::configFactory()->getEditable('alshaya_acm_product.settings')
+    ->set('pdp_slider_items_settings.pdp_slider_items_number', 5)
+    ->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Install config for product display settings.
+ */
+function alshaya_acm_product_update_8019() {
+  alshaya_config_install_configs(['alshaya_acm_product.display_settings'], 'alshaya_acm_product');
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function alshaya_acm_product_update_8018() {
+  // Adding configuration for back_to_list.
+  alshaya_config_install_configs(['alshaya_acm_product.settings'], 'alshaya_acm_product');
+}
+
+/**
+ * Implements hook_post_update_NAME().
+ *
+ * Re-save index to create required tables.
+ *
+ * We do this in post update hook as it doesn't work together with config update
+ * in normal hook_update.
+ */
+function alshaya_acm_product_post_update_8017(&$sandbox) {
+  _alshaya_search_resave_indexes();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add color_description attribute in SKU and index it.
+ * Add new setting 'list_view_auto_page_load_count'.
+ */
+function alshaya_acm_product_update_8017() {
+  alshaya_config_install_configs(['alshaya_acm_product.sku_base_fields'], 'alshaya_acm_product');
+  \Drupal::service('acq_sku.fields_manager')->addFields();
+
+  // Since we know we will have both alshaya_product and alshaya_search enabled
+  // for all transact sites, we do it here - one common place.
+  alshaya_config_install_configs(['search_api.index.product'], 'alshaya_product');
+  alshaya_config_install_configs(['search_api.index.acquia_search_index'], 'alshaya_search');
+
+  // Update page load more count for SRP/PLP.
+  alshaya_config_install_configs(['alshaya_acm_product.settings'], 'alshaya_acm_product');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update default items from cross sell/up sell carausel.
+ */
+function alshaya_acm_product_update_8016() {
+  // Set default items from cross sell/up sell carausel for mobile.
+  \Drupal::configFactory()->getEditable('alshaya_acm_product.settings')
+    ->set('cross_up_sell_items_settings.pdp_carousel_items_size_0', 2)
+    ->save();
+
+  // Set default items from cross sell/up sell carausel for tablet.
+  \Drupal::configFactory()->getEditable('alshaya_acm_product.settings')
+    ->set('cross_up_sell_items_settings.pdp_carousel_items_size_768', 2)
+    ->save();
+
+  // Set default items from cross sell/up sell carausel for desktop.
+  \Drupal::configFactory()->getEditable('alshaya_acm_product.settings')
+    ->set('cross_up_sell_items_settings.pdp_carousel_items_size_1025', 3)
+    ->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update settings for the carousel limit to show carousel every-time.
+ */
+function alshaya_acm_product_update_8015() {
+  alshaya_config_install_configs(['alshaya_acm_product.carousel_settings'], 'alshaya_acm_product');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new setting 'show_cart_form_in_related'.
+ */
+function alshaya_acm_product_update_8014() {
+  alshaya_config_install_configs(['alshaya_acm_product.settings'], 'alshaya_acm_product');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding settings for the carousel limit to show items.
+ */
+function alshaya_acm_product_update_8013() {
+  alshaya_config_install_configs(['alshaya_acm_product.carousel_settings'], 'alshaya_acm_product', 'install');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new 'image position on pdp' field to product settings form.
+ */
+function alshaya_acm_product_update_8012() {
+  alshaya_config_install_configs(['alshaya_acm_product.settings'], 'alshaya_acm_product', 'install');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Configure view mode for product teaser & SKU entity teaser.
+ */
+function alshaya_acm_product_update_8011() {
+  // Re-install acq product teaser view mode to use sku teaser view mode.
+  $install_configs = [
+    'core.entity_view_display.node.acq_product.teaser',
+  ];
+
+  alshaya_config_install_configs($install_configs, 'acq_sku');
+
+  // Re-install SKU simple/configurable view mode configs to hide display price
+  // field. We using Product's price field to render the price everywhere.
+  $optional_configs = [
+    'core.entity_view_display.acq_sku.simple.teaser',
+    'core.entity_view_display.acq_sku.configurable.teaser',
+  ];
+
+  alshaya_config_install_configs($optional_configs, 'acq_sku', 'optional');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Moving size guide config to node.
+ */
+function alshaya_acm_product_update_8010() {
+  // Import the new config for size guide.
+  alshaya_config_install_configs(['alshaya_acm_product.size_guide'], 'alshaya_acm_product');
+  // Fetch the old config for size guide.
+  $config = \Drupal::config('alshaya_acm_product.settings');
+  if ($config->get('size_guide_link') == TRUE) {
+    // Create a new node with the size guide content.
+    $node = Node::create([
+      'type'  => 'static_html',
+      'title' => 'Size guide content',
+      'body'  => [
+        'value' => $config->get('size_guide_modal_content.value'),
+        'format' => 'mail_text',
+      ],
+    ]);
+    $node->save();
+    $config = \Drupal::languageManager()->getLanguageConfigOverride('ar', 'alshaya_acm_product.settings');
+    if ($config->get('size_guide_modal_content.value')) {
+      // Create a translation of the size guide node.
+      $node_ar = $node->addTranslation('ar');
+      $node_ar->title = 'Size guide content Arabic';
+      $node_ar->body->value = $config->get('size_guide_modal_content.value');
+      $node_ar->body->format = 'mail_text';
+      $node_ar->save();
+    }
+
+    // Save the size guide node to the config.
+    \Drupal::configFactory()->getEditable('alshaya_acm_product.size_guide')
+      ->set('size_guide_enabled', TRUE)
+      ->set('size_guide_modal_content_node', $node->id())
+      ->save();
+  }
+
+  // Update the old config.
+  alshaya_config_install_configs(['alshaya_acm_product.settings'], 'alshaya_acm_product');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Set the config to display specifications to TRUE.
+ */
+function alshaya_acm_product_update_8009() {
+  \Drupal::configFactory()->getEditable('alshaya_acm.settings')->set('pdp_show_specifications', TRUE)->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add config for pdp gallery pager limit.
+ */
+function alshaya_acm_product_update_8008() {
+  alshaya_config_install_configs(['alshaya_acm_product.settings'], 'alshaya_acm_product', 'install');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Change cardinality for article_warning field to 1.
+ */
+function alshaya_acm_product_update_8007() {
+  \Drupal::moduleHandler()->loadInclude('alshaya_acm_product', 'inc', 'alshaya_acm_product.utility');
+  alshaya_acm_product_update_field_cardinality_from_unlimited_to_unique('attr_article_warning', 'article_warning');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Avoid rendering cross-sell by default.
+ */
+function alshaya_acm_product_update_8006() {
+  \Drupal::configFactory()->getEditable('alshaya_acm.settings')->set('display_crosssell', FALSE)->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Install the new fields.
+ * Revert product_slider view to use nid instead of field_skus.
+ */
+function alshaya_acm_product_update_8005() {
+  alshaya_config_install_configs(['alshaya_acm_product.sku_base_fields'], 'alshaya_acm_product');
+
+  // Add base fields from the updated sku_base_fields config.
+  \Drupal::service('acq_sku.fields_manager')->addFields();
+
+  $reverter = \Drupal::service('config_update.config_update');
+  $reverter->revert('view', 'product_slider');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add default value for new setting - list_view_items_per_page.
+ */
+function alshaya_acm_product_update_8004() {
+  $settings = \Drupal::configFactory()->getEditable('alshaya_acm_product.settings');
+  $settings->set('list_view_items_per_page', 30);
+  $settings->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add the index key in config to use for adding data in parent for configurable
+ * products.
+ */
+function alshaya_acm_product_update_8003() {
+  $sku_base_fields_config = Drupal::configFactory()->getEditable('alshaya_acm_product.sku_base_fields');
+  $sku_base_fields_config->set('fields.color.index', 1);
+  $sku_base_fields_config->set('fields.size.index', 1);
+  $sku_base_fields_config->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Set weight on product options.
+ */
+function alshaya_acm_product_update_8002() {
+  $option_sets = \Drupal::service('acq_commerce.api')->getProductOptions();
+
+  $weight = 0;
+  foreach ($option_sets as $options) {
+    foreach ($options['options'] as $key => $value) {
+      \Drupal::database()->query(
+        'UPDATE {taxonomy_term_field_data} AS ttfd
+INNER JOIN {taxonomy_term__field_sku_attribute_code} ttfsac ON ttfsac.entity_id = ttfd.tid
+INNER JOIN {taxonomy_term__field_sku_option_id} ttfsoi ON ttfsoi.entity_id = ttfd.tid
+SET ttfd.weight = :weight
+WHERE ttfd.vid = :vid AND ttfsac.field_sku_attribute_code_value = :attr_code AND ttfsoi.field_sku_option_id_value = :attr_value_id',
+        [
+          ':weight' => $weight++,
+          ':vid' => ProductOptionsManager::PRODUCT_OPTIONS_VOCABULARY,
+          ':attr_code' => $options['attribute_code'],
+          ':attr_value_id' => $key,
+        ]
+      );
+    }
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Apply entity updates to apply t() for field labels in SKU entity.
+ */
+function alshaya_acm_product_update_8001() {
+  \Drupal::service('entity.definition_update_manager')->applyUpdates();
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_acm_product_install() {
+  // Make meta tags visible in form of acq_product.
+  $product_config_factory = Drupal::configFactory()->getEditable('core.entity_form_display.node.acq_product.default');
+  $content = $product_config_factory->get('content');
+  $content['field_meta_tags'] = [
+    'weight' => 110,
+    'settings' => [],
+    'third_party_settings' => [],
+    'type' => 'metatag_firehose',
+  ];
+  $product_config_factory->set('content', $content);
+  $product_config_factory->save();
+
+  $product_config_factory = Drupal::configFactory()->getEditable('core.entity_view_display.node.acq_product.teaser');
+  $content = $product_config_factory->get('content');
+  $content['field_skus'] = [
+    'weight' => 1,
+    'settings' => [
+      'view_mode' => 'teaser',
+    ],
+    'label' => 'hidden',
+    'third_party_settings' => [],
+    'type' => 'sku_formatter',
+  ];
+  $product_config_factory->set('content', $content);
+  $product_config_factory->save();
+
+  // Translation for label.
+  $strings = [
+    'Details' => [
+      'ar' => 'تفاصيل',
+    ],
+    'Free Gift with Purchase' => [
+      'ar' => 'هدية مجانية عند الشراء',
+    ],
+    'Free Gift' => [
+      'ar' => 'هدية مجانية',
+    ],
+    'with this product' => [
+      'ar' => 'مع هذا المنتج',
+    ],
+    'Use Code <span class="coupon-code">@promo_code</span> with this product' => [
+      'ar' => 'استخدم الرمز <span class="coupon-code">@promo_code</span> مع هذا المنتج',
+    ],
+    'Click <span class="coupon-code">@promotion.coupon_code</span> to get a Free Gift' => [
+      'ar' => 'اضغط <span class="coupon-code">@promotion.coupon_code</span> للحصول على هدية مجانية',
+    ],
+    'The product that you are trying to add is not available.' => [
+      'ar' => 'المنتج الذي تحاول إضافته غير متوفر.',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_dependencies().
+ */
+function alshaya_acm_product_update_dependencies() {
+  return [
+    'alshaya_admin' => [
+      '8002' => [
+        'alshaya_acm_product' => '8010',
+      ],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_schema().
+ */
+function alshaya_acm_product_schema() {
+  $schema = [];
+
+  $schema['product_processed'] = [
+    'description' => 'Stores sku for products processed once.',
+    'fields' => [
+      'sku' => [
+        'type' => 'varchar_ascii',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Product SKU.',
+      ],
+    ],
+    'primary key' => ['sku'],
+  ];
+
+  return $schema;
+}

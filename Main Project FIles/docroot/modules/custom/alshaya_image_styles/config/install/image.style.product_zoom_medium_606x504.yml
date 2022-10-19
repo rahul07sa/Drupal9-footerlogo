@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies: {  }
+name: product_zoom_medium_606x504
+label: product.zoom.medium.606x504
+effects:
+  a3c7d6f9-526f-4abf-8cdb-9209c9b64d4e:
+    uuid: a3c7d6f9-526f-4abf-8cdb-9209c9b64d4e
+    id: image_scale
+    weight: 2
+    data:
+      width: null
+      height: 504
+      upscale: false
+  373ba336-9855-4368-be3f-cffac44b8b72:
+    uuid: 373ba336-9855-4368-be3f-cffac44b8b72
+    id: image_style_quality
+    weight: 2
+    data:
+      quality: 80

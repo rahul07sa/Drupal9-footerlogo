@@ -1,0 +1,16 @@
+pdp_click_collect_available_in_store: '1-2 days'
+static_page_mappings:
+  front: 'home-0'
+  about_us: 'about-us'
+  delivery_information: 'delivery-information'
+  terms_and_conditions_sale: 'terms-and-conditions-of-sale'
+  website_terms_and_conditions: 'terms-and-conditions'
+  privacy_policy: 'privacy-policy'
+  returns_refunds: 'returns-refunds'
+  faqs: 'faqs'
+  size_guide: 'size-guide-content'
+  store_finder: 'store-finder'
+dy_plp_banner_name: 'Generic PLP banners'
+max_product_limit: 24
+listing_ignore_algolia_data: TRUE
+category_carousel_return_products: TRUE

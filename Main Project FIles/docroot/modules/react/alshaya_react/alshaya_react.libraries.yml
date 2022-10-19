@@ -1,0 +1,24 @@
+react:
+  version: 2
+  js:
+    js/react.production.min.js: { minified: true, weight: -25, attributes: { data-group: site-library } }
+    js/react-dom.production.min.js: { minified: true, weight: -25, attributes: { data-group: site-library }  }
+  dependencies:
+    - core/drupal
+    - alshaya_react/react_pollyfill
+    - alshaya_react/axios
+
+react_pollyfill:
+  version: 1.x
+  js:
+    js/ie-pollyfill.js: {}
+    dist/number.bundle.js: {}
+    dist/promise.bundle.js: {}
+    dist/object.bundle.js: {}
+  dependencies:
+    - core/drupal
+
+axios:
+  version: 1.x
+  js:
+    js/axios.min.js: { minified: true, weight: -25, attributes: { data-group: site-library }  }

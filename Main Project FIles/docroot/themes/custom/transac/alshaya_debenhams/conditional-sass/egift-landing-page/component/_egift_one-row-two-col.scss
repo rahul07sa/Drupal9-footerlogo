@@ -1,0 +1,33 @@
+.egift-landing-page {
+  .paragraph--type--_-row-2-col {
+    .field--name-field-1-row-2-col {
+      .field--name-field-1-row-2-col {
+        .check-balance-wrapper {
+          #check-balance-button {
+            & > button {
+              @include btn;
+
+              font-family: $dh-regular;
+            }
+          }
+
+          .checkbalance-title {
+            font-family: $dh-Juana-semibold;
+          }
+        }
+
+        .paragraph--type--image-title-subtitle {
+          & > .field--name-field-button-link {
+            @include btn;
+
+            font-family: $dh-regular;
+          }
+
+          .field--name-field-title {
+            font-family: $dh-Juana-semibold;
+          }
+        }
+      }
+    }
+  }
+}

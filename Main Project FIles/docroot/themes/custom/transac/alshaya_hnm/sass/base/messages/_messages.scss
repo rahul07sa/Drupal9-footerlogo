@@ -1,0 +1,16 @@
+//Error messages
+.messages {
+  &.messages--status,
+  &.messages--warning,
+  &.messages--error {
+    font-family: $hnm-regular;
+  }
+
+  &.messages--status {
+    color: $default_msg_status_text;
+  }
+
+  &.messages--error > div {
+    padding-top: 0.1875rem;
+  }
+}

@@ -1,0 +1,14 @@
+langcode: en
+status: true
+dependencies: {  }
+name: product_zoom_large_800x800
+label: product.zoom.large.800x800
+effects:
+  5faa5ebb-a63b-4a41-8650-faba30ae1684:
+    uuid: 5faa5ebb-a63b-4a41-8650-faba30ae1684
+    id: image_scale
+    weight: 2
+    data:
+      width: null
+      height: 800
+      upscale: false

@@ -1,0 +1,194 @@
+<?php
+
+/**
+ * @file
+ * Alshaya i18n module.
+ */
+
+use Drupal\Core\Block\BlockPluginInterface;
+
+/**
+ * Function to import custom initial translations.
+ */
+function alshaya_i18n_save_translations($strings) {
+  /** @var \Drupal\locale\StringDatabaseStorage $locale_storage */
+  $locale_storage = \Drupal::service('locale.storage');
+
+  // Loop through each string for translation.
+  foreach ($strings as $source => $translations) {
+    // Translation context.
+    $context = !empty($translations['context']) ? $translations['context'] : '';
+    // Removing key so to create no problem in looping.
+    unset($translations['context']);
+    // First create the translation source entry.
+    $source_param = [
+      'source' => $source,
+      'version' => \Drupal::VERSION,
+    ];
+    // If context is available.
+    if (!empty($context)) {
+      $source_param += ['context' => $context];
+    }
+
+    if (!$locale_storage->findString($source_param)) {
+      $locale_storage->createString($source_param)->save();
+    }
+
+    // Loop through all translations and save them.
+    foreach ($translations as $langcode => $translation) {
+      $conditions = ['source' => $source];
+      // If context is available.
+      if (!empty($context)) {
+        $conditions += ['context' => $context];
+      }
+      $options = ['translated' => FALSE, 'untranslated' => TRUE];
+
+      // Look for existing translation sources.
+      $data = $locale_storage->getTranslations($conditions, $options);
+      foreach ($data as $value) {
+        if (isset($value->source) && $value->source == $source) {
+          // Save translation.
+          $params = [
+            'lid' => $value->lid,
+            'language' => $langcode,
+          ];
+          // If context is available.
+          if (!empty($context)) {
+            $params += ['context' => $context];
+          }
+
+          try {
+            try {
+              if ($target = $locale_storage->findTranslation($params)) {
+                $target->delete();
+              }
+            }
+            catch (\Exception) {
+              // This is fine, it's ok if text is not present.
+            }
+
+            $target = $locale_storage->createTranslation($params);
+
+            $target->setPlurals([$translation])
+              ->setCustomized()
+              ->save();
+          }
+          catch (\Exception) {
+            \Drupal::logger('alshaya_i18n')
+              ->critical('Error occurred while saving @string in @langcode', [
+                '@string' => $translation,
+                '@langcode' => $langcode,
+              ]);
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Function to update context for string source.
+ *
+ * @param array $strings
+ *   Array of string to update context.
+ */
+function alshaya_i18n_update_context(array $strings) {
+  /** @var \Drupal\locale\StringDatabaseStorage $locale_storage */
+  $locale_storage = \Drupal::service('locale.storage');
+
+  foreach ($strings as $source => $context) {
+    // Translation context.
+    if (empty($context)) {
+      continue;
+    }
+
+    try {
+      if (isset($context['existing_context'])) {
+        $conditions = [
+          'source' => $source,
+          'context' => $context['existing_context'],
+        ];
+        $context = $context['new_context'];
+      }
+      else {
+        $conditions['source'] = $source;
+      }
+
+      if ($target = $locale_storage->findString($conditions)) {
+        // Update translation source entry.
+        $target->setValues([
+          'context' => $context,
+          'version' => \Drupal::VERSION,
+        ]);
+        $target->save();
+      }
+    }
+    catch (\Exception) {
+      \Drupal::logger('alshaya_i18n')
+        ->critical('Error occurred while updating @string context', [
+          '@string' => $source,
+        ]);
+    }
+  }
+}
+
+/**
+ * Implements hook_block_view_alter().
+ */
+function alshaya_i18n_block_view_alter(array &$build, BlockPluginInterface $block) {
+  if ($block->getBaseId() === 'language_block') {
+    $build['#attached']['library'][] = 'alshaya_i18n/language_selection';
+  }
+}
+
+/**
+ * Implements hook_alshaya_master_post_drupal_install().
+ */
+function alshaya_i18n_alshaya_master_post_drupal_install() {
+  // Invoke a hook to allow all modules to add translations post install.
+  \Drupal::moduleHandler()->invokeAll('alshaya_i18n_onetime_translation_add');
+}
+
+/**
+ * Implements hook_alshaya_i18n_onetime_translation_add().
+ */
+function alshaya_i18n_alshaya_i18n_onetime_translation_add() {
+  // Reset the formula to calculate plural in arabic language.
+  $formulae = \Drupal::state()->get('locale.translation.formulae', []);
+  if (isset($formulae['ar'])) {
+    $formulae['ar'] = [];
+    $formulae['ar']['plurals'] = 5;
+    $formulae['ar']['formula'][0] = 1;
+    $formulae['ar']['formula'][1] = 0;
+    $formulae['ar']['formula'][2] = 2;
+    $formulae['ar']['formula'][3] = 3;
+    $formulae['ar']['formula'][4] = 3;
+    $formulae['ar']['formula'][5] = 3;
+    $formulae['ar']['formula'][6] = 3;
+    $formulae['ar']['formula'][7] = 3;
+    $formulae['ar']['formula'][8] = 3;
+    $formulae['ar']['formula'][9] = 3;
+    $formulae['ar']['formula'][10] = 3;
+    $formulae['ar']['formula']['default'] = 4;
+    \Drupal::state()->set('locale.translation.formulae', $formulae);
+  }
+}
+
+/**
+ * Implements hook_css_alter().
+ */
+function alshaya_i18n_css_alter(&$css, $assets) {
+  /** @var \Drupal\Core\Language\LanguageManagerInterface $language_manager */
+  $language_manager = \Drupal::service('language_manager');
+
+  // We don't do anything for ltr languages.
+  if ($language_manager->getCurrentLanguage()->getDirection() == 'ltr') {
+    return;
+  }
+
+  foreach ($css as $name => $data) {
+    if (isset($data['data']) && strpos($data['data'], '.ltr.')) {
+      $css[$name]['data'] = str_replace('.ltr.', '.rtl.', $data['data']);
+    }
+  }
+}

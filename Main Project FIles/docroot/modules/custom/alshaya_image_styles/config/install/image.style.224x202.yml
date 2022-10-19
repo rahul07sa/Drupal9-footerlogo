@@ -1,0 +1,17 @@
+uuid: 05510788-9ea2-4b5c-bb54-3ec94dd0079c
+langcode: en
+status: true
+dependencies: {  }
+_core:
+  default_config_hash: jHE-EuR0yRp-Pz1scBgwT58XBS6TUFv3UWhpQGIulX0
+name: 224x202
+label: 224x202
+effects:
+  39908773-53db-4f30-bd73-cea3465f4aa9:
+    uuid: 39908773-53db-4f30-bd73-cea3465f4aa9
+    id: image_scale
+    weight: 2
+    data:
+      width: 224
+      height: null
+      upscale: false

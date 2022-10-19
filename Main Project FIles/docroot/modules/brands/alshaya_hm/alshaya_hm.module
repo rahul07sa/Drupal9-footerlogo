@@ -1,0 +1,578 @@
+<?php
+
+/**
+ * @file
+ * Module file.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\acq_commerce\SKUInterface;
+use Drupal\acq_sku\Entity\SKU;
+use Drupal\alshaya_hm\EventSubscriber\ProductInfoRequestedEventSubscriber;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\search_api\IndexInterface;
+use Drupal\Core\Cache\Cache;
+use Drupal\alshaya_search_algolia\Service\AlshayaAlgoliaIndexHelper;
+use Drupal\Component\Utility\Html;
+
+/**
+ * Implements hook_form_alter().
+ */
+function alshaya_hm_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  if ($form_id == 'alshaya_newsletter_subscribe') {
+    $form['email']['#prefix'] = '<div class="newsletter-block-label">' . t('Be the first to know about our newest arrivals, special offers and store events near you.') . '</div>';
+  }
+}
+
+/**
+ * Implements template_preprocess_block().
+ */
+function alshaya_hm_preprocess_block(&$variables) {
+  // @todo Figure out which block needs this preprocess & add a test around plugin id to avoid this being called for all blocks.
+  // Set alshaya-private-card image path.
+  $image_path = drupal_get_path('module', 'alshaya_hm') . '/images/alshaya-priv-card.svg';
+  if ($variables['base_plugin_id'] == 'join_the_club') {
+    $variables['content']['image']['#uri'] = $image_path;
+  }
+}
+
+/**
+ * Implements hook_datalayer_alter().
+ */
+function alshaya_hm_datalayer_alter(&$data_layer) {
+  if (!_alshaya_seo_process_gtm()) {
+    return;
+  }
+  try {
+    if (isset($data_layer['cartItemsFlocktory'])) {
+      /** @var \Drupal\acq_cart\CartSessionStorage $cart_storage */
+      $cart_storage = \Drupal::service('acq_cart.cart_storage');
+      $cart = $cart_storage->getCart(FALSE);
+      if ($cart) {
+        $cart_items = $cart->items();
+        if (\Drupal::moduleHandler()->moduleExists('alshaya_hm_images')) {
+          foreach ($cart_items as $key => $item) {
+            $sku = SKU::loadFromSku($item['sku']);
+            if ($sku instanceof SKU) {
+              $sku_assets_manager = \Drupal::service('alshaya_media_assets.skuassetsmanager');
+              $images = $sku_assets_manager->getAssetsForSku($sku, 'pdp');
+              if (!empty($images[0]) && isset($images[0]['url'])) {
+                $data_layer['cartItemsFlocktory'][$key]['image'] = $images[0]['url']->toString();
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  catch (Exception $e) {
+    \Drupal::logger('alshaya_seo')->error('Error while fetching GTM attributes: @message', ['@message' => $e->getMessage()]);
+  }
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function alshaya_hm_module_implements_alter(&$implementations, $hook) {
+  // To call the alshaya_hm_datalayer_alter at the end for HnM specific changes.
+  if ($hook == 'datalayer_alter') {
+    $group = $implementations['alshaya_hm'];
+    unset($implementations['alshaya_hm']);
+    $implementations['alshaya_hm'] = $group;
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_view().
+ */
+function alshaya_hm_node_view(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, $view_mode) {
+  if ($entity->bundle() == 'acq_product') {
+    /** @var \Drupal\alshaya_acm_product\SkuManager $skuManager */
+    $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+
+    $sku = $skuManager->getSkuForNode($entity);
+    $sku_entity = SKU::loadFromSku($sku);
+
+    if ($sku_entity instanceof SKU && $view_mode == 'full') {
+      $return = _alshaya_hm_get_product_description($sku_entity);
+      $build['description'] = $return['description'];
+      $build['#cache']['tags'] = Cache::mergeTags($build['#cache']['tags'] ?? [], ['config:alshaya_hm.label_order.settings']);
+    }
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_view().
+ */
+function alshaya_hm_acq_sku_view(array &$build, EntityInterface $sku_entity, EntityViewDisplayInterface $display, $view_mode) {
+  if ($view_mode == 'modal') {
+    $return = _alshaya_hm_get_product_description($sku_entity);
+    $build['short_desc'] = $return['short_desc'];
+    $build['read_more_style']['value'] = [
+      '#markup' => 'display:none;',
+    ];
+  }
+}
+
+/**
+ * Get product description from SKU.
+ */
+function _alshaya_hm_get_product_description($sku_entity) {
+  $return = [];
+  /** @var \Drupal\alshaya_acm_product\SkuManager $skuManager */
+  $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+  $search_direction = $sku_entity->getType() == 'configurable' ? 'children' : 'self';
+  $description_value = '';
+
+  if ($body = $sku_entity->get('attr_description')->getValue()) {
+    $description_value .= $body[0]['value'];
+  }
+
+  if ($concepts = $sku_entity->get('attr_concept')->getValue()) {
+    $concepts_markup = [
+      '#theme' => 'product_concept_markup',
+      '#title' => t('concept'),
+      '#concepts' => $concepts,
+    ];
+
+    $description_value .= render($concepts_markup);
+  }
+
+  // Render the wrapper div for composition always so that the same can be
+  // filled with data on variant selection.
+  // Prepare the description variable.
+  $composition = $skuManager->fetchProductAttribute($sku_entity, 'attr_composition', $search_direction);
+  $composition_markup = [
+    '#theme' => 'product_composition_markup',
+    '#title' => t('composition'),
+  ];
+
+  if (!empty($composition)) {
+    $composition_markup['#composition']['#markup'] = $composition;
+  }
+
+  $description_value .= render($composition_markup);
+
+  $washing_instructions = $sku_entity->get('attr_washing_instructions')
+    ->getString();
+  $dry_cleaning_instructions = $sku_entity->get('attr_dry_cleaning_instructions')
+    ->getString();
+  if (!empty($washing_instructions) || !empty($dry_cleaning_instructions)) {
+    $description_value .= '<div class="care-instructions-wrapper">';
+    $description_value .= '<div class="care-instructions-label">' . t('care instructions') . '</div>';
+    if (!empty($washing_instructions)) {
+      $description_value .= '<div class="care-instructions-value washing-instructions">' . $washing_instructions . '</div>';
+    }
+    if (!empty($dry_cleaning_instructions)) {
+      $description_value .= '<div class="care-instructions-value dry-cleaning-instructions">' . $dry_cleaning_instructions . '</div>';
+    }
+    $description_value .= '</div>';
+  }
+
+  // Render the wrapper div for article warning always so that the same
+  // can be filled with data on variant selection.
+  $warning = $skuManager->fetchProductAttribute($sku_entity, 'attr_article_warning', $search_direction);
+  $warning_markup = [
+    '#theme' => 'product_article_warning_markup',
+    '#title' => t('safety warning'),
+  ];
+
+  if (!empty($warning)) {
+    $warning_markup['#warning']['#markup'] = $warning;
+  }
+
+  $description_value .= render($warning_markup);
+  $description = [];
+  $description['value'] = [
+    '#markup' => $description_value,
+  ];
+
+  $specifications = [];
+  // If specifications are enabled, prepare the specification variable.
+  if (\Drupal::config('alshaya_acm.settings')
+    ->get('pdp_show_specifications')) {
+    $specifications['label'] = [
+      '#markup' => t('Specifications'),
+    ];
+
+    $specifications['value'] = [
+      "#theme" => 'item_list',
+      '#items' => [],
+    ];
+
+    if ($attr_style_code = $sku_entity->get('attr_style')->getString()) {
+      $specifications['value']['#items'][] = t('Style Code: @value', [
+        '@value' => $attr_style_code,
+      ]);
+    }
+
+    if ($attr_color = $sku_entity->get('attr_color')->getString()) {
+      $specifications['value']['#items'][] = t('Color: @value', [
+        '@value' => $attr_color,
+      ]);
+    }
+
+    if ($attr_season = $sku_entity->get('attr_season')->getString()) {
+      $specifications['value']['#items'][] = t('Season: @value', [
+        '@value' => $attr_season,
+      ]);
+    }
+
+    if ($attr_brand = $sku_entity->get('attr_product_brand')->getString()) {
+      $specifications['value']['#items'][] = t('Product brand: @value', [
+        '@value' => $attr_brand,
+      ]);
+    }
+  }
+
+  // Add all variables to $build in the sequence in
+  // which they should be displayed.
+  $return['description'][] = $description;
+  if (!empty($specifications)) {
+    $return['description'][] = $specifications;
+  }
+  $return['short_desc'] = $return['description'][0];
+
+  return $return;
+}
+
+/**
+ * Implements hook_alshaya_get_currency_code().
+ */
+function alshaya_hm_alshaya_get_currency_code_alter(&$currency) {
+  // Updated UAE currency code.
+  $currency['ae']['en'] = 'DHS';
+}
+
+/**
+ * Implements hook_acq_sku_product_sku_alter().
+ */
+function alshaya_hm_acq_sku_product_sku_alter(SKU $sku, array $product) {
+  if (isset($product['style_code']) && $sku->hasField('attr_style_code')) {
+    $sku->get('attr_style_code')->setValue($product['style_code']);
+  }
+
+  // Update composition field.
+  $composition = json_decode($sku->get('attr_composition')->getString(), TRUE);
+  if (!empty($composition)) {
+    $sku->set('attr_composition', \Drupal::service('alshaya_acm_product.skumanager')
+      ->transformCompositionArrayToList($composition));
+  }
+  else {
+    if (!empty($sku->get('attr_composition')->getString())) {
+      \Drupal::logger('alshaya_hm')->info('Invalid JSON. Unable to parse JSON data for SKU: @sku. JSON: @json', [
+        '@sku' => $sku->getSku(),
+        '@json' => $sku->get('attr_composition')->getString(),
+      ]);
+    }
+
+    $sku->set('attr_composition', NULL);
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function alshaya_hm_theme($existing, $type, $theme, $path) {
+  return [
+    'color_node_links' => [
+      'variables' => [
+        'color_nodes' => NULL,
+      ],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_sku_variant_info_alter().
+ */
+function alshaya_hm_sku_variant_info_alter(array &$variant, SKUInterface $child, ?SKUInterface $parent) {
+  /** @var \Drupal\alshaya_acm_product\SkuManager $skuManager */
+  $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+
+  $composition = $skuManager->fetchProductAttribute($child, 'attr_composition', 'self');
+  $composition_markup = '';
+  if (!empty($composition)) {
+    $markup = [
+      '#theme' => 'product_composition_markup',
+      '#title' => t('composition'),
+      '#composition' => [
+        '#markup' => $composition,
+      ],
+    ];
+
+    $composition_markup = render($markup);
+  }
+
+  $variant['description'][] = [
+    'selector' => '.composition-wrapper',
+    'markup' => $composition_markup,
+  ];
+
+  $warning = $skuManager->fetchProductAttribute($child, 'attr_article_warning', 'self');
+  $warning_markup = '';
+  if (!empty($warning)) {
+    $markup = [
+      '#theme' => 'product_article_warning_markup',
+      '#title' => t('safety warning'),
+      '#composition' => [
+        '#markup' => $warning,
+      ],
+    ];
+
+    $warning_markup = render($markup);
+  }
+
+  $variant['description'][] = [
+    'selector' => '.warning-wrapper',
+    'markup' => $warning_markup,
+  ];
+}
+
+/**
+ * Implements hook_alshaya_acm_product_build_alter().
+ */
+function alshaya_hm_alshaya_acm_product_build_alter(&$build, SKUInterface $sku, $context = 'pdp') {
+  if ($context == 'search') {
+    // Product attribute labels for teaser view.
+    /** @var Drupal\acq_sku\ProductInfoHelper $productInfoHelper */
+    $productInfoHelper = \Drupal::service('acq_sku.product_info_helper');
+    $labels = $productInfoHelper->getValue($sku, 'collection_labels', 'plp');
+    $build['#product_attribute_labels'] = !empty($labels) ? $labels : [];
+  }
+}
+
+/**
+ * Implements hook_preprocess_template().
+ */
+function alshaya_hm_preprocess_alshaya_magazine(&$vars) {
+  if ($vars['sku'] instanceof SKUInterface) {
+    // Get parent sku.
+    /** @var \Drupal\alshaya_acm_product\SkuManager $skuManager */
+    $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+    /** @var \Drupal\alshaya_acm_product\DeliveryOptionsHelper $deliveryOptionsHelper */
+    $deliveryOptionsHelper = \Drupal::service('alshaya_acm_product.delivery_options_helper');
+    $parent_sku = $skuManager->getParentSkuBySku($vars['sku']) ?? $vars['sku'];
+    if (!empty($parent_sku)) {
+      /** @var Drupal\acq_sku\ProductInfoHelper $productInfoHelper */
+      $productInfoHelper = \Drupal::service('acq_sku.product_info_helper');
+      $labels = $productInfoHelper->getValue($parent_sku, 'collection_labels', 'pdp');
+      $vars['product_attribute_labels'] = $labels;
+      // Show delivery option labels if express delivery is enabled.
+      if ($deliveryOptionsHelper->ifSddEdFeatureEnabled()) {
+        $delivery_options = alshaya_acm_product_get_delivery_options($parent_sku->getSku());
+        if (!empty($delivery_options['values'])) {
+          foreach ($delivery_options['values'] as $key => $option) {
+            $vars['delivery_options'][$key]['status']['#markup'] = $option['status'];
+            $vars['delivery_options'][$key]['label']['#markup'] = $option['label'];
+          }
+        }
+        $vars['express_delivery_class']['#markup'] = $delivery_options['express_delivery_applicable'] === TRUE ? 'active' : 'in-active';
+      }
+
+      // Pass the SKU product page title.
+      $node = alshaya_acm_product_get_display_node($parent_sku);
+      $vars['product_title'] = $node->getTitle($parent_sku);
+
+      // Pass the product price block.
+      $priceHelper = _alshaya_acm_product_get_price_helper();
+      $vars['price_block'] = $priceHelper->getPriceBlockForSku($parent_sku, []);
+
+      // Pass the product block identifier class.
+      $sku_identifier = strtolower(Html::cleanCssIdentifier($parent_sku->getSku()));
+      $vars['price_block_identifier']['#markup'] = 'price-block-' . $sku_identifier;
+    }
+  }
+}
+
+/**
+ * Implements hook_search_api_algolia_objects_alter().
+ */
+function alshaya_hm_search_api_algolia_objects_alter(array &$objects, IndexInterface $index, array $items) {
+  /** @var \Drupal\alshaya_search_algolia\Service\AlshayaAlgoliaIndexHelper $algolia_index */
+  $algolia_index = \Drupal::service('alshaya_search_algolia.index_helper');
+  $index_name = $algolia_index->getAlgoliaIndexNames();
+  $config = \Drupal::config('alshaya_hm.label_order.settings');
+  $label_attributes = $config->get('plp');
+  if (!in_array($index->id(), $index_name)) {
+    return;
+  }
+
+  foreach ($objects as $id => &$object) {
+    if (empty($object['sku'])) {
+      continue;
+    }
+    $node = $items[$id]->getOriginalObject()->getValue();
+
+    // Process index object for product list index.
+    if ($index->id() == AlshayaAlgoliaIndexHelper::PRODUCT_LIST_INDEX) {
+      $nodeLanguages = $node->getTranslationLanguages();
+      foreach ($nodeLanguages as $lan_key => $lan_value) {
+        $node_object = $node->getTranslation($lan_key);
+        $sku = _alshaya_hm_get_language_specific_data($lan_key, $object['sku'], $node_object);
+        // Add attributes required for hm as label on products.
+        if (!empty($label_attributes) && $sku) {
+          foreach ($label_attributes as $attribute) {
+            if ($sku->get($attribute)->getString()) {
+              $object['collection_labels'][$lan_key][$attribute] = $sku->get($attribute)->getString();
+            }
+          }
+          $object['collection_labels'] ??= (object) $object['collection_labels'];
+        }
+      }
+    }
+    else {
+      $sku = _alshaya_hm_get_language_specific_data($object['search_api_language'], $object['sku'], $node);
+      if (!empty($label_attributes) && $sku) {
+        foreach ($label_attributes as $attribute) {
+          if ($sku->get($attribute)->getString()) {
+            $object['collection_labels'][$attribute] = $sku->get($attribute)->getString();
+          }
+        }
+        $object['collection_labels'] ??= (object) $object['collection_labels'];
+        $concept_values = $sku->get('attr_concept')->getValue();
+        if (!empty($concept_values)) {
+          $object['attr_concept'] = array_map(fn($item) => $item['value'], $concept_values);
+        }
+      }
+    }
+  }
+
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function alshaya_hm_page_attachments(array &$page) {
+  $config = \Drupal::config('alshaya_hm.label_order.settings');
+  $label_attributes = $config->get('plp');
+  if (!empty($label_attributes)) {
+    $page['#attached']['drupalSettings']['plp_attributes'] = $label_attributes;
+  }
+}
+
+/**
+ * Implements hook_alshaya_acm_product_light_product_data_alter().
+ */
+function alshaya_hm_alshaya_acm_product_light_product_data_alter(SKU $sku, array &$data, $type) {
+  if (!empty($data) && ($type === 'light')) {
+    $data['collection_labels'] = _alshaya_hm_process_collection_labels_for_mobile_app($sku, 'plp');
+  }
+}
+
+/**
+ * Implements hook_alshaya_mobile_app_product_exclude_linked_data_alter().
+ */
+function alshaya_hm_alshaya_mobile_app_product_exclude_linked_data_alter(array &$data, SKUInterface $sku, bool $with_parent_details) {
+  $data['collection_labels'] = _alshaya_hm_process_collection_labels_for_mobile_app($sku, 'pdp', $with_parent_details);
+}
+
+/**
+ * Implements hook_mobile_app_skus_product_list_data_alter().
+ */
+function alshaya_hm_alshaya_mobile_app_skus_product_list_data_alter(array &$data, SKUInterface $sku, bool $with_parent_details) {
+  $data['collection_labels'] = _alshaya_hm_process_collection_labels_for_mobile_app($sku, 'pdp', $with_parent_details);
+}
+
+/**
+ * Processes the collection lables to the format required by the mobile app.
+ *
+ * @param \Drupal\acq_commerce\SKUInterface $sku
+ *   The sku object.
+ * @param string $context
+ *   The context, if pdp or plp.
+ * @param bool $with_parent_details
+ *   Flag to identify whether to get parent details or not.
+ *
+ * @return mixed
+ *   An associative array of collection labels or an empty stdclass object, so
+ *   that the output is always a Json object.
+ */
+function _alshaya_hm_process_collection_labels_for_mobile_app(SKUInterface $sku, string $context, bool $with_parent_details = FALSE) {
+  $product_info_helper = \Drupal::service('acq_sku.product_info_helper');
+
+  if ($with_parent_details === TRUE) {
+    $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+    $sku = $skuManager->getParentSkuBySku($sku) ?? $sku;
+  }
+
+  $collection_labels = $product_info_helper->getValue($sku, 'collection_labels', $context);
+  return (!empty($collection_labels)) ? $collection_labels : (object) $collection_labels;
+}
+
+/**
+ * Implements hook_alshaya_spc_cart_build_alter().
+ */
+function alshaya_hm_alshaya_spc_cart_build_alter(array &$build) {
+  $item_code_label = ProductInfoRequestedEventSubscriber::getLabelFromKey('item_code_label');
+  $build['#attached']['drupalSettings']['item_code_label'] = $item_code_label;
+}
+
+/**
+ * Implements hook_alshaya_product_list_exclude_attribute_alter().
+ */
+function alshaya_hm_alshaya_product_list_exclude_attribute_alter(array &$excludedAttributes) {
+  $excludedAttributes[] = 'collection_labels';
+}
+
+/**
+ * Get Language specific SKU and Node.
+ */
+function _alshaya_hm_get_language_specific_data($lang, $sku_data, $node) {
+  $sku = SKU::loadFromSku($sku_data, $lang);
+  if (!($sku instanceof SKUInterface)) {
+    return FALSE;
+  }
+  if ($sku->language()->getId() != $node->language()->getId()) {
+    return FALSE;
+  }
+  return $sku;
+}
+
+/**
+ * Implements hook_alshaya_performance_preload_alter().
+ */
+function alshaya_hm_alshaya_performance_preload_alter(array &$preload) {
+  $site_preloads = [
+    'en' => [
+      [
+        'as' => 'font',
+        'href' => '/themes/custom/transac/alshaya_hnm/fonts/HMSans-Regular.woff2',
+        'crossorigin' => 'crossorigin',
+        'type' => 'font/woff2',
+      ],
+    ],
+    'ar' => [
+      [
+        'as' => 'font',
+        'href' => '/themes/custom/transac/alshaya_hnm/fonts/HMSansArabic-Regular.woff2?jAKPu',
+        'crossorigin' => 'crossorigin',
+        'type' => 'font/woff2',
+      ],
+    ],
+  ];
+  // Preloading fonts here.
+  $language = \Drupal::languageManager()->getCurrentLanguage()->getId();
+  if (isset($site_preloads[$language])) {
+    $preload = array_merge($site_preloads[$language], $preload);
+  }
+}
+
+/**
+ * Implements hook_alshaya_search_algolia_object_alter().
+ */
+function alshaya_hm_alshaya_search_algolia_object_alter(array &$object) {
+  /** @var \Drupal\alshaya_acm_product\SkuManager $sku_manager */
+  $sku_manager = \Drupal::service('alshaya_acm_product.skumanager');
+  $sku = SKU::loadFromSku($object['sku'], $object['search_api_language']);
+  $children = $sku_manager->getAvailableChildren($sku);
+  $object['swatches'] = [];
+
+  foreach ($children as $sku => $child) {
+    $object['swatches'][] = [
+      'child_sku_code' => $sku,
+      'rgb_color' => $child->get('attr_rgb_color')->getString(),
+    ];
+  }
+}

@@ -1,0 +1,143 @@
+cart_utilities:
+  js:
+    assets/js/cart_utilities.js: { }
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/jquery.once
+    - alshaya_react/react_pollyfill
+    - alshaya_acm_product/product_utility
+
+mini_cart:
+  version: 1.x
+  js:
+    dist/minicart.bundle.js: { }
+  dependencies:
+    - alshaya_react/react
+
+cart:
+  version: 1.x
+  js:
+    dist/cart.bundle.js: { }
+  dependencies:
+    - core/drupal.ajax
+    - core/drupal.dialog
+    - core/underscore
+    - alshaya_react/react
+    - alshaya_product_zoom/cloud_zoom_pdp_gallery
+    - alshaya_spc/cart_utilities
+    - alshaya_master/common_functions
+    - alshaya_spc/dynamic_promotion_label
+
+checkout:
+  version: 1.x
+  js:
+    dist/checkout.bundle.js: { }
+  dependencies:
+    - core/underscore
+    - alshaya_react/react
+    - alshaya_spc/cart_utilities
+    - alshaya_spc/dynamic_promotion_label
+
+order_details:
+  version: 1.x
+  js:
+    dist/order_details.bundle.js: { }
+  dependencies:
+    - core/drupalSettings
+    - alshaya_react/react
+    - alshaya_white_label/tooltip
+    - alshaya_spc/cart_utilities
+    - alshaya_master/common_functions
+
+add_to_cart:
+  version: 1.x
+  js:
+    assets/js/add_to_cart.js: { }
+  dependencies:
+    - alshaya_spc/cart_utilities
+    - core/drupalSettings
+
+checkout-confirmation:
+  version: 1.x
+  js:
+    dist/checkout_confirmation.bundle.js: { }
+  dependencies:
+    - alshaya_react/react
+    - alshaya_spc/cart_utilities
+
+checkout_sandbox_kit:
+  remote: https://cdn.checkout.com
+  version: VERSION
+  license:
+    name: UNKNOWN
+    url: UNKNOWN
+    gpl-compatible: FALSE
+  js:
+    https://cdn.checkout.com/sandbox/js/checkoutkit.js: { type: external }
+
+checkout_live_kit:
+  remote: https://cdn.checkout.com
+  version: VERSION
+  license:
+    name: UNKNOWN
+    url: UNKNOWN
+    gpl-compatible: FALSE
+  js:
+    https://cdn.checkout.com/js/checkoutkit.js: { type: external }
+
+googlemapapi:
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/drupalSettings
+  js:
+    assets/js/google-maps-api.js: {}
+
+commerce_backend.cart.v1:
+  js:
+    dist/backend_cart_v1.bundle.js: {}
+
+commerce_backend.checkout.v1:
+  js:
+    dist/backend_checkout_v1.bundle.js: {}
+
+security:
+  js:
+    assets/js/security.js: { }
+
+commerce_backend.cart.v2:
+  js:
+    dist/backend_cart_v2.bundle.js: {}
+  dependencies:
+    - alshaya_spc/security
+
+commerce_backend.checkout.v2:
+  js:
+    dist/backend_checkout_v2.bundle.js: {}
+  dependencies:
+    - core/underscore
+    - alshaya_spc/security
+
+express_delivery:
+  version: 1.x
+  js:
+    dist/expressdelivery.bundle.js: { }
+  dependencies:
+    - alshaya_react/react
+    - alshaya_spc/cart_utilities
+    - alshaya_spc/commerce_backend.cart.v2
+
+dynamic_promotion_label:
+  js:
+    dist/dynamic_promotion_label.bundle.js: {}
+
+# Library for PDP express-delivery labels react component.
+# This component show SDD (same day delivery) / ED (express delivery) labels on all PDP layouts below sku price.
+pdp_express_delivery_labels:
+  version: 1.0.0
+  js:
+    dist/pdp_sdd_ed_labels.bundle.js: { }
+  dependencies:
+    - alshaya_react/react
+    - core/drupalSettings

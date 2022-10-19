@@ -1,0 +1,25 @@
+#edit-billing-address,
+.checkout-login,
+.c-add-address,
+.alias--cart-checkout-payment,
+.c-address-book {
+  .address-book-address,
+  .profile-form {
+    .form-actions {
+      .cancel-button {
+        color: $cancel_button;
+        font-family: $hnm-bold;
+        font-weight: normal;
+        text-transform: capitalize;
+      }
+
+      .form-submit {
+        font-size: 0.8125rem;
+
+        &:hover {
+          background: $gray44;
+        }
+      }
+    }
+  }
+}

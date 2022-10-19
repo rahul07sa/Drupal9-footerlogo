@@ -1,0 +1,70 @@
+.labels-container {
+  .label {
+    &.top {
+      &-left {
+        top: 0;
+        #{$left}: 0.25rem;
+
+        @include breakpoint($only-tablet) {
+          #{$left}: 0;
+        }
+      }
+
+      &-right {
+        top: 0;
+        #{$right}: 0.25rem;
+
+        @include breakpoint($only-tablet) {
+          #{$right}: 0;
+        }
+      }
+    }
+
+    &.bottom {
+      &-left {
+        bottom: 0;
+        #{$left}: 0.25rem;
+
+        @include breakpoint($only-tablet) {
+          #{$left}: 0;
+        }
+      }
+
+      &-right {
+        bottom: 0;
+        #{$right}: 0.25rem;
+
+        @include breakpoint($only-tablet) {
+          #{$right}: 0;
+        }
+      }
+    }
+  }
+}
+
+.image-label-wrapper,
+.alshaya_search_gallery {
+  .labels-container {
+    .label {
+      &.top {
+        &-left {
+          #{$left}: 0;
+        }
+
+        &-right {
+          #{$right}: 0;
+        }
+      }
+
+      &.bottom {
+        &-left {
+          #{$left}: 0;
+        }
+
+        &-right {
+          #{$right}: 0;
+        }
+      }
+    }
+  }
+}

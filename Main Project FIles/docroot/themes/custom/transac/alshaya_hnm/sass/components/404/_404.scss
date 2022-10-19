@@ -1,0 +1,112 @@
+// 404 and Maintenance.
+.not-found {
+  margin-bottom: 4.5rem;
+
+  @include breakpoint($upto-desktop) {
+    top: 2.5rem;
+  }
+
+  @include breakpoint($desktop) {
+    margin-bottom: 6.5rem;
+  }
+
+  .not-found__body__container {
+    padding-top: 3rem;
+  }
+
+  .not-found__body {
+    font-family: $hnm-regular;
+    margin: 0 auto;
+    margin-top: 10%;
+    padding-bottom: 2.5rem;
+    position: relative;
+    right: unset;
+    bottom: unset;
+    height: auto;
+    display: block;
+
+    .maintenance-page & {
+      font-family: $hnm-regular;
+    }
+
+    h1 {
+      font-family: $hnm-bold;
+
+      .maintenance-page & {
+        font-family: $hnm-bold;
+      }
+
+      &.title--arabic {
+        font-family: $hnm-regular;
+      }
+    }
+
+    h2 {
+      color: $maintenance_title;
+      font-family: $hnmpromo-regular;
+      font-size: 1.625rem;
+
+      .maintenance-page & {
+        font-family: $hnmpromo-regular;
+      }
+    }
+
+    h2:first-child {
+      font-size: 2.25rem;
+      margin-bottom: 0.5rem;
+    }
+  }
+
+  p {
+    color: $maintenance_text;
+    font-family: $hnm-regular;
+
+    a {
+      color: $maintenance_link;
+      font-family: $hnm-regular;
+    }
+
+    &.arabic {
+      font-family: $hnm-regular;
+    }
+  }
+}
+
+@media screen and (max-width: 1024px) {
+  .not-found {
+    &::after {
+      background: $maintenance_mobile_body_bg;
+      border: solid 1px $maintenance_container_border;
+    }
+  }
+}
+
+.maintenance-page {
+  border-top: none;
+
+  .maintenance__logo {
+    margin-top: 3rem;
+
+    @include breakpoint($upto-desktop) {
+      text-align: center;
+    }
+
+    @include breakpoint($desktop) {
+      float: none;
+      text-align: center;
+    }
+  }
+
+  .not-found__body {
+    margin-top: 4%;
+  }
+
+  .not-found {
+    min-height: auto;
+
+    p {
+      color: $maintenance_mobile_body_text;
+      line-height: 1.32;
+    }
+  }
+}

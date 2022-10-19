@@ -1,0 +1,855 @@
+global_styles:
+  css:
+    theme:
+      css/colors.css: {}
+  js:
+    js/custom.js: {}
+    js/menu.js: {}
+    js/form.js: {}
+    js/one_time_language_slider.js: {}
+    /libraries/mobile-detect/mobile-detect.js: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.once
+    - jquery_ui_accordion/accordion
+    - jquery_ui_effects/core
+    - jquery_ui_tabs/tabs
+    - core/jquery.cookie
+    - mobile_number/element
+    - alshaya_white_label/font-face
+    - alshaya_white_label/utils
+    - core/drupal.dialog.ajax
+    - alshaya_white_label/alshaya_image_lazy_load
+    - alshaya_white_label/detail_polyfill
+
+detail_polyfill:
+  js:
+    vendor/js/details-polyfill.js: {attributes: { nomodule: true }}
+
+ltr_styles:
+  css:
+    theme:
+      css/ltr.css: {}
+
+rtl_styles:
+  css:
+    theme:
+      css/rtl.css: {}
+
+ltr_print_styles:
+  css:
+    theme:
+      css/ltr-print.css: {media: print}
+
+rtl_print_styles:
+  css:
+    theme:
+      css/rtl-print.css: {media: print}
+
+font-face:
+  css:
+    theme:
+      css/conditional-sass/font-face/font-face.ltr.css: { }
+
+unmask_password:
+  js:
+    js/unmask_password.js: {}
+
+slider_banner:
+  js:
+    js/slider.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - alshaya_white_label/utils
+    - alshaya_white_label/slick
+    - alshaya_white_label/alshaya_image_lazy_load
+
+delivery_usp:
+  js:
+    js/delivery_usp.js: {}
+  dependencies:
+    - core/jquery
+    - alshaya_white_label/slick
+
+product_carousel:
+  js:
+    js/product_carousel.js: {}
+  dependencies:
+    - core/jquery
+    - alshaya_white_label/utils
+    - alshaya_white_label/slick
+    - alshaya_white_label/alshaya_image_lazy_load
+
+alshaya_brand_carousel:
+  version: 1.x
+  js:
+    js/alshaya_brand_carousel.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/jquery.once
+    - alshaya_white_label/slick
+
+autosize_textarea:
+  js:
+    js/autosize_textarea.js: {}
+  dependencies:
+    - alshaya_white_label/autosize
+
+convert_to_select2:
+  js:
+    js/convert_to_select2.js: {}
+  dependencies:
+    - core/jquery.once
+    - alshaya_white_label/select2
+
+slick:
+  js:
+    vendor/js/slick.min.js: {}
+  dependencies:
+    - alshaya_white_label/slick_css
+
+slick_css:
+  css:
+    theme:
+      vendor/css/slick.css: {}
+
+select2:
+  css:
+    theme:
+      vendor/css/select2.css: {}
+  js:
+    vendor/js/select2.full.min.js: {}
+
+autosize:
+  js:
+    vendor/js/autosize.min.js: {}
+
+attribute.common:
+  js:
+    js/select2Option.js: {}
+    js/attribute.common.js: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.once
+    - core/drupal
+    - alshaya_master/common_functions
+
+attribute:
+  js:
+    js/attribute.js: {}
+  dependencies:
+    - alshaya_white_label/attribute.common
+
+ucfix:
+  js:
+    js/ucfix.js: {}
+
+stickybutton:
+  js:
+    js/pdp-stickybutton.js: {}
+  dependencies:
+    - core/jquery.once
+
+utils:
+  js:
+    js/utils.js: {}
+
+cleave:
+  js:
+    vendor/js/cleave.min.js: {}
+
+pdp-video-player:
+  js:
+    conditional-sass/pdp-video/js/pdp-native-video.js: {}
+  css:
+    theme:
+      css/conditional-sass/pdp-video/pdp-video.ltr.css: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+
+plp_search_js:
+  js:
+    js/plp-search.js: {}
+  dependencies:
+    - facets/soft-limit
+    - facets/drupal.facets.checkbox-widget
+
+jquery_mobile_touch_swipe:
+  js:
+    vendor/js/jquery.touchSwipe.min.js: {}
+
+magazine_attribute:
+  js:
+    js/magazine_attribute.js: {}
+  css:
+    theme:
+      css/conditional-sass/magazine-layout/magazine-layout.ltr.css: {}
+  dependencies:
+    - alshaya_white_label/pdp-video-player
+    - alshaya_white_label/attribute.common
+    - jquery_ui_effects/slide
+    - alshaya_white_label/pdp-additional-attributes
+
+campaign-plp-style-1-video-provider:
+  css:
+    theme:
+      vendor/css/video-js.min.css: {}
+  js:
+    vendor/js/video.min.js: {}
+    vendor/js/Youtube.min.js: {}
+    vendor/js/videojs-vimeo.js: {}
+
+campaign-plp-style-1-common:
+  js:
+    js/campaign-plp-style-1-layout.js: {}
+
+magazine_socialSharepopup:
+  js:
+    js/socialshare_popup.js: {}
+
+plp-swatch-hover:
+  js:
+    js/plp-swatch-hover.js: {}
+  dependencies:
+    - core/jquery.once
+
+magazine_article:
+  css:
+    theme:
+      css/conditional-sass/magazine-article/magazine-article.ltr.css: {}
+  js:
+    js/magazine_article.js: {}
+  dependencies:
+    - core/jquery
+    - alshaya_white_label/slick
+
+alshaya_image_lazy_load:
+  js:
+    vendor/js/blazy.min.js: { minified: true }
+  dependencies:
+    - core/drupal
+    - core/jquery.once
+
+algolia_search:
+  js:
+    conditional-sass/algolia-search/js/algolia-search.js: {}
+  css:
+    theme:
+      css/conditional-sass/algolia-search/algolia-search.ltr.css: {}
+
+optionlist_filter:
+  js:
+    js/optionlist_filter.js: {}
+  css:
+    theme:
+      css/conditional-sass/optionlist-filter/optionlist-filter.ltr.css: {}
+
+optionlist_menu:
+  js:
+    conditional-sass/optionlist-menu/js/optionlist-menu.js: {}
+  css:
+    theme:
+      css/conditional-sass/optionlist-menu/optionlist-menu.ltr.css: {}
+
+footer_js:
+  js:
+    js/back_to_top.js: {}
+    js/footer-accordion.js: {}
+    js/footer-space-filler.js: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.once
+    - core/drupal
+
+product-category-accordion:
+  js:
+    js/product-category-accordion.js: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.once
+    - core/drupal
+
+accordion:
+  js:
+    js/accordion.js: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.once
+    - core/drupal
+
+pdp_js:
+  js:
+    js/pdp.js: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.once
+    - core/drupal
+
+megamenu_inline_layout:
+  js:
+    conditional-sass/megamenu-inline-layout/js/megamenu-inline-layout.js: {}
+  css:
+    theme:
+      css/conditional-sass/megamenu-inline-layout/megamenu-inline-layout.ltr.css: {}
+
+super-menu:
+  js:
+    conditional-sass/super-menu/js/super_menu_clone.js: {}
+  css:
+    theme:
+      css/conditional-sass/super-menu/super-menu.ltr.css: {}
+
+dynamic-promotions:
+  css:
+    theme:
+      css/conditional-sass/dynamic-promotions/dynamic-promotions.ltr.css: {}
+
+pdp-additional-attributes:
+  js:
+    conditional-sass/pdp-additional-attributes/js/pdp-overlay-attribute.js: {}
+  css:
+    theme:
+      css/conditional-sass/pdp-additional-attributes/pdp-additional-attributes.ltr.css: {}
+
+free_gifts:
+  js:
+    js/free-gift.js: {}
+  dependencies:
+    - core/jquery
+    - alshaya_white_label/slick
+    - alshaya_product_zoom/cloud_zoom_common
+    - alshaya_product_zoom/cloud_zoom_pdp_gallery
+
+app-navigation-links:
+  css:
+    theme:
+      css/conditional-sass/app-navigation-links/app-navigation-links.ltr.css: {}
+
+megamenu_dynamic_layout:
+  js:
+    conditional-sass/megamenu-dynamic-layout/js/megamenu-dynamic-layout.js: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.once
+    - core/drupal
+
+matchback_layout:
+  js:
+    conditional-sass/matchback-layout/js/matchback-layout.js: {}
+  css:
+    theme:
+      css/conditional-sass/matchback-layout/matchback-layout.ltr.css: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - alshaya_white_label/slick
+    - alshaya_white_label/alshaya_image_lazy_load
+
+matchback_cart_notification:
+  css:
+    theme:
+      css/conditional-sass/matchback-cart-notification/matchback-cart-notification.ltr.css: {}
+
+tooltip:
+  js:
+    js/order-detail.js: {}
+  css:
+    theme:
+      css/conditional-sass/tooltip/tooltip.ltr.css: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+
+alshaya-react-animate:
+  css:
+    theme:
+      css/conditional-sass/alshaya-react-animate/alshaya-react-animate.ltr.css: {}
+
+spc-utils:
+  css:
+    theme:
+      css/conditional-sass/spc-utils/spc-utils.ltr.css: {}
+  dependencies:
+    - alshaya_white_label/tooltip
+    - alshaya_white_label/alshaya-react-animate
+
+spc-cart:
+  css:
+    theme:
+      css/conditional-sass/spc-cart/spc-cart.ltr.css: {}
+  dependencies:
+    - alshaya_white_label/spc-utils
+
+spc-checkout:
+  css:
+    theme:
+      css/conditional-sass/spc-checkout/spc-checkout.ltr.css: {}
+  dependencies:
+    - alshaya_white_label/spc-utils
+
+spc-login:
+  css:
+    theme:
+      css/conditional-sass/spc-login/spc-login.ltr.css: {}
+  dependencies:
+    - alshaya_white_label/spc-utils
+
+spc-checkout-confirmation:
+  css:
+    theme:
+      css/conditional-sass/spc-checkout-confirmation/spc-checkout-confirmation.ltr.css: {}
+  dependencies:
+    - alshaya_white_label/spc-utils
+
+order-qty-limit:
+  css:
+    theme:
+      css/conditional-sass/order-qty-limit/order-qty-limit.ltr.css: {}
+
+appointment-booking:
+  css:
+    theme:
+      css/conditional-sass/appointment-booking/appointment-booking.ltr.css: {}
+
+magazine-layout-v2:
+  css:
+    theme:
+      css/conditional-sass/magazine-layout-v2/magazine-layout-v2.ltr.css: {}
+  dependencies:
+    - alshaya_white_label/alshaya-react-animate
+
+shop-by-brand:
+  css:
+    theme:
+      css/conditional-sass/shop-by-brand/shop-by-brand.ltr.css: {}
+  dependencies:
+    - alshaya_white_label/plp_search_js
+
+sub-brand-logo:
+  css:
+    theme:
+      css/conditional-sass/sub-brand-logo/sub-brand-logo.ltr.css: {}
+
+aura-loyalty-tooltip:
+  css:
+    theme:
+      css/conditional-sass/aura-tooltip/aura-tooltip.ltr.css: {}
+  dependencies:
+    - alshaya_white_label/tooltip
+
+aura-loyalty-messages:
+  css:
+    theme:
+      css/conditional-sass/aura-loyalty-messages/aura-loyalty-messages.ltr.css: {}
+
+aura-loyalty-spc-common:
+  css:
+    theme:
+      css/conditional-sass/aura-loyalty-spc-common/aura-loyalty-spc-common.ltr.css: {}
+  dependencies:
+    - alshaya_white_label/aura-loyalty-tooltip
+    - alshaya_white_label/aura-loyalty-messages
+
+aura-loyalty-forms:
+  css:
+    theme:
+      css/conditional-sass/aura-loyalty-forms/aura-loyalty-forms.ltr.css: {}
+
+aura-loyalty-spc:
+  css:
+    theme:
+      css/conditional-sass/aura-loyalty-spc/aura-loyalty-spc.ltr.css: {}
+  dependencies:
+    - alshaya_white_label/aura-loyalty-spc-common
+    - alshaya_white_label/aura-loyalty-forms
+
+aura-loyalty-spc-confirmation:
+  css:
+    theme:
+      css/conditional-sass/aura-loyalty-spc-confirmation/aura-loyalty-spc-confirmation.ltr.css: {}
+  dependencies:
+    - alshaya_white_label/aura-loyalty-spc-common
+
+aura-loyalty-global:
+  css:
+    theme:
+      css/conditional-sass/aura-loyalty-global/aura-loyalty-global.ltr.css: {}
+
+aura-loyalty-myaccount:
+  css:
+    theme:
+      css/conditional-sass/aura-loyalty-myaccount/aura-loyalty-myaccount.ltr.css: {}
+  dependencies:
+    - alshaya_white_label/aura-loyalty-tooltip
+    - alshaya_white_label/aura-loyalty-messages
+    - alshaya_white_label/aura-loyalty-forms
+    - alshaya_white_label/alshaya-react-animate
+
+aura-loyalty-pdp:
+  css:
+    theme:
+      css/conditional-sass/aura-loyalty-pdp/aura-loyalty-pdp.ltr.css: {}
+  dependencies:
+    - alshaya_white_label/aura-loyalty-tooltip
+
+alshaya-fit-calculator:
+  css:
+    theme:
+      css/conditional-sass/alshaya-fit-calculator/alshaya-fit-calculator.ltr.css: {}
+
+alshaya-stylefinder:
+  css:
+    theme:
+      css/conditional-sass/alshaya-stylefinder/alshaya-stylefinder.ltr.css: {}
+
+postpay-pdp:
+  css:
+    theme:
+      css/conditional-sass/postpay-pdp/postpay-pdp.ltr.css: {}
+
+postpay-cart:
+  css:
+    theme:
+      css/conditional-sass/postpay-cart/postpay-cart.ltr.css: {}
+
+postpay-checkout:
+  css:
+    theme:
+      css/conditional-sass/postpay-checkout/postpay-checkout.ltr.css: {}
+
+bazaar-voice:
+  css:
+    theme:
+      css/conditional-sass/bazaar-voice/bazaar-voice.ltr.css: {}
+  dependencies:
+    - alshaya_white_label/style-review-stars
+
+store_finder:
+  css:
+    theme:
+      css/conditional-sass/store-finder/store-finder.ltr.css: {}
+
+promo-blocks:
+  css:
+    theme:
+      css/conditional-sass/promo-blocks/promo-blocks.ltr.css: {}
+
+advance-content-slider:
+  css:
+    theme:
+      css/conditional-sass/advance-content-slider/advance-content-slider.ltr.css: {}
+
+advanced-page:
+  css:
+    theme:
+      css/conditional-sass/advanced-page/advanced-page.ltr.css: {}
+
+plp-add-to-cart:
+  css:
+    theme:
+      css/conditional-sass/plp-add-to-cart/plp-add-to-cart.ltr.css: {}
+  dependencies:
+    - alshaya_white_label/alshaya-react-animate
+    - alshaya_white_label/magic-dots
+
+style-review-stars:
+  css:
+    theme:
+      css/conditional-sass/style-review-stars/style-review-stars.ltr.css: {}
+
+myaccount-reviews:
+  css:
+    theme:
+      css/conditional-sass/myaccount-reviews/myaccount-reviews.ltr.css: {}
+
+smart-agent:
+  css:
+    theme:
+      css/conditional-sass/smart-agent/smart-agent.ltr.css: {}
+
+secondary-menu:
+  css:
+    theme:
+      css/conditional-sass/secondary-menu/secondary-menu.ltr.css: {}
+
+checkout-pudo-aramex:
+  css:
+    theme:
+      css/conditional-sass/checkout-pudo-aramex/checkout-pudo-aramex.ltr.css: {}
+
+my-account:
+  css:
+    theme:
+      css/conditional-sass/my-account/my-account.ltr.css: {}
+
+contact:
+  css:
+    theme:
+      css/conditional-sass/contact-us/contact-us.ltr.css: {}
+
+sitemap:
+  css:
+    theme:
+      css/conditional-sass/sitemap/sitemap.ltr.css: {}
+
+checkout-confirmation-pudo-aramex:
+  css:
+    theme:
+      css/conditional-sass/checkout-confirmation-pudo-aramex/checkout-confirmation-pudo-aramex.ltr.css: {}
+
+alshaya-vat-certificate:
+  css:
+    theme:
+      css/conditional-sass/alshaya-vat-certificate/alshaya-vat-certificate.ltr.css: {}
+
+slug-banner:
+  css:
+    theme:
+      css/conditional-sass/slug-banner/slug-banner.ltr.css: {}
+
+sameday-express-delivery:
+  css:
+    theme:
+      css/conditional-sass/sameday-express-delivery/sameday-express-delivery.ltr.css: {}
+
+plp-frame-options:
+  css:
+    theme:
+      css/conditional-sass/plp-frame-options/plp-frame-options.ltr.css: {}
+
+sofa-sectional:
+  css:
+    theme:
+      css/conditional-sass/sofa-sectional/sofa-sectional.ltr.css: {}
+
+wishlist:
+  css:
+    theme:
+      css/conditional-sass/wishlist/wishlist.ltr.css: {}
+
+tabby:
+  css:
+    theme:
+      css/conditional-sass/tabby/tabby.ltr.css: {}
+
+rcs-alshaya-magazine:
+  css:
+    theme:
+      css/conditional-sass/rcs-alshaya-magazine/rcs-alshaya-magazine.ltr.css: {}
+
+rcs-ph-breadcrumb:
+  css:
+    theme:
+      css/conditional-sass/rcs-ph-breadcrumb/rcs-ph-breadcrumb.ltr.css: {}
+
+rcs-ph-lhn-block:
+  css:
+    theme:
+      css/conditional-sass/rcs-ph-lhn-block/rcs-ph-lhn-block.ltr.css: {}
+
+rcs-ph-navigation-menu:
+  css:
+    theme:
+      css/conditional-sass/rcs-ph-navigation-menu/rcs-ph-navigation-menu.ltr.css: {}
+
+rcs-ph-plp-mobile-menu:
+  css:
+    theme:
+      css/conditional-sass/rcs-ph-plp-mobile-menu/rcs-ph-plp-mobile-menu.ltr.css: {}
+
+rcs-ph-promotional-banner:
+  css:
+    theme:
+      css/conditional-sass/rcs-ph-promotional-banner/rcs-ph-promotional-banner.ltr.css: {}
+
+rcs-ph-term-description:
+  css:
+    theme:
+      css/conditional-sass/rcs-ph-term-description/rcs-ph-term-description.ltr.css: {}
+
+rcs-placeholders:
+  css:
+    theme:
+      css/conditional-sass/rcs-placeholders/rcs-placeholders.ltr.css: {}
+
+rcs-product-related:
+  css:
+    theme:
+      css/conditional-sass/rcs-product-related/rcs-product-related.ltr.css: {}
+
+rcs-shop-by-block:
+  css:
+    theme:
+      css/conditional-sass/rcs-shop-by-block/rcs-shop-by-block.ltr.css: {}
+
+rcs-algolia-plp:
+  css:
+    theme:
+      css/conditional-sass/rcs-algolia-plp/rcs-algolia-plp.ltr.css: {}
+
+rcs-order-listing:
+  css:
+    theme:
+      css/conditional-sass/rcs-order-listing/rcs-order-listing.ltr.css: {}
+
+rcs-order-details:
+  css:
+    theme:
+      css/conditional-sass/rcs-order-details/rcs-order-details.ltr.css: {}
+
+country-switcher:
+  css:
+    theme:
+      css/conditional-sass/country-switcher/country-switcher.ltr.css: {}
+
+magic-dots:
+  css:
+    theme:
+      css/conditional-sass/magic-dots/magic-dots.ltr.css: {}
+
+egift-common:
+  css:
+    theme:
+      css/conditional-sass/egift-common/egift-common.ltr.css: {}
+
+egift-purchase-page:
+  css:
+    theme:
+      css/conditional-sass/egift-purchase-page/egift-purchase-page.ltr.css: {}
+  dependencies:
+    - alshaya_white_label/alshaya-react-animate
+    - alshaya_white_label/egift-common
+
+egift-card-checkout:
+  css:
+    theme:
+      css/conditional-sass/egift-card-checkout/egift-card-checkout.ltr.css: {}
+
+egift-cart:
+  css:
+    theme:
+      css/conditional-sass/egift-cart/egift-cart.ltr.css: {}
+
+egift-topup-page:
+  css:
+    theme:
+      css/conditional-sass/egift-topup-page/egift-topup-page.ltr.css: {}
+  dependencies:
+    - alshaya_white_label/egift-common
+
+egift-landing-page:
+  css:
+    theme:
+      css/conditional-sass/egift-landing-page/egift-landing-page.ltr.css: {}
+  dependencies:
+    - alshaya_white_label/alshaya-react-animate
+
+egift-myaccount:
+  css:
+    theme:
+      css/conditional-sass/egift-myaccount/egift-myaccount.ltr.css: {}
+  dependencies:
+    - alshaya_white_label/egift-common
+
+egift-card-checkout-confirmation:
+  css:
+    theme:
+      css/conditional-sass/egift-card-checkout-confirmation/egift-card-checkout-confirmation.ltr.css: {}
+
+online-returns:
+  css:
+    theme:
+      css/conditional-sass/online-returns/online-returns.ltr.css: {}
+
+super-category:
+  css:
+    theme:
+      css/conditional-sass/super-category/super-category.ltr.css: {}
+
+online-booking:
+  css:
+    theme:
+      css/conditional-sass/online-booking/online-booking.ltr.css: {}
+
+my-accounts-hello-member:
+  css:
+    theme:
+      css/conditional-sass/my-accounts-hello-member/my-accounts-hello-member.ltr.css: {}
+
+hello-member-registration:
+  css:
+    theme:
+      css/conditional-sass/hello-member-registration/hello-member-registration.ltr.css: {}
+
+my-membership-info:
+  css:
+    theme:
+      css/conditional-sass/my-membership-info/my-membership-info.ltr.css: {}
+
+hello-member-points-history:
+  css:
+    theme:
+      css/conditional-sass/hello-member-points-history/hello-member-points-history.ltr.css: {}
+
+inter-country-transfer:
+  css:
+    theme:
+      css/conditional-sass/inter-country-transfer/inter-country-transfer.ltr.css: {}
+
+hello-member-benefit-landing-page:
+  css:
+    theme:
+      css/conditional-sass/hello-member-benefit-landing-page/hello-member-benefit-landing-page.ltr.css: {}
+
+hello-member-qr-code:
+  css:
+    theme:
+      css/conditional-sass/hello-member-qr-code/hello-member-qr-code.ltr.css: {}
+
+hello-member-pdp:
+  css:
+    theme:
+      css/conditional-sass/hello-member-pdp/hello-member-pdp.ltr.css: {}
+
+hello-member-otp:
+  css:
+    theme:
+      css/conditional-sass/hello-member-otp/hello-member-otp.ltr.css: {}
+
+hello-member-promotion:
+  css:
+    theme:
+      css/conditional-sass/hello-member-promotion/hello-member-promotion.ltr.css: {}
+
+cls-initial-layout-common:
+  css:
+    theme:
+      css/conditional-sass/cls-initial-layout-common/cls-initial-layout-common.ltr.css: {}
+
+hello-member-aura-loyalty:
+  css:
+    theme:
+      css/conditional-sass/hello-member-aura-loyalty/hello-member-aura-loyalty.ltr.css: {}
+
+advanced-page-paragraph-accordion:
+  css:
+    theme:
+      css/conditional-sass/advanced-page-paragraph-accordion/advanced-page-paragraph-accordion.ltr.css: {}
+
+advanced-page-paragraph-banner:
+  css:
+    theme:
+      css/conditional-sass/advanced-page-paragraph-banner/advanced-page-paragraph-banner.ltr.css: {}
+
+hello-member-info-page:
+  css:
+    theme:
+      css/conditional-sass/hello-member-info-page/hello-member-info-page.ltr.css: {}
+
+hello-member-become-member:
+  css:
+    theme:
+      css/conditional-sass/hello-member-become-member/hello-member-become-member.ltr.css: {}

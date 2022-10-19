@@ -1,0 +1,62 @@
+.order-detail,
+.block-alshaya-user-recent-orders {
+  .user__order--detail {
+    div.order-item-row.delivered-items,
+    tr.order-item-row.delivered-items,
+    div.order-item-row.cancelled-items,
+    tr.order-item-row.cancelled-items {
+      > div,
+      td {
+        font-family: $hnm-demibold;
+      }
+    }
+  }
+}
+
+.order-detail {
+  .user__order--detail {
+    .returned-items {
+      .title-wrapper {
+        font-family: $hnm-demibold;
+        text-transform: uppercase;
+      }
+    }
+
+    .returned-items,
+    .return-initiated-item {
+      .item-list-wrapper {
+        border-bottom: rem(1) solid $white;
+      }
+
+      .return-status-wrapper {
+        .status-label {
+          font-family: $hnm-demibold;
+        }
+      }
+    }
+
+    .return-initiated-item,
+    .returned-items-row {
+      .return-status-id-container,
+      .return-status-wrapper {
+        .status-label {
+          font-size: rem(18);
+          line-height: rem(22);
+        }
+      }
+    }
+
+    .total-refund-row {
+      .dark {
+        font-family: $hnm-demibold;
+        font-weight: normal;
+      }
+    }
+
+    .cancellation-reason {
+      .reason-label {
+        font-family: $hnm-demibold;
+      }
+    }
+  }
+}

@@ -1,0 +1,126 @@
+.has--three-levels {
+  @include breakpoint($desktop) {
+    .menu--two__list .menu__links__wrapper {
+      padding-#{$left}: 1rem;
+      padding-bottom: 1.5rem;
+
+      .menu--two__list-item .menu--three__list {
+        padding-#{$left}: 0;
+        padding-top: 0;
+        position: static;
+      }
+
+      .column:last-child {
+        .menu--two__list-item {
+          padding-#{$right}: 0.5rem;
+        }
+      }
+    }
+
+    .level-three__wrapper {
+      width: 100%;
+      display: block;
+    }
+
+    .highlights {
+      margin-top: 0;
+      margin-#{$right}: 1.5rem;
+      text-align: $left;
+
+      .title {
+        margin-bottom: 0.9rem;
+      }
+    }
+
+    .menu--two__list .menu--two__list-item > .menu-two__link-wrapper {
+      background: transparent;
+      padding: 0;
+      margin-bottom: 2px;
+      max-width: 10rem;
+      direction: ltr;
+
+      &::after {
+        content: none;
+      }
+
+      a {
+        color: $mm_l2_link !important;
+
+        html[lang=ar] & {
+          line-height: 1.7;
+        }
+      }
+    }
+
+    .menu--three__list-item > .menu-two__link-wrapper .menu__link {
+      font-size: 0.75rem !important;
+      color: $mm_l3_link !important;
+      font-family: $arial !important;
+    }
+
+    .menu--three__list-item > .menu-two__link-wrapper a {
+      &:hover {
+        color: $mm_l3_link_hover !important;
+      }
+    }
+
+    .menu--three__list-item > .menu-two__link-wrapper div.menu--three__link {
+      margin-bottom: 0;
+    }
+
+    .menu--two__list .menu--three__list-item {
+      display: block;
+      margin-bottom: 0;
+    }
+
+    .menu--two__list .menu--two__list-item {
+      max-width: none;
+      display: block;
+      vertical-align: top;
+      padding-#{$left}: 0.5rem;
+      break-inside: avoid;
+    }
+  }
+
+  .menu-two__link-wrapper p {
+    display: none;
+  }
+}
+
+.block-alshaya-main-menu {
+  .has--three-levels {
+    &.menu--one__list-item ul ul {
+      @include breakpoint($desktop) {
+        display: block;
+      }
+    }
+  }
+
+  .active--menu--links {
+    &:hover {
+      li.menu--one__list-item {
+        .menu--one__link {
+          @include breakpoint($desktop) {
+            border-bottom: 1px solid transparent;
+          }
+        }
+      }
+    }
+  }
+
+  &.megamenu-inline-layout {
+    .has--three-levels {
+      @include breakpoint($desktop) {
+        .menu--two__list .menu__links__wrapper {
+          -webkit-column-count: auto;
+          -moz-column-count: auto;
+          column-count: auto;
+          column-width: 12.5rem;
+          column-fill: auto;
+          min-height: 24rem;
+          float: $left;
+        }
+      }
+    }
+  }
+}

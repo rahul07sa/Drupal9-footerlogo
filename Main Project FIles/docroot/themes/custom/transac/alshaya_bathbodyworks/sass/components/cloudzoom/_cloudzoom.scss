@@ -1,0 +1,23 @@
+#lightSlider {
+  .slick-slide {
+    @include breakpoint($desktop) {
+      height: 8.1875rem !important;
+    }
+
+    @include breakpoint($only-tablet) {
+      height: auto !important;
+    }
+  }
+}
+
+@include breakpoint($only-tablet) {
+  #lightSlider {
+    height: auto;
+
+    .slick {
+      &-arrow {
+        top: 0;
+      }
+    }
+  }
+}

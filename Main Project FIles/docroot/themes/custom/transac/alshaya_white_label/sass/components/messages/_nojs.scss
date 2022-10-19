@@ -1,0 +1,42 @@
+html:not(.js) {
+  .logged-out {
+    .message__info {
+      top: 0;
+    }
+  }
+
+  .message__info {
+    width: 100%;
+    background: $default_msg_info_bg;
+    display: block;
+    padding: 0.75rem 1.5rem;
+    color: $black;
+  }
+
+  @include breakpoint($desktop) {
+    .message__info {
+      position: absolute;
+      top: 39px;
+      z-index: 5;
+      width: 100%;
+      background: $default_msg_info_bg;
+      display: block;
+      padding: 0.75rem 1.5rem;
+      color: $black;
+    }
+
+    .branding__menu {
+      position: static;
+    }
+
+    #toolbar-administration {
+      margin-bottom: 39px;
+    }
+  }
+}
+
+body.js {
+  .message__info {
+    display: none;
+  }
+}

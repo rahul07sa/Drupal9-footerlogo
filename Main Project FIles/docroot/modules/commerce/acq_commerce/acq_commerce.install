@@ -1,0 +1,68 @@
+<?php
+
+/**
+ * @file
+ * Install file.
+ */
+
+use Symfony\Component\Yaml\Yaml;
+
+/**
+ * Implements hook_update_N().
+ *
+ * Clearing the decimal points from the language config of acq_commerce.currency.
+ */
+function acq_commerce_update_8004() {
+  $languageManager = \Drupal::languageManager();
+  foreach ($languageManager->getLanguages() as $language) {
+    if ($language->isDefault()) {
+      continue;
+    }
+    $config = $languageManager->getLanguageConfigOverride($language->getId(), 'acq_commerce.currency');
+    $config->clear('decimal_points');
+    $config->save();
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new string translations.
+ */
+function acq_commerce_update_8003() {
+  $strings = [
+    'Sorry, we were able to complete your purchase but something went wrong and we could not display the order confirmation page. Please review your past orders or contact our customer service team for assistance.' => [
+      'ar' => 'عذرًا ، تمكنا من إتمام عملية الشراء ولكن حدث خطأ ما وتعذر علينا عرض صفحة تأكيد الطلب. يرجى مراجعة طلباتك السابقة أو الاتصال بفريق خدمة العملاء للحصول على المساعدة.',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Set iso standard currency code.
+ */
+function acq_commerce_update_8002() {
+  // Set iso standard currency code to use internally, i.e. payment methods.
+  \Drupal::configFactory()
+    ->getEditable('acq_commerce.currency')
+    ->set('iso_currency_code', 'USD')
+    ->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new role for sync user.
+ */
+function acq_commerce_update_8001() {
+  $config_yaml = Yaml::parse(file_get_contents(drupal_get_path('module', 'acq_commerce') . '/config/install/user.role.acq_commerce_sync.yml'));
+
+  // Add the new role.
+  \Drupal::configFactory()
+    ->getEditable('user.role.acq_commerce_sync')
+    ->setData($config_yaml)
+    ->save();
+}

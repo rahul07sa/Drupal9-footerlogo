@@ -1,0 +1,270 @@
+<?php
+
+/**
+ * @file
+ * Custom installation for Alshaya user.
+ */
+
+use Drupal\Core\Site\Settings;
+
+/**
+ * Implements hook_update_N().
+ *
+ * Updates reset password text for arabic language.
+ */
+function alshaya_user_update_8007() {
+  // Save the updated config.
+  $user_settings = \Drupal::languageManager()->getLanguageConfigOverride('ar', 'user.settings');
+  $user_settings->set('password_reset_text', 'تم إرسال المزيد من التعليمات إلى عنوان بريدك الإلكتروني');
+  $user_settings->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Updates pathauto settings to exclude user entities.
+ */
+function alshaya_user_update_8006() {
+  // Load the existing config for editing.
+  $config = \Drupal::configFactory()->getEditable('pathauto.settings');
+  $data = $config->getRawData();
+
+  // Remove the user type from list of enabled entities.
+  $data['enabled_entity_types'] = array_diff($data['enabled_entity_types'], ['user']);
+  $config->setData($data)->save(TRUE);
+
+  // Remove all pathauto entries for user entities in key/value storage.
+  $collection = 'pathauto_state.user';
+  \Drupal::keyValue($collection)->deleteAll();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding custom blocks for login/signup pages.
+ */
+function alshaya_user_update_8005() {
+  alshaya_config_install_configs(
+    ['block.block.alshayasignupsigninbuttonsblock'],
+    'alshaya_user'
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Fix user register mail arabic translation and remove extra config.
+ */
+function alshaya_user_update_8004() {
+  $signup_arabic_mail = \Drupal::languageManager()->getLanguageConfigOverride('ar', 'user_registrationpassword.mail');
+  $signup_arabic_mail->set('register_confirmation_with_pass.subject', $signup_arabic_mail->get('register_withpassword.subject'));
+  $signup_arabic_mail->set('register_confirmation_with_pass.body', $signup_arabic_mail->get('register_withpassword.body'));
+  $signup_arabic_mail->save();
+
+  // Remove extra config.
+  $config = \Drupal::configFactory()->getEditable('user_registrationpassword.mail');
+  // Get all data.
+  $data = $config->get();
+  unset($data['register_withpassword']);
+  $config->setData($data);
+  $config->save();
+
+  // Remove extra arabic config.
+  $arabic_config = \Drupal::languageManager()->getLanguageConfigOverride('ar', 'user_registrationpassword.mail');
+  // Get all data.
+  $data = $arabic_config->get();
+  unset($data['register_withpassword']);
+  $arabic_config->setData($data);
+  $arabic_config->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Fix user register mail.
+ */
+function alshaya_user_update_8003() {
+  $config = \Drupal::configFactory()->getEditable('user_registrationpassword.mail');
+  $config->set('register_confirmation_with_pass.subject', $config->get('register_withpassword.subject'));
+  $config->set('register_confirmation_with_pass.body', $config->get('register_withpassword.body'));
+  $config->save();
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function alshaya_user_update_8002() {
+  $configs = [
+    'field.storage.user.field_mobile_number',
+  ];
+
+  alshaya_config_install_configs($configs, 'alshaya_user');
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_user_install() {
+  // Save texts for communication preference page.
+  $strings = [
+    'Mobile' => [
+      'ar' => 'رقم الجوال',
+    ],
+    'Select your preferred communication channel' => [
+      'ar' => 'يرجى اختيار وسيلة التواصل المناسبة ',
+    ],
+    'Your communication preference saved successfully.' => [
+      'ar' => 'تم حفظ تفضيلات الاتصال بنجاح.',
+    ],
+    'Communication preferences' => [
+      'ar' => 'تفضيلات التواصل',
+    ],
+    'I would like to receive exclusive deals from Mothercare' => [
+      'ar' => 'أرغب في استلام عروض حصرية من مذركير',
+    ],
+    'customer' => [
+      'en' => 'user',
+      'ar' => 'زبون',
+    ],
+    'Join the club' => [
+      'ar' => 'نادي الامتيازات',
+    ],
+    "<p><span class=\"icon-win\">&nbsp;</span>Win exciting prizes</p>\r\n\r\n<p><span class=\"icon-reward\">&nbsp;</span>Unlock exclusive rewards</p>\r\n\r\n<p><span class=\"icon-heart\">&nbsp;</span>Be the first to know</p>\r\n\r\n<p><a class=\"final-pc-learn-more\" href=\"http://hyperurl.co/PRIVILEGES\" target=\"_blank\">Learn more</a></p>\r\n" => [
+      'ar' => "<p><span class=\"icon-win\">&nbsp;</span>اربح جوائز مدهشة</p>\r\n\r\n<p><span class=\"icon-reward\">&nbsp;</span>احصل على مكافآت حصرية</p>\r\n\r\n<p><span class=\"icon-heart\">&nbsp;</span>كُن أول من يعلم</p>\r\n\r\n<p><a class=\"final-pc-learn-more\" href=\"http://hyperurl.co/PRIVILEGES\" target=\"_blank\">مزيد من المعلومات</a></p>\r\n",
+    ],
+  ];
+  alshaya_i18n_save_translations($strings);
+
+  // Enable content translation for user entity.
+  \Drupal::service('content_translation.manager')->setEnabled('user', 'user', TRUE);
+  drupal_static_reset();
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+  \Drupal::service('router.builder')->rebuild();
+
+  $user_settings = \Drupal::configFactory()->getEditable('user.settings');
+
+  // Disable password strength indicator.
+  $user_settings->set('password_strength', FALSE);
+
+  // Set visitor user registration.
+  $user_settings->set('register', 'visitors');
+
+  // Set email verification to false to make password field visible on
+  // registration.
+  $user_settings->set('verify_mail', FALSE);
+
+  $user_settings->save();
+
+  // Disable user to set own timezone.
+  \Drupal::configFactory()->getEditable('system.date')->set('timezone.user.configurable', FALSE)->save();
+
+  // Disable user contact form by default.
+  \Drupal::configFactory()->getEditable('contact.settings')->set('user_default_enabled', FALSE)->save();
+
+  // Set user account form display settings.
+  $userConfig = \Drupal::configFactory()->getEditable('core.entity_form_display.user.user.default');
+  $content = $userConfig->get('content');
+  $content['account']['weight'] = 3;
+  $content['field_first_name'] = [
+    'weight' => 0,
+    'type' => 'string_textfield',
+    'settings' => [
+      'size' => 60,
+      'placeholder' => '',
+    ],
+    'third_party_settings' => [],
+  ];
+  $content['field_last_name'] = [
+    'weight' => 1,
+    'type' => 'string_textfield',
+    'settings' => [
+      'size' => 60,
+      'placeholder' => '',
+    ],
+    'third_party_settings' => [],
+  ];
+  $content['field_mobile_number'] = [
+    'weight' => 2,
+    'type' => 'mobile_number_default',
+    'settings' => [
+      'default_country' => Settings::get('country_code'),
+      'countries' => [],
+      'placeholder' => ' ',
+    ],
+    'third_party_settings' => [],
+  ];
+  $content['field_subscribe_newsletter'] = [
+    'weight' => 100,
+    'type' => 'boolean_checkbox',
+    'settings' => [
+      'display_label' => TRUE,
+    ],
+    'third_party_settings' => [],
+  ];
+  unset($content['contact']);
+  unset($content['langcode']);
+  unset($content['language']);
+  $userConfig->set('content', $content)->save();
+  $hidden = $userConfig->get('hidden');
+  $hidden['contact'] = TRUE;
+  $hidden['langcode'] = TRUE;
+  $hidden['language'] = TRUE;
+  $userConfig->set('hidden', $hidden)->save();
+
+  // Set default configuration for user mails from registration password module.
+  $config = \Drupal::configFactory()->getEditable('user_registrationpassword.settings');
+  $config->set('registration', USER_REGISTRATIONPASSWORD_VERIFICATION_PASS);
+  $config->save();
+  $config = \Drupal::configFactory()->getEditable('user_registrationpassword.mail');
+  $config->set('register_withpassword.subject', 'Account details for [user:name] at [site:name]');
+
+  $config->set('register_withpassword.body', '<h1>Hello [user:field_first_name:value],</h1>
+
+Thank you for registering with [site:name] and welcome.<br/><br/>
+
+You have registered with the following e-mail address: [user:mail]<br/><br/>
+
+<b>Please verify your email address and activate your account by clicking the below link</b><br/>
+<a href="[user:registrationpassword-url]" class="button">verify your email</a><br/><br/>
+
+Or verify using this link: <a href="[user:registrationpassword-url]">[user:registrationpassword-url]</a><br/><br/>
+
+If you have any questions, check our <a href="[site:url]">FAQs page</a> here or contact our Customer Service team.<br/><br/>
+
+Best Wishes,<br/>
+The [site:name] Team<br/>
+Tel: <a href="tel:+9651821212">(+965) 182-12-12</a><br/>
+<a href="[site:url]">[site:url-brief]</a>');
+
+  $config->save();
+
+  $config = \Drupal::configFactory()->getEditable('user_registrationpassword.mail');
+  $config->set('register_confirmation_with_pass.subject', $config->get('register_withpassword.subject'));
+  $config->set('register_confirmation_with_pass.body', $config->get('register_withpassword.body'));
+  $config->save();
+
+  // Set default body for password reset email.
+  $config = \Drupal::configFactory()->getEditable('user.mail');
+  $config->set('password_reset.subject', 'Replacement login information for [user:field_first_name:value] at [site:name]');
+  $config->set('password_reset.body', '<h1>Hi [user:field_first_name:value]!</h1>
+
+A request to reset the password for your account has been made at [site:name].<br><br>
+
+You may now log in by clicking this link or copying and pasting it into your browser:<br><br>
+
+<a href="[user:one-time-login-url]">[user:one-time-login-url]</a><br><br>
+
+This link can only be used once to log in and will lead you to a page where you can set your password. It expires after one day and nothing will happen if it\'s not used.<br><br>
+
+Best Wishes,<br>
+The [site:name] Team<br>
+Tel: <a href="tel:+9651821212">(+965) 182-12-12</a><br/>
+<a href="[site:url]">[site:url-brief]</a>');
+
+  $config->save();
+
+  // Updates reset password text for arabic language.
+  $user_settings = \Drupal::languageManager()->getLanguageConfigOverride('ar', 'user.settings');
+  $user_settings->set('password_reset_text', 'تم إرسال المزيد من التعليمات إلى عنوان بريدك الإلكتروني');
+  $user_settings->save();
+}

@@ -1,0 +1,7 @@
+services:
+  alshaya_performance.commands:
+    class: \Drupal\alshaya_performance\Commands\AlshayaPerformanceDrushCommands
+    tags:
+      - { name: drush.command }
+    arguments:
+      - '@file_system'

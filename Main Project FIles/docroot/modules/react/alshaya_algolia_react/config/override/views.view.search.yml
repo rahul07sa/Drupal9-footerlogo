@@ -1,0 +1,11 @@
+display:
+  default:
+    display_options:
+      access:
+        type: role
+        options:
+          role:
+            administrator: administrator
+  page:
+    display_options:
+      path: search-old

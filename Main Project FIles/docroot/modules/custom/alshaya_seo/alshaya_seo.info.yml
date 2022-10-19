@@ -1,0 +1,20 @@
+name: 'Alshaya SEO'
+description: 'Code around custom SEO requirements of Alshaya.'
+type: module
+core: 8.x
+core_version_requirement: ^8 || ^9
+package: Alshaya
+dependencies:
+  - alshaya_i18n:alshaya_i18n
+  - google_tag:google_tag
+  - metatag:metatag
+  - metatag:metatag_open_graph
+  - drupal:node
+  - robotstxt:robotstxt
+  - simple_sitemap:simple_sitemap
+  - token:token
+  - datalayer:datalayer
+  - alshaya_stores_finder:alshaya_stores_finder
+  - metatag:metatag_verification
+  - external_hreflang:external_hreflang
+  - metatag_twitter_cards:metatag_twitter_cards

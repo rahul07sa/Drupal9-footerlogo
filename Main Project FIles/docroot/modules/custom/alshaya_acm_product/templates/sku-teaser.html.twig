@@ -1,0 +1,82 @@
+<a href="{{ product_url }}" data--original-url="{{ product_url }}" class="list-product-gallery product-selected-url">
+  {% if all_galleries is not empty %}
+    {% for data in all_galleries %}
+      <span class="hidden"
+            data--color="{{ data.color }}"
+            data--color-attribute="{{ data.attribute }}"
+            data--id="{{ data.id }}">
+        {{ data.gallery }}
+      </span>
+    {% endfor %}
+  {% else %}
+    {{ gallery }}
+  {% endif %}
+</a>
+<div class="product-plp-detail-wrapper">
+  {% if product_attribute_labels %}
+    <div class="product-labels">
+      <ul class="collection-labels">
+        {% for key, product_attribute_label in product_attribute_labels %}
+          <li class="{{ key }}">{{ product_attribute_label }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+  <h2 class="field--name-name">
+    <a href="{{ product_url }}" class="product-selected-url">{{ product_label }}</a>
+  </h2>
+
+  {% block pricePrefix %}
+  {% endblock %}
+
+  <div class="price-block {{ price_block_identifier }}">
+    {{ price_block }}
+  </div>
+
+  {% if promotions %}
+    <div class="promotions">
+      {% for id, promotion in promotions %}
+        {% if ((promotion.context is empty) or ('web' in promotion.context)) %}
+          <span class="sku-promotion-item">
+            <a class="sku-promotion-link" href="{{ promotion.url }}">
+              {{ promotion.text }}
+            </a>
+          </span>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% block swatches %}
+    {% if swatches is not empty %}
+      <div class="swatches">
+        {% for key,swatch in swatches %}
+          {% if swatch is not empty %}
+            <a href="{{ product_base_url }}?selected={{ key }}">
+              <span class='swatch-block swatch-image'>
+                <img {% if (swatch.product_url) %} data-sku-image = "{{ swatch.product_url }}" {% endif %} src="{{ swatch.url }}" loading="lazy" />
+              </span>
+            </a>
+          {% endif %}
+        {% endfor %}
+
+        {% if swatch_more_text %}
+          <a class="swatch-more-link product-selected-url" href="{{ product_url }}">{{ swatch_more_text }}</a>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {% if swatch_color_count %}
+      <div class="swatches">
+        <div class="swatch-color-count-wrapper mobile-only-block">
+          <a class="swatch-color-count product-selected-url"
+             href="{{ product_url }}">{{ swatch_color_count }}</a>
+        </div>
+      </div>
+    {% endif %}
+
+  {% endblock %}
+
+</div>
+
+{{ stock_placeholder }}

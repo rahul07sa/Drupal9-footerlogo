@@ -1,0 +1,27 @@
+<div class="store-name-and-address" id="selected-store-info" data-store-code="{{ store.code }}" data-store-node="{{ store.nid }}">
+  <span class="store-name">{{ store.name }}</span>
+  <span class="store-address">{{ store.address|raw }}</span>
+</div>
+<div class="store-open-hours">
+  <div class="hours--wrapper selector--hours">
+    <div class="hours--label">{{ 'Opening Hours'|t }}</div>
+    <div class="open--hours">
+      {% for item in store.open_hours %}
+        <div>
+          <span class="key-value-key">{{ item.key }}</span>
+          <span class="key-value-value">{{ item.value }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="store-delivery-time">
+  <span class="label--delivery-time">{{ 'Collect in store from'|t }}</span>
+  <span class="delivery--time--value">{{ store.delivery_time }}</span>
+</div>
+<div class="store-actions">
+  <a href="#" class="change-store">{{ 'change store'|t }}</a>
+  <a onclick="mapsApp({{ store.lat }}, {{ store.lng }})" class="view-on-map mobile-only">{{ 'View on map'|t }}</a>
+  <a href="#" class="store-on-map" data-store-code="{{ store.code }}">{{ 'View on map'|t }}</a>
+</div>

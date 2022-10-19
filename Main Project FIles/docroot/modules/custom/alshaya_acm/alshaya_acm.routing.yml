@@ -1,0 +1,46 @@
+alshaya_acm.cart_config:
+  path: '/admin/commerce/config/cart'
+  defaults:
+    _form: '\Drupal\alshaya_acm\Form\CartConfigForm'
+    _title: 'Cart Configuration'
+  requirements:
+    _permission: 'access commerce administration pages'
+
+alshaya_acm.cart_remove_sku:
+  path: 'cart/remove/{sku}/{token}/{js}/{coupon}'
+  defaults:
+    _controller: '\Drupal\alshaya_acm\Controller\CartController::cartRemoveSku'
+    _title: 'Cart'
+  options:
+    no_cache: TRUE
+  requirements:
+    _permission: 'access content'
+
+alshaya_acm.synchronize:
+  path: '/admin/commerce/sync'
+  defaults:
+    _form: '\Drupal\alshaya_acm\Form\SyncForm'
+    _title: 'Synchronize commerce data'
+  requirements:
+    _permission: 'synchronize commerce data'
+
+alshaya_acm.get_acm_cart:
+  path: '/cart/old'
+  defaults:
+    _controller: '\Drupal\alshaya_acm\Controller\CartController::getExistingCart'
+    _title: 'Cart'
+  methods: [GET]
+  options:
+    no_cache: TRUE
+  requirements:
+    _middleware_request_check: 'TRUE'
+
+# Fix issue with Sync broken post D9 upgrade.
+# @todo Remove this route after the csrftoken url fix in ACM.
+alshaya_acm.csrftoken:
+  path: '/rest/session/token'
+  defaults:
+    _controller: '\Drupal\system\Controller\CsrfTokenController::csrfToken'
+  requirements:
+    # Needs to be accessed by an anonymous user.
+    _access: 'TRUE'

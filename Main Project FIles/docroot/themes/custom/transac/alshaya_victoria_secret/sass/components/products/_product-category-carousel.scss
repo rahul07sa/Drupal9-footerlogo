@@ -1,0 +1,32 @@
+.paragraph--type--product-carousel-category {
+  .owl-carousel {
+    .owl-item {
+      .views-row {
+        width: 89.2%;
+      }
+    }
+  }
+}
+
+// Adjusting image size and hence product tile size as per VS.
+.paragraph--type--product-carousel-category,
+.horizontal-upell,
+.horizontal-related,
+.horizontal-crossell,
+.block-basket-horizontal-recommendation {
+  .view-product-slider {
+    .owl-carousel {
+      .views-row {
+        a > img {
+          @include breakpoint($upto-desktop) {
+            height: auto;
+          }
+        }
+
+        @include breakpoint($upto-desktop) {
+          width: 8.875rem;
+        }
+      }
+    }
+  }
+}

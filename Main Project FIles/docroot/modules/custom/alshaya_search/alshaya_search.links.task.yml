@@ -1,0 +1,20 @@
+alshaya_search.term_search:
+  route_name: view.term_search.page_1
+  title: 'Search'
+  base_route: entity.taxonomy_vocabulary.overview_form
+  weight: 100
+
+alshaya_search.srp_sort_settings_form:
+  route_name: alshaya_search.srp_sort_settings_form
+  title: 'SRP settings'
+  base_route: alshaya_search_api.listing_page_settings
+
+alshaya_search.srp_sort_settings_form.form:
+  route_name: alshaya_search.srp_sort_settings_form
+  title: 'SRP sort label settings'
+  parent_id: alshaya_search.srp_sort_settings_form
+
+alshaya_search.srp_sort_label_settings_form:
+  route_name: alshaya_search.srp_sort_label_settings_form
+  title: 'SRP sort labels'
+  parent_id: alshaya_search.srp_sort_settings_form

@@ -1,0 +1,925 @@
+<?php
+
+/**
+ * @file
+ * Module file.
+ */
+
+use Drupal\Component\Serialization\Json;
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\Core\Ajax\RedirectCommand;
+use Drupal\Core\Ajax\InvokeCommand;
+use Drupal\Core\Ajax\HtmlCommand;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Url;
+use Drupal\taxonomy\Entity\Term;
+use Drupal\user\Entity\User;
+use CommerceGuys\Addressing\AddressFormat\FieldOverride;
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function alshaya_addressbook_form_profile_address_book_add_form_alter(array &$form, FormStateInterface $form_state) {
+  $user_id = \Drupal::currentUser()->getAccount()->id();
+  /** @var \Drupal\user\Entity\User $user */
+  $user = User::load($user_id);
+  /** @var \Drupal\profile\Entity\ProfileInterface|bool $default_address */
+  $default_address = \Drupal::entityTypeManager()->getStorage('profile')
+    ->loadByUser($user, 'address_book');
+
+  $form['#prefix'] = '<div id="address-book-form-open" class="address-book-form-ajax-wrapper">';
+  $form['#suffix'] = '</div>';
+
+  // If user doesn't have any default address yet.
+  if (!$default_address) {
+    $form['actions']['submit']['#access'] = TRUE;
+    $form['actions']['submit']['#value'] = t('add address');
+  }
+  else {
+    $form['actions']['submit']['#value'] = t('add address');
+    $form['actions']['submit']['#ajax'] = [
+      'callback' => 'alshaya_addressbook_save_ajax_callback',
+      'wrapper' => 'address-book-form-open',
+    ];
+  }
+
+  // Get the default country from 'admin/config/regional/settings' site
+  // regional settings.
+  $default_site_country = _alshaya_custom_get_site_level_country_code();
+
+  // Set the default country.
+  $form['field_address']['widget'][0]['address']['#default_value']['country_code'] = $default_site_country;
+
+  // For profile add.
+  _alshaya_addressbook_form_alter($form, $form_state);
+}
+
+/**
+ * Submit Ajax callback to reload the page.
+ */
+function alshaya_addressbook_save_ajax_callback(&$form, FormStateInterface $form_state) {
+  // If any error.
+  if ($form_state->getErrors()) {
+    $response = new AjaxResponse();
+    $response->addCommand(new HtmlCommand('.address-book-form-ajax-wrapper', $form));
+    $response->addCommand(new InvokeCommand(
+      NULL,
+      'firstErrorFocus',
+      ['.address-book-form-ajax-wrapper', TRUE]
+    ));
+    // Adds mobile number prefix on validation fail as it lost in ajax call.
+    $response->addCommand(new InvokeCommand(NULL, 'mobileNumberPrefixAjax'));
+    return $response;
+  }
+
+  if (!$form_state->getErrors()) {
+    $entity   = $form_state->getFormObject()->getEntity();
+    $response = new AjaxResponse();
+    $response->addCommand(new RedirectCommand(Url::fromRoute('profile.user_page.multiple', [
+      'user'         => $entity->getOwnerId(),
+      'profile_type' => $entity->bundle(),
+    ])->toString()));
+    return $response;
+  }
+
+  return $form;
+}
+
+/**
+ * Processor for the country in address field.
+ */
+function _alshaya_addressbook_country_process(array &$element, FormStateInterface $form_state) {
+
+  // Checking if address is required.
+  $is_element_required = $element['#required'] ?? FALSE;
+
+  // No processing for field_ui admin page.
+  if (strpos($element['#name'], 'default_value_input') > -1) {
+    return $element;
+  }
+
+  $is_webform = isset($element['#webform_element']);
+
+  if ($is_webform) {
+    $element += $element['#webform_composite_elements'];
+  }
+
+  $magento_form = $element['#magento_form'];
+
+  $element['#prefix'] = '<div class="address-book-address">';
+  $element['#suffix'] = '</div>';
+
+  $default_country_code = $element['#default_value']['country_code'] ?: _alshaya_custom_get_site_level_country_code();
+
+  $element['country_code'] = [
+    '#type' => 'hidden',
+    '#value' => $default_country_code,
+  ];
+
+  // Validation for first and last name.
+  $element['given_name']['#access'] = FALSE;
+  $element['family_name']['#access'] = FALSE;
+
+  // This is required for guest checkout pages.
+  if (isset($element['#require_email']) && $element['#require_email']) {
+    // Use organization field as email.
+    $element['organization'] = [
+      '#type' => 'email',
+      '#required' => $is_element_required,
+      '#default_value' => isset($element['organization']) ? $element['organization']['#default_value'] : '',
+      '#title' => t('Email', [], ['context' => 'Address label']),
+      '#description' => t("We'll send your order confirmation here."),
+    ];
+    if (\Drupal::moduleHandler()->moduleExists('alshaya_user')) {
+      $element['organization']['#element_validate'] = ['alshaya_valid_email_address'];
+      $element['#attached']['library'][] = 'alshaya_user/email_validator_override';
+    }
+  }
+  else {
+    $element['organization']['#required'] = FALSE;
+    $element['organization']['#access'] = FALSE;
+  }
+
+  // Update field titles.
+  $element['given_name']['#title'] = t('First Name', [], ['context' => 'Address label']);
+  $element['family_name']['#title'] = t('Last Name', [], ['context' => 'Address label']);
+  $element['address_line1']['#title'] = t('Street Name / No.', [], ['context' => 'Address label']);
+  $element['dependent_locality']['#title'] = t('Building Name / No.', [], ['context' => 'Address label']);
+  $element['dependent_locality']['#maxlength'] = 89;
+  $element['locality']['#title'] = t('Block', [], ['context' => 'Address label']);
+  $element['locality']['#maxlength'] = 92;
+  $element['sorting_code']['#title'] = t('Landmark (Optional)', [], ['context' => 'Address label']);
+  $element['sorting_code']['#maxlength'] = 92;
+  $element['sorting_code']['#required'] = FALSE;
+  $element['additional_name']['#title'] = t('Apartment (Optional)', [], ['context' => 'Address label']);
+  $element['additional_name']['#maxlength'] = 92;
+  $element['additional_name']['#required'] = FALSE;
+  $element['postal_code']['#title'] = t('Postal Code (Optional)', [], ['context' => 'Address label']);
+  $element['postal_code']['#maxlength'] = 8;
+  $element['postal_code']['#required'] = FALSE;
+  $element['address_line2']['#title'] = t('Floor (Optional)', [], ['context' => 'Address label']);
+  $element['address_line2']['#maxlength'] = 92;
+
+  // Special handling for non-required floor field.
+  $element['address_line2']['#attributes']['class'][] = 'form-item-field-address-floor';
+  $element['address_line2']['#attached']['library'][] = 'alshaya_addressbook/alshaya_addressbook';
+  $element['address_line2']['#title_display'] = 'before';
+
+  // Special case - city is not required.
+  $element['city']['#required'] = FALSE;
+
+  if (!$is_webform) {
+    // Adding mobile number.
+    $mobile_number = [
+      'mobile_number' => [
+        '#type' => 'mobile_number',
+        '#title' => t('Mobile Number'),
+        '#verify' => 0,
+        '#tfa' => 0,
+        '#required' => TRUE,
+      ],
+    ];
+
+    if (!empty($form_state->getTemporaryValue('default_value_mobile'))) {
+      $mobile_number['mobile_number']['#default_value'] = str_replace(' ', '', $form_state->getTemporaryValue('default_value_mobile'));
+    }
+
+    // Adding mobile number field to appropriate position.
+    $element = _alshaya_addressbook_array_insert($element, $mobile_number, 'organization');
+  }
+
+  $country_label = t('Country');
+  $country_field = [];
+
+  $administrative_area_default_value = empty($element['administrative_area']['#default_value'])
+    ? ''
+    : $element['administrative_area']['#default_value'];
+
+  $element['administrative_area'] = [
+    '#type' => 'select',
+    '#title' => t('Area'),
+    '#required' => $is_element_required,
+    '#multiple' => FALSE,
+    '#default_value' => $administrative_area_default_value,
+    '#attributes' => [
+      'class' => [
+        'select2-select',
+        'area-list-dropdown',
+      ],
+    ],
+    '#attached' => [
+      'library' => [
+        'alshaya_white_label/convert_to_select2',
+      ],
+    ],
+  ];
+
+  /** @var \Drupal\alshaya_addressbook\AlshayaAddressBookManager $address_book_manager */
+  $address_book_manager = \Drupal::service('alshaya_addressbook.manager');
+  $mapping = $address_book_manager->getMagentoFieldMappings();
+  $sort_order = $address_book_manager->getFieldSortOrder();
+  $mapping = array_flip($mapping);
+
+  foreach ($magento_form as $form_item) {
+    if (empty($form_item['attribute_code'])) {
+      continue;
+    }
+
+    if (isset($mapping[$form_item['attribute_code']]) && isset($sort_order[$mapping[$form_item['attribute_code']]])) {
+      $field_code = $mapping[$form_item['attribute_code']];
+
+      // Set access for all form items.
+      $element[$field_code]['#access'] = TRUE;
+
+      // Set weight for all form items.
+      $element[$field_code]['#weight'] = (int) $form_item['sort_order'];
+
+      // Special case for country.
+      if ($field_code == 'country_code') {
+        // For country field, we display name as markup in separate form
+        // item, we update the weight even for that field here.
+        $country_field['country_name']['#weight'] = (int) $form_item['sort_order'];
+        $country_label = $form_item['store_label'];
+      }
+      else {
+        $element[$field_code]['#title'] = $form_item['store_label'];
+        $element[$field_code]['#required'] = $form_item['required'];
+      }
+    }
+  }
+
+  /** @var \Drupal\alshaya_addressbook\AddressBookAreasTermsHelper $area_terms_helper */
+  $area_terms_helper = \Drupal::service('alshaya_addressbook.area_terms_helper');
+
+  if (isset($element['area_parent'])) {
+    $address_value = $form_state->getValue(explode('[', str_replace(']', '', $element['#name'])));
+    if (!empty($address_value['area_parent'])) {
+      $area_parent = $address_value['area_parent'];
+    }
+    else {
+      $parent = $address_book_manager->getLocationParentTerm($element['administrative_area']['#default_value']);
+      $area_parent = $parent ? $parent->id() : NULL;
+    }
+
+    // Configure area_parent field.
+    $element['area_parent']['#type'] = 'select';
+    $element['area_parent']['#required'] = $is_element_required;
+    $element['area_parent']['#access'] = TRUE;
+    $element['area_parent']['#multiple'] = FALSE;
+    $element['area_parent']['#default_value'] = $area_parent;
+
+    $empty_option = [
+      '' => t('Select @title', [
+        '@title' => $element['area_parent']['#title'],
+      ]),
+    ];
+
+    $element['area_parent']['#empty_option'] = reset($empty_option);
+    $element['area_parent']['#options'] = $empty_option + $area_terms_helper->getAllGovernates();
+    $element['area_parent']['#attributes'] = [
+      'class' => ['select2-select'],
+    ];
+    $element['area_parent']['#attached'] = [
+      'library' => [
+        'alshaya_white_label/convert_to_select2',
+      ],
+    ];
+    $element['area_parent']['#ajax'] = [
+      'url' => Url::fromRoute('alshaya_addressbook.get_areas_from_governate'),
+      'wrapper' => 'alshaya-addressbook-area',
+    ];
+
+    // Populate all area terms from level 2.
+    $area_options = $area_terms_helper->getAllAreasWithParent($area_parent);
+  }
+  else {
+    $area_options = $area_terms_helper->getAllAreas();
+  }
+
+  $area_empty_option = [
+    '' => t('Select @title', [
+      '@title' => $element['administrative_area']['#title'],
+    ]),
+  ];
+
+  $element['administrative_area']['#empty_option'] = reset($area_empty_option);
+  $element['administrative_area']['#options'] = $area_empty_option + $area_options;
+  $element['administrative_area']['#required'] = $is_element_required;
+
+  // Adding country.
+  $country_list = \Drupal::service('address.country_repository')->getList();
+
+  $country_name = '<div class="country-field-wrapper">';
+  $country_name .= '<div class="country-label">' . $country_label . '</div>';
+  $country_name .= '<div class="country-name">' . $country_list[$default_country_code] . '</div>';
+  $country_name .= '</div>';
+
+  $country_field['country_name']['#markup'] = $country_name;
+
+  // Adding country code field to appropriate position.
+  $element = $is_webform
+    ? $country_field + $element
+    : _alshaya_addressbook_array_insert($element, $country_field, 'mobile_number');
+
+  return $element;
+}
+
+/**
+ * Make unnecessary fields optional.
+ */
+function _alshaya_addressbook_set_optional_field(array &$element, FormStateInterface $form_state) {
+  // No processing for field_ui admin page.
+  if (strpos($element['#name'], 'default_value_input') > -1) {
+    return $element;
+  }
+
+  /** @var \Drupal\alshaya_addressbook\AlshayaAddressBookManager $address_book_manager */
+  $address_book_manager = \Drupal::service('alshaya_addressbook.manager');
+  $element['#magento_form'] = $address_book_manager->getMagentoFormFields();
+
+  // Hide all the fields which we couldn't map.
+  foreach ($address_book_manager->getMagentoUnmappedFields() as $field_code) {
+    $field_code = lcfirst(str_replace('_', '', ucwords($field_code, '_')));
+    $element['#field_overrides'][$field_code] = FieldOverride::HIDDEN;
+  }
+
+  // Hide all disabled fields.
+  foreach ($address_book_manager->getMagentoDisabledFields() as $field_code => $magento_field_code) {
+    $field_code = lcfirst(str_replace('_', '', ucwords($field_code, '_')));
+    $element['#field_overrides'][$field_code] = FieldOverride::HIDDEN;
+  }
+
+  // Remove custom field area_parent from overrides.
+  unset($element['#field_overrides']['areaParent']);
+
+  return $element;
+}
+
+/**
+ * Implements hook_element_info_alter().
+ */
+function alshaya_addressbook_element_info_alter(array &$info) {
+  if (isset($info['address']['#process'])) {
+    array_unshift($info['address']['#process'], '_alshaya_addressbook_set_optional_field');
+    $info['address']['#process'][] = '_alshaya_addressbook_country_process';
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_access().
+ */
+function alshaya_addressbook_profile_access(EntityInterface $entity, $operation, AccountInterface $account) {
+  // If the address is default address, not allow user to delete it.
+  if ($operation == 'delete' && $entity->bundle() == 'address_book') {
+    if ($entity->isDefault() && $entity->getOwnerId() == $account->id()) {
+      return AccessResult::forbidden();
+    }
+  }
+}
+
+/**
+ * Implements hook_user_view_alter().
+ */
+function alshaya_addressbook_user_view_alter(&$build) {
+  // Remove/Hide the 'address_book' info on 'user/uid' page.
+  if (isset($build['profile_address_book'])) {
+    unset($build['profile_address_book']);
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function alshaya_addressbook_form_profile_address_book_edit_form_alter(array &$form, FormStateInterface $form_state) {
+  $form['#prefix'] = '<div id="address-book-form-open" class="address-book-form-ajax-wrapper">';
+  $form['#suffix'] = '</div>';
+
+  // Save profile form.
+  $form['actions']['submit']['#ajax'] = [
+    'callback' => 'alshaya_addressbook_save_ajax_callback',
+    'wrapper' => 'address-book-form-open',
+  ];
+
+  $form['actions']['set_default']['#access'] = FALSE;
+  // Set default profile profile form.
+  $form['actions']['set_default']['#ajax'] = [
+    'callback' => 'alshaya_addressbook_save_ajax_callback',
+    'wrapper' => 'address-book-form-open',
+  ];
+
+  // For profile edit.
+  _alshaya_addressbook_form_alter($form, $form_state);
+
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function alshaya_addressbook_form_profile_address_book_form_alter(array &$form, FormStateInterface $form_state) {
+  // For profile form.
+  _alshaya_addressbook_form_alter($form, $form_state);
+}
+
+/**
+ * Alter the address book form.
+ */
+function _alshaya_addressbook_form_alter(array &$form, FormStateInterface $form_state) {
+
+  $profile = $form_state->getFormObject()->getEntity();
+  $full_name = '';
+  if ($profile->id()) {
+    $address = $profile->get('field_address')->getValue();
+    $full_name = $address[0]['given_name'] . ' ' . $address[0]['family_name'];
+  }
+
+  $form['full_name'] = [
+    '#type' => 'textfield',
+    '#title' => t('Full name'),
+    '#default_value' => $full_name,
+    '#size' => '120',
+    '#required' => TRUE,
+    '#attributes' => ['specialchar' => 'specialchar'],
+    '#element_validate' => ['alshaya_valid_full_name'],
+    '#weight' => -5,
+  ];
+
+  // This is internal field to be used only for synchronisation with Magento.
+  $form['field_address_id']['#access'] = \Drupal::currentUser()->hasPermission('administer users');
+
+  $form['#validate'][] = '_alshaya_addressbook_mobile_process_validate';
+
+  // Get default value.
+  $default_value_mobile = $form['field_mobile_number']['widget'][0]['#default_value'];
+  if (!empty($default_value_mobile) && is_array($default_value_mobile)) {
+    $form_state->setTemporaryValue('default_value_mobile', $default_value_mobile);
+  }
+  $form['field_mobile_number']['#access'] = FALSE;
+}
+
+/**
+ * Process the mobile number during validation check.
+ */
+function _alshaya_addressbook_mobile_process_validate($form, FormStateInterface $form_state) {
+  // If no error.
+  if (!$form_state->getErrors()) {
+    $mobile = $form_state->getValue('field_address')[0]['address']['mobile_number'];
+
+    /** @var \Drupal\mobile_number\MobileNumberUtilInterface $util */
+    $util = \Drupal::service('mobile_number.util');
+
+    $mobile_country_code = '+' . $util->getCountryCode($mobile['country-code']);
+
+    // Remove the country code prefix added in mobile field.
+    $mobile['mobile'] = str_replace($mobile_country_code, '', $mobile['mobile']);
+
+    $mobile_number = $util->getMobileNumber($mobile['mobile'], $mobile['country-code']);
+    $value = [];
+    $value[] = [
+      'country' => $mobile['country-code'],
+      'local_number' => $mobile['mobile'],
+      'value' => $util->getCallableNumber($mobile_number),
+      'country-code' => $mobile['country-code'],
+      'mobile' => $mobile['mobile'],
+    ];
+
+    $form_state->setValue('field_mobile_number', $value);
+  }
+}
+
+/**
+ * Implements hook_entity_type_alter().
+ */
+function alshaya_addressbook_entity_type_alter(array &$entity_types) {
+  /** @var \Drupal\Core\Entity\EntityTypeInterface[] $entity_types */
+  $entity_types['profile']->setFormClass('delete', 'Drupal\alshaya_addressbook\Form\AlshayaProfileDeleteForm');
+  $entity_types['profile']->setFormClass('add', 'Drupal\alshaya_addressbook\Form\AlshayaProfileForm');
+  $entity_types['profile']->setFormClass('edit', 'Drupal\alshaya_addressbook\Form\AlshayaProfileForm');
+}
+
+/**
+ * Implements hook_alshaya_master_post_drupal_install().
+ */
+function alshaya_addressbook_alshaya_master_post_drupal_install() {
+  // Include the inc file containing all areas.
+  \Drupal::moduleHandler()->loadInclude('alshaya_addressbook', 'inc', 'alshaya_addressbook.areas');
+
+  _alshaya_addressbook_create_area_terms();
+}
+
+/**
+ * Implements hook_alshaya_i18n_onetime_translation_add().
+ */
+function alshaya_addressbook_alshaya_i18n_onetime_translation_add() {
+  $strings = [
+    'First Name' => [
+      'ar' => 'الاسم الأول',
+      'context' => 'Address label',
+    ],
+    'Last Name' => [
+      'ar' => 'اسم العائلة',
+      'context' => 'Address label',
+    ],
+    'Company' => [
+      'ar' => 'الشركة',
+      'context' => 'Address label',
+    ],
+    'Street address' => [
+      'en' => 'Street',
+      'ar' => 'اسم الشارع',
+      'context' => 'Address label',
+    ],
+    'Street Name / No.' => [
+      'ar' => 'رقم الشارع / اسم الشارع ',
+      'context' => 'Address label',
+    ],
+    'City' => [
+      'ar' => 'المدينة',
+      'context' => 'Address label',
+    ],
+    'Emirate/city' => [
+      'ar' => 'المدينة',
+      'context' => 'Address label',
+    ],
+    'Postal code' => [
+      'ar' => 'الرمز البريدي',
+      'context' => 'Address label',
+    ],
+    'Pin code' => [
+      'en' => 'Postal code',
+      'ar' => 'الرمز البريدي',
+      'context' => 'Address label',
+    ],
+    'Building Name / No.' => [
+      'ar' => 'رقم المبنى / اسم المبنى',
+      'context' => 'Address label',
+    ],
+    'Block' => [
+      'ar' => 'رقم القطعة',
+      'context' => 'Address label',
+    ],
+    'Floor (Optional)' => [
+      'ar' => 'رقم الدور (اختياري)',
+      'context' => 'Address label',
+    ],
+    'Select Area' => [
+      'ar' => 'يرجى اختيار المنطقة',
+      'context' => 'Address label',
+    ],
+    'State' => [
+      'ar' => 'الحالة',
+      'context' => 'Address label',
+    ],
+    'Email' => [
+      'ar' => 'البريد الإلكتروني',
+      'context' => 'Address label',
+    ],
+  ];
+
+  // Save the translation.
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Insert an array into another array before/after a certain key.
+ *
+ * @param array $array
+ *   Initial array.
+ * @param array $pairs
+ *   Added array.
+ * @param mixed $key
+ *   Position key.
+ * @param string $position
+ *   Position.
+ *
+ * @return array
+ *   Updated array.
+ */
+function _alshaya_addressbook_array_insert(array $array, array $pairs, $key, $position = 'after') {
+  $key_pos = array_search($key, array_keys($array));
+  if ('after' == $position) {
+    $key_pos++;
+  }
+  if (FALSE !== $key_pos) {
+    $result = array_slice($array, 0, $key_pos);
+    $result = array_merge($result, $pairs);
+    $result = array_merge($result, array_slice($array, $key_pos));
+  }
+  else {
+    $result = array_merge($array, $pairs);
+  }
+  return $result;
+}
+
+/**
+ * Implements hook_alshaya_api_update_customer_api_request_alter().
+ */
+function alshaya_addressbook_alshaya_api_update_customer_api_request_alter(array &$request_options) {
+  if (isset($request_options['json'], $request_options['json']['customer']['email'])
+    && empty($request_options['json']['customer']['addresses'])) {
+    /** @var \Drupal\user\Entity\User $user */
+    $user = user_load_by_mail($request_options['json']['customer']['email']);
+
+    if (!empty($user)) {
+      /** @var \Drupal\profile\ProfileStorageInterface $storage */
+      $storage = \Drupal::entityTypeManager()->getStorage('profile');
+
+      $profiles = $storage->loadByProperties([
+        'type' => 'address_book',
+        'uid' => $user->id(),
+      ]);
+
+      if ($profiles) {
+        /** @var \Drupal\alshaya_addressbook\AlshayaAddressBookManager $manager */
+        $manager = \Drupal::service('alshaya_addressbook.manager');
+
+        foreach ($profiles as $profile) {
+          $request_options['json']['customer']['addresses'][] = $manager->getAddressFromEntity($profile);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_alshaya_acm_customer_update_account_alter().
+ */
+function alshaya_addressbook_alshaya_acm_customer_update_account_alter(AccountInterface $user, array $customer) {
+  /** @var \Drupal\alshaya_addressbook\AlshayaAddressBookManager $address_book_manager */
+  $address_book_manager = \Drupal::service('alshaya_addressbook.manager');
+
+  $magento_address_ids = [];
+  // Update privilege card number if available in customer data.
+  if (isset($customer['addresses'])) {
+    foreach ($customer['addresses'] as $address) {
+      $magento_address_ids[] = $address['address_id'];
+      $address_book_manager->saveUserAddressFromApi($user, $address);
+    }
+  }
+
+  // Getting all address profiles related to a user.
+  $address_profiles = $address_book_manager->getUserAddressesFromProfile($user);
+
+  // Fetching and deleting extra address profiles.
+  foreach ($address_profiles as $address_profile) {
+    $drupal_address_id = $address_profile->get('field_address_id')->getString();
+    if (!in_array($drupal_address_id, $magento_address_ids)) {
+      $profile_id = $address_profile->id();
+      try {
+        $address_profile->delete();
+        \Drupal::logger('alshaya_addressbook')
+          ->info('Deleted drupal address profile @profile_id with field address id @address_id for user id @user_id',
+            [
+              '@profile_id' => $profile_id,
+              '@address_id' => $drupal_address_id,
+              '@user_id' => $user->id(),
+            ]);
+      }
+      catch (\Exception $e) {
+        \Drupal::logger('alshaya_addressbook')
+          ->error(
+            'Failed to delete address profile @profile_id with field address id @address_id for user id @user_id: @exeption_message',
+            [
+              '@profile_id' => $profile_id,
+              '@address_id' => $drupal_address_id,
+              '@user_id' => $user->id(),
+              '@exeption_message' => $e->getMessage(),
+            ]
+          );
+      }
+    }
+  }
+}
+
+/**
+ * Implements template_preprocess_profile().
+ */
+function alshaya_addressbook_preprocess_profile__address_book(&$variables) {
+  /** @var \Drupal\profile\Entity\Profile $profile */
+  if (isset($variables['elements'], $variables['elements']['#profile'])) {
+    $profile = $variables['elements']['#profile'];
+  }
+  else {
+    return;
+  }
+
+  $view_mode = $variables['elements']['#view_mode'] ?? 'default';
+
+  $values = $profile->get('field_address')->getValue();
+
+  $variables['delivery_to'] = '';
+  $variables['delivery_address'] = '';
+
+  // Contact info.
+  $telephone = $profile->get('field_mobile_number')->getValue();
+  $variables['contact_no'] = '';
+
+  if (isset($telephone[0]) && !empty($telephone[0]['value'])) {
+    $variables['contact_no'] = $telephone[0]['value'];
+  }
+  /** @var \Drupal\Core\Access\CsrfTokenGenerator $csrf_token_generator */
+  $csrf_token_generator = \Drupal::service('csrf_token');
+
+  if (isset($values[0])) {
+    // If name is available.
+    if (isset($values[0]['given_name']) && !empty($values[0]['given_name'])) {
+      $variables['delivery_to'] = $values[0]['given_name'] . ' ' . $values[0]['family_name'];
+    }
+
+    $variables['delivery_address'] = [
+      'organization' => $values[0]['organization'],
+      'address_line1' => $values[0]['address_line1'],
+      'address_line2' => $values[0]['address_line2'],
+      'postal_code' => $values[0]['postal_code'],
+      'dependent_locality' => $values[0]['dependent_locality'],
+      'administrative_area' => $values[0]['administrative_area'],
+      'sorting_code' => $values[0]['sorting_code'],
+      'additional_name' => $values[0]['additional_name'],
+    ];
+
+    if (isset($values[0]['locality']) && !empty($values[0]['locality'])) {
+      $variables['delivery_address']['locality'] = $values[0]['locality'];
+    }
+
+    if (isset($values[0]['sorting_code']) && !empty($values[0]['sorting_code'])) {
+      $variables['delivery_address']['sorting_code'] = $values[0]['sorting_code'];
+    }
+
+    if (isset($values[0]['additional_name']) && !empty($values[0]['additional_name'])) {
+      $variables['delivery_address']['additional_name'] = $values[0]['additional_name'];
+    }
+
+    if (isset($values[0]['postal_code']) && !empty($values[0]['postal_code'])) {
+      $variables['delivery_address']['postal_code'] = $values[0]['postal_code'];
+    }
+
+    $variables['delivery_address']['administrative_area'] = _alshaya_addressbook_get_area_from_id($values[0]['administrative_area']);
+
+    // Get full mapping to see if we need to display parent.
+    /** @var \Drupal\alshaya_addressbook\AlshayaAddressBookManager $address_book_manager */
+    $address_book_manager = \Drupal::service('alshaya_addressbook.manager');
+    if ($address_book_manager->isAreaParentUsed()) {
+      $parent = $address_book_manager->getLocationParentTerm($values[0]['administrative_area']);
+
+      if ($parent) {
+        $variables['delivery_address']['area_parent'] = $parent->label();
+      }
+    }
+
+    // Get country list.
+    $country_list = \Drupal::service('address.country_repository')->getList();
+    $variables['delivery_address']['country'] = $country_list[$values[0]['country_code']];
+
+    $variables['delivery_address'] = \Drupal::service('alshaya_addressbook.manager')->decorateAddressDispaly($variables['delivery_address']);
+    $variables['delivery_address']['country_code'] = $variables['delivery_address']['country'];
+    unset($variables['delivery_address']['country']);
+    // If profile is default profile.
+    $variables['is_default_profile'] = $profile->isDefault() ?: '';
+
+    // Operation links.
+    $variables['edit_operation'] = '';
+    $variables['delete_operation'] = '';
+    $variables['set_default_operation'] = '';
+
+    $current_user = \Drupal::currentUser();
+
+    // Current language.
+    $current_language = \Drupal::languageManager()->getCurrentLanguage();
+
+    $route_match = \Drupal::routeMatch();
+    if ($view_mode == 'teaser') {
+      $variables['change_address'] = [
+        '#type' => 'button',
+        '#value' => t('Change'),
+        '#attributes' => [
+          'id' => 'change-address',
+        ],
+        '#executes_submit_callback' => FALSE,
+      ];
+    }
+    elseif ($route_match->getRouteName() == 'acq_checkout.form') {
+      $variables['deliver_to_this_address'] = [
+        '#type' => 'link',
+        '#title' => t('deliver to this address'),
+        '#url' => Url::fromRoute('alshaya_acm_checkout.use_delivery_address',
+          ['profile' => $profile->id()],
+          [
+            'attributes' => [
+              'class' => ['use-ajax'],
+            ],
+          ]
+        ),
+      ];
+
+      // Edit operation.
+      if ($profile->access('update') && $profile->hasLinkTemplate('edit-form')) {
+        // Edit operation.
+        $variables['edit_operation'] = [
+          'title' => t('Edit'),
+          'url' => Url::fromRoute('alshaya_acm_checkout.edit_delivery_address',
+            ['profile' => $profile->id(), 'js' => 'nojs'],
+            [
+              'attributes' => [
+                'class' => ['use-ajax'],
+              ],
+              'query' => [
+                'from' => 'checkout',
+              ],
+            ]
+          ),
+        ];
+      }
+    }
+    else {
+      // Edit operation.
+      if ($profile->access('update') && $profile->hasLinkTemplate('edit-form')) {
+        $variables['edit_operation'] = [
+          'title' => t('Edit'),
+          'url' => Url::fromRoute('alshaya_addressbook.edit_address_ajax',
+            ['profile' => $profile->id(), 'js' => 'nojs'],
+            [
+              'attributes' => [
+                'class' => ['use-ajax'],
+                'rel' => 'address-book-form-wrapper',
+              ],
+            ]),
+        ];
+      }
+
+      // Delete operation.
+      if ($profile->access('delete') && $profile->hasLinkTemplate('delete-form')) {
+        $variables['delete_operation'] = [
+          'title' => t('Delete'),
+          'url' => $profile->toUrl('delete-form', [
+            'attributes' => [
+              'class' => ['use-ajax'],
+              'data-dialog-type' => 'modal',
+              'data-dialog-options' => Json::encode(['width' => '341']),
+            ],
+            'language' => $current_language,
+          ]),
+        ];
+      }
+
+      // Primary address operation.
+      if ($profile->isDefault()) {
+        $variables['set_default_operation'] = [
+          '#markup' => '<span>' . t('Primary address') . '</span>',
+        ];
+      }
+      else {
+        $set_default_params = [
+          'profile' => $profile->id(),
+          'token' => $csrf_token_generator->get('profile-' . $profile->id()),
+        ];
+
+        $set_default_options = [
+          'language' => $current_language,
+          'query' => [
+            'destination' => Url::fromRoute("profile.user_page.multiple", [
+              'user' => $current_user->id(),
+              'profile_type' => 'address_book',
+            ])->toString(),
+          ],
+        ];
+
+        $set_default_url = Url::fromRoute('alshaya_addressbook.profile.set_default', $set_default_params, $set_default_options);
+
+        $variables['set_default_operation'] = [
+          '#type' => 'link',
+          '#title' => t('Primary address'),
+          '#url' => $set_default_url,
+        ];
+      }
+    }
+
+    if ($route_match->getRouteName() == 'profile.user_page.multiple') {
+      $variables['#attached']['library'][] = 'alshaya_addressbook/alshaya_myaccount_addressbook';
+    }
+  }
+
+  $variables['#cache']['contexts'][] = 'route';
+  $variables['#attached']['library'][] = 'core/drupal.ajax';
+}
+
+/**
+ * Helper function to get translated term name from area term id.
+ *
+ * @param int $tid
+ *   Area term id.
+ *
+ * @return string
+ *   Term name.
+ */
+function _alshaya_addressbook_get_area_from_id($tid) {
+  $term = Term::load($tid);
+
+  if ($term) {
+    $term = \Drupal::service('entity.repository')->getTranslationFromContext($term);
+    return $term->getName();
+  }
+
+  return $tid;
+}

@@ -1,0 +1,102 @@
+.region__footer-secondary {
+  padding: 2.5rem 0.5rem 2.625rem;
+  background-color: $copyright_footer_bg;
+
+  @include breakpoint($tablet) {
+    padding: 2.0625rem 0 2.625rem;
+  }
+
+  @include breakpoint($desktop) {
+    padding-top: 1.5rem;
+  }
+}
+
+.c-footer__copy {
+  width: 100%;
+  margin: 0 auto;
+  padding: 0.5rem 0 1.125rem;
+
+  @include breakpoint($tablet) {
+    width: 35.4375rem;
+    padding-top: 0.75rem;
+    max-width: none;
+    float: none;
+  }
+
+  .field--name-body {
+    p {
+      font-family: $hnm-regular;
+      font-size: 0.8125rem;
+      line-height: 0.9375rem;
+      text-align: center;
+      color: $copyright_footer_text;
+      margin: 0;
+    }
+  }
+}
+
+.c-footer__logos {
+  float: none;
+  background-color: $copyright_footer_bg;
+  line-height: 1;
+
+  .menu {
+    @extend %list-clear;
+    @extend %list--horizontal;
+
+    text-align: center;
+    float: none;
+
+    @include breakpoint($tablet) {
+      padding-bottom: 1.375rem;
+    }
+
+    @include breakpoint($only-mobile) {
+      padding-bottom: 0.75rem;
+    }
+  }
+
+  li {
+    &:not(:last-child) {
+      margin-#{$right}: 1.6rem;
+    }
+  }
+}
+
+#block-footerhnmlogo {
+  line-height: 1;
+  padding-bottom: 1.1875rem;
+
+  .footer-brand-home {
+    text-align: center;
+    border-bottom: none;
+    width: 12.5rem;
+    margin: 0 auto;
+  }
+}
+
+.c-footer-secondary {
+  padding: 0;
+
+  .l-container {
+    max-width: none;
+  }
+}
+
+.menu--customer-rights-logo {
+  @include breakpoint($mobile) {
+    float: none;
+  }
+}
+
+#block-copyright {
+  a {
+    color: $copyright_footer_link;
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}

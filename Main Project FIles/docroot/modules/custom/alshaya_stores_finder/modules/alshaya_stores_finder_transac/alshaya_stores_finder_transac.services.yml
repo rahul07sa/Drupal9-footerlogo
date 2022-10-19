@@ -1,0 +1,25 @@
+services:
+  alshaya_stores_finder_transac.manager:
+    class: Drupal\alshaya_stores_finder_transac\StoresFinderManager
+    arguments:
+      - '@alshaya_api.api'
+      - '@alshaya_stores_finder_transac.utility'
+      - '@language_manager'
+      - '@logger.factory'
+
+  alshaya_stores_finder_transac.utility:
+    class: Drupal\alshaya_stores_finder_transac\StoresFinderUtility
+    arguments:
+      - '@entity_type.manager'
+      - '@alshaya_addressbook.manager'
+      - '@language_manager'
+      - '@database'
+      - '@logger.factory'
+      - '@module_handler'
+      - '@cache.data'
+      - '@config.factory'
+      - '@entity.repository'
+  alshaya_stores_finder_transac.route_subscriber:
+    class: Drupal\alshaya_stores_finder_transac\Routing\RouteSubscriber
+    tags:
+      - { name: event_subscriber }

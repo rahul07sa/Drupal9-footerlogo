@@ -1,0 +1,61 @@
+{{ attach_library('alshaya_white_label/dynamic-promotions') }}
+{{ attach_library('alshaya_white_label/free_gifts') }}
+
+<div {{ gtm_attributes }}>
+    {% if image is not empty %}
+        <div class="image">{{ image }}</div>
+    {% endif %}
+    <div class="items">
+        {% if name is not empty %}
+            <div class="dark">{{ name }}</div>
+        {% endif %}
+        {% for sku_attribute in sku_attributes %}
+            <div class="sku-attributes">
+                {% trans %}
+                {{ sku_attribute.label }}: {{ sku_attribute.value }}
+                {% endtrans %}
+            </div>
+        {% endfor %}
+        {% if item_code is not empty %}
+            <div><span class="item-code">{{ 'Item code'|t }}</span>: {{ item_code }}</div>
+        {% endif %}
+        {% if include_in_bundle is not empty %}
+            <div class="item--bundle">{{ include_in_bundle }}</div>
+        {% endif %}
+        {% if total_price is not empty %}
+            {% if is_free_gift_item is not empty %}
+                <div class="mobile-only dark free-gift-item">{{ total_price }}</div>
+            {% else %}
+                <div class="mobile-only dark">{{ total_price }}</div>
+            {% endif %}
+        {% endif %}
+        {% if free_gift_label is not empty %}
+          <div class="free-gift-label">{{ free_gift_label }}</div>
+        {% endif %}
+        {%  if  promotions is not empty %}
+            <div class="sku-promotions">
+              {% for id, promotion in promotions %}
+                {% if promotion.text and (promotion.skus is empty or promotion.condition_value ) %}
+                  <div class="tooltip-wrap">
+                    <a class="sku-promotion-link" href="{{ path('entity.node.canonical', {'node': id }) }}">
+                      {{ promotion.text }}
+                    </a>
+                  </div>
+                  {% if promotion.dynamic_label %}
+                    <div class="promotions-dynamic-label">
+                      <a class="sku-dynamic-promotion-link" href="{{ path('entity.node.canonical', {'node': id }) }}">
+                        {{ promotion.dynamic_label.text }}
+                      </a>
+                    </div>
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+    {% if free_gift_promos is not empty %}
+      <div class="sku-promotions free-gift-container">
+        {{ free_gift_promos }}
+      </div>
+    {% endif %}
+</div>

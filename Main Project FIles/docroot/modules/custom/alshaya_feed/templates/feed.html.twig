@@ -1,0 +1,110 @@
+<product>
+  <sku>{{ product.sku }}</sku>
+  <sanitized_sku>{{product.sanitized_sku}}</sanitized_sku>
+  <group_id>{{ product.group_id }}</group_id>
+  <name><![CDATA[{{ product.name|raw }}]]></name>
+  <url>{{ product.url }}</url>
+  <product_type>{{ product.product_type }}</product_type>
+  <status>{{ product.status }}</status>
+  <regular_price>{{ product.original_price }}</regular_price>
+  <special_price>{{ product.special_price }}</special_price>
+  <final_price>{{ product.final_price }}</final_price>
+  <price_range>{{ product.price_range }}</price_range>
+  <currency>{{ product.currency }}</currency>
+  <keywords>{{ product.keywords }}</keywords>
+  <promotion_label>{{ product.promotion_label }}</promotion_label>
+  <categories>
+    {% for category in product.categoryCollection %}
+    <category>
+      <name><![CDATA[{{ category.name }}]]></name>
+      <category_hierarchy><![CDATA[{{ category.category_hierarchy }}]]></category_hierarchy>
+      <google_product_category>{{ category.google_product_category }}</google_product_category>
+      <id>{{ category.id }}</id>
+      <url>{{ category.url }}</url>
+    </category>
+    {% endfor %}
+  </categories>
+  <short_description>
+    {% if product.short_description is not empty %}
+      {{ product.short_description | spaceless | striptags }}
+    {% endif %}
+  </short_description>
+  <description>
+    {% if product.description is not empty %}
+      {{ product.description | spaceless | striptags }}
+    {% endif %}
+  </description>
+  <custom_attributes>
+    {% if product.attributes|length > 0 %}
+      {% for product_attribute in product.attributes %}
+        <{{ product_attribute.key }}>{{ product_attribute.value }}</{{ product_attribute.key }}>
+      {% endfor %}
+    {% endif %}
+  </custom_attributes>
+  {% if product.product_type == 'simple' %}
+    <stock>
+      <quantity>{{ product.stock.qty }}</quantity>
+      <availability>{{ product.stock.status }}</availability>
+    </stock>
+    <images>
+      {% for image in product.images %}
+      <image>
+        <url>{{ image.url }}</url>
+        <url_product_listing>{{ image.url_product_listing }}</url_product_listing>
+        <label>{{ image.label }}</label>
+      </image>
+      {% endfor %}
+    </images>
+  {% else %}
+    {% if product.stock.qty > 0 %}
+      <configurable_attributes>
+        {% if product.configurable_attributes|length > 0 %}
+          {% for label,value in product.configurable_attributes %}
+            <{{ label }}>{{ value }}</{{ label }}>
+          {% endfor %}
+        {% endif %}
+      </configurable_attributes>
+      <swatch_image>
+        <url>{{ product.swatch_image.display_value }}</url>
+        <label>{{ product.swatch_image.display_label }}</label>
+      </swatch_image>
+      <images>
+        {% for image in product.images %}
+        <image>
+          <url>{{ image.url }}</url>
+          <url_product_listing>{{ image.url_product_listing }}</url_product_listing>
+          <label>{{ image.label }}</label>
+        </image>
+        {% endfor %}
+      </images>
+      <stock>
+        <quantity>{{ product.stock.qty }}</quantity>
+        <availability>{{ product.stock.status }}</availability>
+      </stock>
+    {% endif %}
+  {% endif %}
+  <relatedProducts>{{ product.linked_skus.related|length }}</relatedProducts>
+  {% if product.linked_skus.related %}
+  <related>
+    {% for related_item in product.linked_skus.related %}
+    <item>{{ related_item }}</item>
+    {% endfor %}
+  </related>
+  {% endif %}
+  <crossSellProducts>{{ product.linked_skus.crosssell|length }}</crossSellProducts>
+  {% if product.linked_skus.crosssell %}
+  <cross_sell>
+    {% for crosssell_item in product.linked_skus.crosssell %}
+    <item>{{ crosssell_item }}</item>
+    {% endfor %}
+  </cross_sell>
+  {% endif %}
+  <upSellProducts>{{ product.linked_skus.upsell|length }}</upSellProducts>
+  {% if product.linked_skus.upsell %}
+  <up_sell>
+    {% for upsell_item in product.linked_skus.upsell %}
+    <item>{{ upsell_item }}</item>
+    {% endfor %}
+  </up_sell>
+  {% endif %}
+</product>

@@ -1,0 +1,134 @@
+#alshaya-algolia-search {
+  .c-page-title {
+    font-weight: normal;
+    font-size: 1.5rem;
+    line-height: 1.5;
+    padding: 0.75rem 0 1.875rem;
+    height: auto;
+    font-family: $vs-bentonsans-light;
+
+    @include breakpoint($only-tablet) {
+      padding: 1.875rem 0;
+    }
+
+    @include breakpoint($only-mobile) {
+      padding: 0.75rem 0;
+      font-size: 1rem;
+    }
+  }
+
+  .c-content__region {
+    .sticky-filter-wrapper {
+      #attr_product_collection {
+        ul {
+          li.facet-item {
+            &.is-active {
+              .facet-item__value {
+                padding-#{$right}: 1.5rem;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .filter__inner {
+      .c-collapse-item {
+        .facet-item__value {
+          text-transform: capitalize;
+          display: inline-block;
+          color: $plp_item_label;
+
+          &::before {
+            color: $primary_checkbox_empty;
+          }
+        }
+      }
+    }
+
+    .all-filters-algolia {
+      .filter__foot {
+        .button {
+          text-transform: capitalize;
+        }
+      }
+    }
+  }
+}
+
+html[lang=ar] {
+  body.ie[class*="super-category"] {
+    #alshaya-algolia-search {
+      .block-facet-blockcategory-facet-search {
+        .c-accordion__title.active + ul {
+          .facet-item__value {
+            &::after {
+              padding-right: 0.625rem;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+#alshaya-algolia-search,
+#alshaya-algolia-plp {
+  .c-facet {
+    .listing-inline-star {
+      .star-ratings-wrapper {
+        .inline-star {
+          top: 0.375rem;
+        }
+      }
+    }
+  }
+
+  .sticky-filter-wrapper {
+    .c-collapse-item {
+      .c-collapse__title {
+        text-transform: uppercase;
+
+        &::after {
+          color: $algolia-react-facet-title;
+          top: 49%;
+        }
+      }
+    }
+  }
+}
+
+#alshaya-algolia-search,
+#alshaya-algolia-plp {
+  .block-alshaya-grid-count-block {
+    .grid-buttons {
+      .large-col-grid,
+      .small-col-grid {
+        width: rem(24);
+        height: rem(24);
+        display: inline-block;
+        margin-#{$left}: 0;
+
+        svg {
+          display: none;
+        }
+      }
+
+      .large-col-grid {
+        background: url('#{$brand_theme_img_directory_path}/icons/large-grid-inactive.svg') no-repeat center;
+
+        &.active {
+          background: url('#{$brand_theme_img_directory_path}/icons/large-grid-active.svg') no-repeat center;
+        }
+      }
+
+      .small-col-grid {
+        background: url('#{$brand_theme_img_directory_path}/icons/small-grid-inactive.svg') no-repeat center;
+
+        &.active {
+          background: url('#{$brand_theme_img_directory_path}/icons/small-grid-active.svg') no-repeat center;
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,632 @@
+.language--switcher {
+  @include breakpoint($tablet) {
+    margin-top: 0.75rem;
+  }
+
+  @include breakpoint($desktop) {
+    margin-top: 1.875rem;
+  }
+}
+
+.region__footer-primary {
+  @include breakpoint($only-tablet) {
+    max-width: 21.94rem;
+  }
+}
+
+.c-footer-menu--category {
+  text-transform: lowercase;
+}
+
+.c-footer-primary .language-switcher-language-url,
+.only-first-time .language-switcher-language-url {
+  position: relative;
+  clear: both;
+  padding: 1.1875rem 0 1.125rem;
+
+  @include breakpoint($only-mobile) {
+    border-bottom: none;
+  }
+
+  @include breakpoint($only-tablet) {
+    padding-top: 1.875rem;
+    padding-bottom: 0;
+  }
+
+  ul {
+    @extend %list-clear;
+
+    padding: 0;
+    direction: ltr;
+    text-align: $left;
+
+    @include breakpoint($only-mobile) {
+      text-align: center;
+    }
+
+    li {
+      display: inline-block;
+      padding: 0 2px;
+
+      @include breakpoint($only-tablet) {
+        padding: 0;
+      }
+
+      &.en {
+        font-family: $hnm-regular;
+      }
+
+      &:first-child {
+        position: relative;
+
+        a {
+          margin: 0 1.125rem 0 0;
+
+          @include breakpoint($desktop) {
+            margin-#{$right}: 0.6875rem;
+          }
+        }
+
+        &::after {
+          content: unset;
+        }
+      }
+
+      &:last-child {
+        a {
+          letter-spacing: normal;
+        }
+      }
+
+      a {
+        @include arabic-letter-spacing;
+
+        font-size: 0.8125rem;
+        text-transform: uppercase;
+        color: $footer_link;
+        line-height: 1.29;
+        letter-spacing: 1px;
+        text-decoration: underline;
+
+        @include breakpoint($upto-desktop) {
+          font-family: $hnm-regular;
+        }
+
+        &.is-active {
+          text-decoration: none;
+        }
+      }
+
+      &.ar a {
+        font-family: $hnm-arabic-regular-nodir !important;
+      }
+
+      &.en a {
+        font-family: $hnm-regular !important;
+
+        @include breakpoint($only-tablet) {
+          margin: 0 1.125rem 0 0;
+        }
+      }
+    }
+  }
+}
+
+.language--switcher.only-first-time {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background-color: $lang_switch_firsttime_bg;
+  z-index: 9;
+
+  .links {
+    @include breakpoint($only-tablet) {
+      text-align: center;
+    }
+  }
+
+  ul {
+    height: 2.188rem;
+
+    li {
+      padding: 0.375rem;
+
+      a {
+        color: $footer_link2;
+      }
+
+      &:first-child {
+        &::after {
+          color: $footer_link2;
+        }
+      }
+    }
+  }
+
+  .language-switcher-language-url {
+    padding: 0;
+  }
+
+  .language-switcher-close {
+    width: 1.063rem;
+    height: 1.063rem;
+    display: block;
+    position: absolute;
+    #{$right}: 1.375rem;
+    top: 50%;
+    transform: translateY(-50%);
+
+    @include icon(close, after) {
+      position: absolute;
+      color: $footer_link2;
+      font-size: 1rem;
+    }
+  }
+}
+
+.c-footer-primary {
+  @include clearfix;
+
+  background-color: $footer_bg;
+  border-top: none;
+  padding: 0;
+
+  &__region {
+    @include clearfix;
+
+    max-width: 64rem;
+    margin: 0 auto;
+    border-top: none;
+    padding-bottom: 2.5rem;
+
+    @include breakpoint($tablet) {
+      padding-top: 2.25rem;
+      padding-bottom: 45px;
+      margin: 0 1.5rem;
+    }
+
+    @include breakpoint($desktop) {
+      margin: 0 auto;
+      padding-bottom: 2.5rem;
+    }
+  }
+
+  .footer--menu {
+    float: none;
+
+    @include breakpoint($desktop) {
+      padding: 0 1rem;
+      width: 100%;
+    }
+
+    @include breakpoint($only-mobile) {
+      margin: 0;
+    }
+  }
+
+  .c-footer {
+    &-is-accordion {
+      margin-top: 0;
+      border-bottom: none;
+      display: inline-block;
+      vertical-align: top;
+
+      @include breakpoint($upto-tablet) {
+        width: 100%;
+        text-align: center;
+        border-top: none;
+      }
+
+      .is-accordion {
+        @include arabic-letter-spacing;
+
+        font-family: $hnm-demibold;
+        text-align: $left;
+        color: $accordion_bg;
+        text-transform: uppercase;
+        margin-top: 0;
+        font-size: 0.8125rem;
+        line-height: 1.25rem;
+        letter-spacing: 0;
+        margin-bottom: 0.5rem;
+
+        @include breakpoint($upto-tablet) {
+          margin: 0;
+          padding: 1.21875rem 0.5rem;
+        }
+
+        @include breakpoint($desktop) {
+          margin-bottom: 0.625rem;
+        }
+      }
+
+      .accordion--body {
+        display: none;
+        border-top: none;
+
+        @include breakpoint($only-mobile) {
+          padding: 0 0.5rem;
+        }
+
+        @include breakpoint($tablet) {
+          display: block !important;
+          height: 100% !important;
+        }
+      }
+
+      &.open--accordion {
+        .is-accordion {
+          color: $default_error;
+
+          @include icon(minus, after);
+        }
+      }
+    }
+
+    &-menu {
+      @extend %list-clear;
+
+      @include breakpoint($tablet) {
+        display: block;
+        width: 100%;
+        border-top: none;
+      }
+
+      a {
+        display: block;
+        text-decoration: none;
+        font-size: 0.8125rem;
+        line-height: 1.71;
+        text-align: $left;
+        color: $footer_link;
+        text-transform: capitalize;
+        font-family: $hnm-regular;
+
+        @include breakpoint($upto-tablet) {
+          padding: 0.625rem 0;
+        }
+
+        @include breakpoint($desktop) {
+          font-size: 0.8125rem;
+          line-height: 2rem;
+        }
+
+        &:hover {
+          text-decoration: underline;
+
+          &:active {
+            text-decoration: none;
+            color: $default-anchor-link-hover;
+          }
+        }
+      }
+
+      &--category {
+        .is-accordion {
+          @include breakpoint($tablet) {
+            width: 6.625rem;
+          }
+        }
+      }
+
+      &--about {
+        @include breakpoint($tablet) {
+          padding-#{$left}: 0.834%;
+          padding-#{$right}: 2%;
+          width: auto !important;
+          margin-#{$left}: 0 !important;
+          float: none;
+        }
+
+        @include breakpoint($desktop) {
+          padding-#{$left}: 9.7%;
+          padding-#{$right}: 8.25%;
+        }
+
+        .is-accordion {
+          @include breakpoint($tablet) {
+            width: 8.8125rem;
+          }
+        }
+
+        .c-footer-menu {
+          @include breakpoint($tablet) {
+            width: 12.5rem;
+          }
+        }
+      }
+
+      &--help {
+        @include breakpoint($desktop) {
+          float: none;
+          width: auto !important;
+          margin: 0;
+        }
+
+        @include breakpoint($only-mobile) {
+          margin-bottom: 0;
+        }
+      }
+    }
+  }
+}
+
+.block-alshaya-newsletter {
+  @include clearfix;
+
+  float: $right;
+  position: relative;
+  width: 100%;
+  padding: 1.25rem 0 0;
+  background-color: $footer_bg;
+  margin: 0;
+
+  @include breakpoint($tablet) {
+    width: 14.875rem;
+    padding: 0;
+    min-width: auto;
+  }
+
+  @include breakpoint($desktop) {
+    width: 15.9375rem;
+  }
+
+  h3 {
+    @include arabic-letter-spacing;
+
+    font-family: $hnm-bold;
+    font-weight: bold;
+    font-size: 0.8125rem;
+    letter-spacing: 0;
+    line-height: 1.25rem;
+    text-align: $left;
+    color: $footer_title_h3;
+    text-transform: uppercase;
+    margin-top: 0;
+    margin-bottom: 0.625rem;
+
+    @include breakpoint($tablet) {
+      margin-bottom: 0.5rem;
+    }
+
+    @include breakpoint($desktop) {
+      margin-bottom: 0.625rem;
+    }
+  }
+
+  form {
+    overflow: visible;
+    float: $left;
+  }
+
+  .newsletter-block-label {
+    font-family: $hnm-regular;
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+    text-align: $left;
+    color: $footer_newsletter_label;
+    padding: 0;
+
+    @include breakpoint($tablet) {
+      width: 11.875rem;
+      line-height: 1.25rem;
+    }
+
+    @include breakpoint($desktop) {
+      width: 100%;
+      line-height: 1.25rem;
+    }
+  }
+
+  .form-type-email {
+    margin-bottom: 0;
+    width: calc(100% - 5.7rem);
+    float: $left;
+
+    html[lang=ar] & {
+      width: calc(100% - 5.55rem);
+    }
+
+    @include breakpoint($upto-desktop) {
+      width: calc(100% - 5.45rem);
+
+      html[lang=ar] & {
+        width: calc(100% - 5.3rem);
+      }
+    }
+  }
+
+  input[type="email"] {
+    font-size: 0.875rem;
+    line-height: 2;
+    text-align: $left;
+    background: none;
+    border-bottom: 1px solid $hnm-black !important;
+    padding-#{$right}: 33%;
+    height: 2rem;
+    margin-top: 1.75rem;
+
+    @include breakpoint($upto-desktop) {
+      font-size: 0.75rem;
+    }
+
+    @include breakpoint($tablet) {
+      margin-top: 1.5rem;
+    }
+
+    @include breakpoint($desktop) {
+      margin-top: 1.6875rem;
+    }
+
+    &::placeholder {
+      color: $footer_input_placeholder !important;
+      opacity: 1;
+    }
+  }
+
+  .form-submit {
+    @extend %btn;
+    @include arabic-letter-spacing;
+
+    font-family: $hnm-bold;
+    background: $footer_submit_bg;
+    color: $footer_submit_text;
+    position: absolute;
+    font-size: 0.8125rem;
+    #{$right}: 0;
+    bottom: 0;
+    padding: 0.563rem 0.907rem;
+    border-radius: 0;
+    z-index: 2;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: $left;
+
+    @include breakpoint($tablet) {
+      font-size: 0.8125rem;
+      z-index: 0;
+    }
+
+    @include breakpoint($desktop) {
+      font-size: 0.875rem;
+    }
+
+    &:focus {
+      position: absolute;
+    }
+  }
+}
+
+.alshaya-newsletter-subscribe .form-item,
+.block-alshaya-newsletter .form-type-email {
+  label.error,
+  label#edit-email-error {
+    line-height: 1.36;
+    display: inline-block;
+    width: 100%;
+    position: absolute;
+    #{$right}: 0;
+    top: 100%;
+    color: $default_error;
+    z-index: 9;
+    font-size: 0.75rem;
+    text-align: $left;
+    background-color: $footer_bg;
+
+    @include breakpoint($upto-tablet) {
+      #{$right}: 0.5rem;
+      #{$left}: 0.5rem;
+    }
+  }
+}
+
+.c-footer-is-accordion {
+  .is-accordion {
+    @include breakpoint($only-mobile) {
+      margin: 0;
+      padding: 0.875rem 0;
+      position: relative;
+      overflow: hidden;
+
+      @include icon(plus, after) {
+        position: absolute;
+        #{$right}: 1.75rem;
+        font-size: 1rem;
+        top: 50%;
+      }
+    }
+  }
+}
+
+#footer-newsletter-form-wrapper {
+  line-height: 1.36;
+  display: inline-block;
+  width: 100%;
+  position: absolute;
+  #{$left}: 0;
+  top: 100%;
+  padding: 0 0.5rem;
+
+  @include breakpoint($tablet) {
+    width: 95.5%;
+    padding: 0;
+  }
+}
+
+.alshaya-newsletter-subscribe {
+  .subscription-status {
+    .success {
+      background: $footer_newsletter_success_bg;
+      color: $footer_newsletter_success_text;
+      font-size: 0.75rem;
+      padding: 0.3125rem 0.875rem;
+      margin-top: 0.1875rem;
+      display: block;
+    }
+  }
+
+  .edit-newsletter[data-style=zoom-in][data-loading] {
+    background: $footer_link;
+  }
+
+  .ladda-spinner {
+    background: url(#{$base_theme_loader_img_directory_path}) no-repeat;
+    background-size: cover;
+    height: 2.1875rem;
+    width: 2.1875rem;
+    position: absolute;
+    top: 0;
+    #{$left}: 1.6875rem !important;
+    margin-top: -0.125rem;
+  }
+}
+
+.footer_primary-right-block {
+  color: $footer_link;
+  float: $right;
+  position: relative;
+  width: 100%;
+  background-color: $footer_bg;
+  padding: 1.25rem 0.5rem 0;
+
+  @include breakpoint($tablet) {
+    width: 14.875rem;
+    padding: 0;
+  }
+
+  @include breakpoint($desktop) {
+    width: 15.9375rem;
+  }
+
+  @include breakpoint($only-tablet) {
+    overflow: hidden;
+  }
+
+  @include breakpoint($only-mobile) {
+    float: none;
+  }
+}
+
+#alshaya-newsletter-subscribe {
+  #edit-email {
+    padding-#{$right}: 0;
+
+    html[lang=ar] & {
+      padding-left: 0;
+    }
+  }
+}
+
+.cols-6 {
+  .c-footer-menu {
+    &:last-child:not(:only-child) {
+      @include breakpoint($desktop) {
+        padding-#{$left}: 0;
+      }
+    }
+  }
+}
+
+.c-post-content + .c-footer {
+  padding-top: 0;
+}

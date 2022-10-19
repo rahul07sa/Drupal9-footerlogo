@@ -1,0 +1,117 @@
+{#
+/**
+ * @file
+ *
+ * Default user order item template.
+ *
+ * Available variables:
+ * - order: Processed information for single order.
+ *
+ * @ingroup themeable
+ */
+#}
+{% set count = order.quantity %}
+{% set aura_class = order.auraEnabled ? 'has-aura-points' %}
+
+<div class="order-list-wrapper-container {{aura_class}}">
+  <div class="first-second wrapper">
+    <a href="{{ order_detail_link }}" class="link-wrapper">
+      <div class="first">
+        <div class="light order-label">{{ "Order ID"|t }}</div>
+        <div class="dark order-id">{{ order.orderId }}</div>
+        <div class="light date">{{ order.orderDate }}</div>
+      </div>
+    </a>
+    <div class="second">
+      <div class="dark order-name">
+        {% trans %}
+        {{ order.name }}
+        {% endtrans %}
+      </div>
+      <div class="light order-quantity">
+        <div class="item-count">
+          {% trans %}
+            Total: {{ count }} item
+          {% plural count %}
+            Total: {{ count }} items
+          {% endtrans %}
+        </div>
+      </div>
+      {% if order.auraEnabled %}
+        <div class="aura-points-wrapper">
+          <a href="{{ order_detail_link }}" class="link-wrapper">
+            <div class="points-earned">
+              <span>{{ "Points Earned"|t }}</span>
+              <span>{{ order.apcAccruedPoints }}</span>
+            </div>
+            <div class="points-redeemed">
+              <span>{{ "Points Redeemed"|t }}</span>
+              <span>{{ order.apcRedeemedPoints }}</span>
+            </div>
+          </a>
+        </div>
+      {% endif %}
+      {% if order.cancelled_items_count > 0 %}
+        <div class="cancel-item">
+          <a href="{{ order_detail_link }}#cancelled-items" class="cancel-link"> {{ '@count Cancelled'|t({ '@count': order.cancelled_items_count } ) }}</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+  {% if order.cancelled_items_count > 0 %}
+    <div class="second-third wrapper cancelled-item-wrapper">
+  {% else %}
+    <div class="second-third wrapper">
+  {% endif %}
+    <div class="second">
+      <div class="dark order-name">
+        {% trans %}
+        {{ order.name }}
+        {% endtrans %}
+      </div>
+      <div class="light order-quantity">
+        <div class="item-count">
+          {% trans %}
+            Total: {{ count }} item
+          {% plural count %}
+            Total: {{ count }} items
+          {% endtrans %}
+        </div>
+        {% if order.cancelled_items_count > 0 %}
+          <div class="cancel-item">
+            <a href="{{ order_detail_link }}#cancelled-items" class="cancel-link"> {{ '@count Cancelled'|t({ '@count': order.cancelled_items_count } ) }}</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="third">
+      <a href="{{ order_detail_link }}" class="link-wrapper">
+        <div class="button {{ order.status.class }}">{{ order.status.text }}</div>
+      </a>
+    </div>
+  </div>
+  <div class="fourth">
+    <a href="{{ order_detail_link }}" class="link-wrapper">
+      <div class="order-total-wrapper">
+        <div class="light totale-label">{{ "Order Total"|t }}</div>
+        <div class="dark order-total">
+          {{ order.total }}
+        </div>
+      </div>
+      {% if order.auraEnabled %}
+      <div class="aura-points-wrapper">
+        <div class="points-earned">
+            <span>{{ "Points Earned"|t }}</span>
+            <span>{{ order.apcAccruedPoints }}</span>
+          </div>
+          <div class="points-redeemed">
+            <span>{{ "Points Redeemed"|t }}</span>
+            <span>{{ order.apcRedeemedPoints }}</span>
+          </div>
+        </div>
+      {% endif %}
+    </a>
+  </div>
+  <a href="{{ order_detail_link }}" class="order-detail-page"></a>
+</div>

@@ -1,0 +1,94 @@
+project:
+  machine_name: alshaya
+  prefix: (MMCPA|ACR2|AURA|CORE|AAVS|BBWAE|MAPP|KOTBP|ALGO|MCP|VMA|DIG)
+  human_name: Alshaya
+  profile:
+    name: alshaya_transac
+  local:
+    protocol: http
+    hostname: 'local.${project.machine_name}.com'
+git:
+  default_branch: develop
+  remotes:
+    - 'alshaya@svn-5975.enterprise-g1.hosting.acquia.com:alshaya.git'
+    - 'alshaya2@svn-5975.enterprise-g1.hosting.acquia.com:alshaya2.git'
+    - 'alshaya3bis@svn-5975.enterprise-g1.hosting.acquia.com:alshaya3bis.git'
+    - 'alshaya4@svn-5975.enterprise-g1.hosting.acquia.com:alshaya4.git'
+    - 'alshaya5@svn-5975.enterprise-g1.hosting.acquia.com:alshaya5.git'
+    - 'alshaya7tmp@svn-5975.enterprise-g1.hosting.acquia.com:alshaya7tmp.git'
+    - 'alshayadc1@svn-5975.enterprise-g1.hosting.acquia.com:alshayadc1.git'
+  hooks:
+    pre-push: false
+deploy:
+  tag_source: true
+  gitignore_file: '${repo.root}/blt/config/.gitignore'
+drush:
+  aliases:
+    remote: '${project.machine_name}.test'
+    local: self
+    ci: self
+  default_alias: '${drush.aliases.local}'
+modules:
+  local:
+    enable: [views_ui]
+    uninstall: [acsf, acquia_connector, shield]
+  ci:
+    enable: {  }
+    uninstall: [acquia_connector, shield]
+  dev:
+    enable: [acquia_connector, shield]
+    uninstall: {  }
+  test:
+    enable: [acquia_connector, shield]
+    uninstall: [views_ui]
+  prod:
+    enable: [acquia_connector, shield, dynamic_page_cache]
+    uninstall: [views_ui]
+  uat:
+    enable: [acquia_connector, shield, dynamic_page_cache]
+    uninstall: [views_ui]
+  qa:
+    enable: [acquia_connector, shield]
+    uninstall: [views_ui]
+  pprod:
+    enable: [acquia_connector, shield, dynamic_page_cache]
+    uninstall: [views_ui]
+command-hooks:
+  frontend-reqs:
+    dir: '${repo.root}'
+    command: 'vendor/bin/blt alshayafe:setup && vendor/bin/blt js:setup && vendor/bin/blt alshayafe:setup-uglify'
+  frontend-assets:
+    dir: '${repo.root}'
+    command: 'vendor/bin/blt alshayafe:build-all-themes && vendor/bin/blt alshayafe:minify-svg && vendor/bin/blt alshayafe:build-react && vendor/bin/blt js:build && vendor/bin/blt alshayafe:build-uglify'
+  pre-config-import:
+    dir: '${docroot}'
+    command: 'echo ''No pre-config-import configured.'''
+  post-deploy-build:
+    dir: '${repo.root}/blt/scripts'
+    command: 'bash post-deploy-build.sh ${deploy.dir}'
+  post-setup-build:
+    dir: '${docroot}'
+    command: 'echo ''No post-setup build configured.'''
+  post-deploy:
+    dir: '${docroot}'
+    command: 'echo ''No post-deploy build configured.'''
+import: '${repo.root}/blt/setup.local.xml'
+behat:
+  web-driver: chrome
+multisite:
+  name:
+    - g
+cm:
+  strategy: none
+validate:
+  twig:
+    functions: [alshaya_main_menu, alshaya_secondary_main_menu]
+cloud:
+  appId: f8ab35c4-f119-4acd-b080-d3014358e5b8
+disable-targets:
+  tests:
+    behat: { all: true, run: true }
+    security: { check: { updates: true } }
+tests:
+  chrome:
+    args: '--window-size=1920,1080'

@@ -1,0 +1,13 @@
+services:
+  alshaya_knet.helper:
+    class: Drupal\alshaya_knet\Helper\KnetHelper
+    arguments:
+      - '@config.factory'
+      - '@tempstore.shared'
+      - '@logger.channel.knet'
+      - '@request_stack'
+
+  logger.channel.knet:
+    class: Drupal\Core\Logger\LoggerChannel
+    factory: logger.factory:get
+    arguments: ['alshaya_knet']

@@ -1,0 +1,228 @@
+#block-youllbeableto-checkout-confirm,
+#block-jointheclub-checkout-confirm,
+#block-youllbeableto,
+#block-jointheclub {
+  text-transform: none;
+
+  span {
+    width: 1.5rem;
+    height: 1.5rem;
+    vertical-align: middle;
+  }
+
+  span.icon {
+    &-wish {
+      background-image: url("../imgs/icons/ic-wishlist.svg");
+      background-size: contain;
+    }
+
+    &-store {
+      background-image: url("../imgs/icons/ic-language.svg");
+      background-size: contain;
+    }
+
+    &-offer {
+      background-image: url("../imgs/icons/ic-rewards.svg");
+      background-size: contain;
+    }
+
+    &-win {
+      background-image: url("../imgs/icons/ic-delivery.svg");
+      background-size: contain;
+    }
+
+    &-reward {
+      background-image: url("../imgs/icons/ic-unlock.svg");
+      background-size: contain;
+    }
+
+    &-heart {
+      background-image: url("../imgs/icons/ic-newsletter.svg");
+      background-size: contain;
+    }
+  }
+}
+
+.user-page {
+  #block-youllbeableto-checkout-confirm,
+  #block-youllbeableto {
+    a {
+      text-decoration: underline;
+    }
+  }
+
+  .c-sidebar-second {
+    font-size: 0.875rem;
+  }
+
+  .c-sidebar-second,
+  #block-youllbeableto-checkout-confirm,
+  #block-youllbeableto {
+    h3 {
+      font-family: $vs-regular;
+      text-transform: none;
+    }
+
+    .c-sidebar-second__region {
+      @include breakpoint($tablet) {
+        padding-#{$left}: 3rem;
+      }
+
+      @include breakpoint($desktop) {
+        padding-#{$left}: 5.5rem;
+      }
+    }
+  }
+
+  #block-onlineexclusiveheadingovertwolinesneverthree {
+    a {
+      text-transform: none;
+    }
+  }
+
+  .user-form,
+  .user-login-form,
+  .user-pass,
+  .multistep-checkout {
+    .form-submit {
+      text-transform: uppercase;
+      font-size: 0.875rem;
+      border-radius: rem(3);
+    }
+  }
+
+  .change-pwd-form {
+    .form-submit {
+      background: $primary_btn_bg;
+      border: 0;
+      color: $primary_btn_text;
+      font-size: rem(12);
+    }
+  }
+
+  .form-type-checkbox .option::before {
+    margin-#{$right}: 1.25rem;
+    #{$left}: 0.75rem;
+
+    @include breakpoint($tablet) {
+      margin-#{$right}: 1.75rem;
+    }
+  }
+}
+
+.c-user-register {
+  .form-type-checkbox {
+    .option::before {
+      @include breakpoint($only-mobile) {
+        margin-#{$right}: 0.625rem;
+        #{$left}: 0;
+      }
+    }
+  }
+
+  .c-content__region {
+    .user-form,
+    .change-pwd-form {
+      .field--name-field-subscribe-newsletter {
+        label {
+          @include breakpoint($tablet) {
+            margin-#{$left}: -0.875rem;
+          }
+        }
+      }
+    }
+  }
+}
+
+.c-user-login {
+  h1 {
+    @include breakpoint($only-mobile) {
+      top: -4.7rem;
+    }
+  }
+}
+
+.c-user-register .c-sidebar-second,
+.c-user-login .c-sidebar-second,
+.order-confirmation {
+  #block-jointheclub img {
+    @include breakpoint($desktop) {
+      width: 55%;
+    }
+  }
+}
+
+.c-user-login.user-page,
+.checkout-login.user-page,
+.c-user-register {
+  .c-sidebar-second,
+  .fieldset-wrapper {
+    #block-youllbeableto {
+      span {
+        height: 1.5rem;
+      }
+
+      p .icon-store {
+        background-size: contain;
+        width: 1.5rem;
+        height: 1.5rem;
+      }
+    }
+  }
+}
+
+.c-user-password,
+.c-user-register,
+.c-user-login {
+  h1 {
+    font-family: $vs-regular;
+  }
+}
+
+#unmask_password {
+  top: 0.375rem;
+  font-size: 0.625rem;
+  text-transform: uppercase;
+}
+
+.alias--user-register-complete {
+  .c-user-register-complete {
+    h1 {
+      font-family: $vs-regular;
+
+      @include breakpoint($only-mobile) {
+        font-size: 1rem;
+      }
+    }
+  }
+
+  #block-content {
+    @include breakpoint($only-mobile) {
+      padding: 0;
+
+      html[lang=ar] & {
+        p {
+          line-height: 1.5;
+        }
+      }
+    }
+  }
+}
+
+@include breakpoint($only-mobile) {
+  .path--user {
+    .profile-address-book-delete-form {
+      a {
+        &.dialog-cancel {
+          &.button {
+            display: none !important;
+          }
+        }
+      }
+
+      .button--primary {
+        width: 100%;
+      }
+    }
+  }
+}

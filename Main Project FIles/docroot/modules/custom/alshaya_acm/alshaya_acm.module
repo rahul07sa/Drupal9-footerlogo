@@ -1,0 +1,1187 @@
+<?php
+
+/**
+ * @file
+ * Contains general hooks and alters.
+ */
+
+use Drupal\acq_cart\CartInterface;
+use Drupal\acq_sku\Entity\SKU;
+use Drupal\alshaya_acm\EventSubscriber\UpdateCartErrorEventSubscriber;
+use Drupal\alshaya_acm_product\SkuImagesHelper;
+use Drupal\alshaya_acm_promotion\AlshayaPromotionsManager;
+use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\Core\Ajax\HtmlCommand;
+use Drupal\Core\Ajax\RedirectCommand;
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Language\LanguageInterface;
+use Drupal\Core\Link;
+use Drupal\Core\Url;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function alshaya_acm_form_customer_cart_form_alter(&$form, FormStateInterface $form_state) {
+  \Drupal::moduleHandler()->loadInclude('alshaya_acm_product', 'inc', 'alshaya_acm_product.utility');
+
+  $form['form_level_error_wrapper'] = [
+    '#type' => 'container',
+    '#weight' => -100,
+    '#attributes' => [
+      'class' => 'form-level-error-wrapper',
+    ],
+  ];
+
+  $cart_items = NULL;
+
+  // Get the current cart.
+  /** @var \Drupal\acq_cart\CartSessionStorage $cart_storage */
+  $cart_storage = \Drupal::service('acq_cart.cart_storage');
+
+  /** @var \Drupal\acq_cart\Cart $cart */
+  $cart = $cart_storage->getCart(FALSE);
+
+  if ($cart instanceof CartInterface) {
+    // If for any reason user comes back to basket from checkout pages,
+    // we clear API caches.
+    $tags = [
+      'cart_extra:' . $cart->id(),
+    ];
+
+    Cache::invalidateTags($tags);
+
+    // Get current cart items.
+    $cart_items = $cart->items();
+  }
+
+  if (empty($cart_items)) {
+    // Add empty message wrapper container.
+    $form['empty'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => 'empty-cart-wrapper',
+      ],
+    ];
+
+    // Add the empty message.
+    $form['empty']['message'] = [
+      '#markup' => '<div class="empty-cart-message">' . t('Your shopping basket is empty') . '</div>',
+      '#weight' => -50,
+    ];
+
+    // Add the continue shopping button in same container.
+    $form['empty']['continue_shopping'] = [
+      '#type' => 'link',
+      '#title' => t('go shopping'),
+      '#url' => Url::fromRoute('<front>'),
+    ];
+
+    // Add continue shopping link, that redirect user to homepage.
+    $form['empty']['continue_shopping_mobile'] = [
+      '#type' => 'link',
+      '#title' => t('go shopping'),
+      '#url' => Url::fromRoute('<front>'),
+    ];
+
+    // Unset all other items.
+    unset($form['cart']);
+    unset($form['actions']['checkout']);
+
+    // Simply return, we don't want to process below code.
+    return;
+  }
+
+  $form['#disable_inline_form_errors_summary'] = TRUE;
+
+  // Add sub total price of product.
+  $form['cart']['#header'][] = t('Sub total');
+  $form['cart']['#header'][2] = t('Unit Price');
+
+  // Adds delivery options to cart.
+  $form['cart']['#header'][] = t('Available delivery options');
+
+  // Get cart items by sku.
+  $cart_item = alshaya_acm_get_cart_items_by_sku();
+
+  // If there is at least one item out of scope, show the error.
+  $out_of_stock_message = '';
+
+  $cart_rules = $cart->get('cart_rules');
+  $free_gift_skus = [];
+
+  // Get list of free gift skus based on the cart price rules applicable to
+  // current cart. This is used to mark items & label them as "Free Gift With
+  // Purchase" on the cart.
+  foreach ($cart_rules as $rule_id) {
+    /** @var \Drupal\alshaya_acm_promotion\AlshayaPromotionsManager $promotionManager */
+    $promotionManager = \Drupal::service('alshaya_acm_promotion.manager');
+    $free_gift_skus = array_merge(
+      $free_gift_skus,
+      $promotionManager->getFreeSkusByRuleId($rule_id)
+    );
+  }
+
+  foreach ($form['cart'] as $id => &$item) {
+    if (is_array($item) && isset($item['quantity'])) {
+      /** @var \Drupal\acq_sku\Entity\SKU $sku_entity */
+      $sku_entity = SKU::loadFromSku($id);
+
+      // Product might get disabled and deleted, need to handle exception
+      // gracefully.
+      if (empty($sku_entity)) {
+        // Remove items that are no longer available from from.
+        unset($form['cart'][$id]);
+
+        // Remove items that are no longer available from cart.
+        $cart->removeItemFromCart($id);
+
+        // Update the cart object in session.
+        $cart_storage->addCart($cart);
+
+        // Reload the page (at-least to avoid issues in form display if it was
+        // the only or last item in cart).
+        $response = new RedirectResponse(Url::fromRoute('acq_cart.cart')->toString());
+        $response->send();
+        exit;
+      }
+
+      $is_item_free = FALSE;
+
+      // Check if a discount equal to the price of product was applied.
+      if ($cart_item[$id]['discount_amount'] === ($cart_item[$id]['price'] * $item['quantity']['#default_value'])) {
+        $is_item_free = TRUE;
+      }
+
+      $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+      $item_cart_price = $skuManager->buildCartItemPrice($sku_entity, $cart_item[$id]['price']);
+
+      if ($is_item_free) {
+        $item['price'] = [
+          '#markup' => alshaya_acm_price_format($cart_item[$id]['price']) . '</div>',
+          '#prefix' => '<div class="has--special--price">',
+          '#suffix' => '</div>',
+        ];
+      }
+      else {
+        $item['price'] = [
+          '#theme' => 'acq_commerce_price',
+          '#price' => $item_cart_price['price'],
+        ];
+
+        if (!empty($item_cart_price['discount'])) {
+          $item['price']['#discount'] = $item_cart_price['discount'];
+          $item['price']['#final_price'] = $item_cart_price['final_price'];
+        }
+      }
+
+      $is_free_sku_item = FALSE;
+
+      // If current sku entity is one of the free gift sku items, mark it as
+      // free.
+      if (in_array($id, $free_gift_skus)) {
+        $is_free_sku_item = TRUE;
+      }
+      else {
+        $parent = $skuManager->getParentSkuBySku($id);
+        if ($parent instanceof SKU && in_array($parent->getSku(), $free_gift_skus)) {
+          $is_free_sku_item = TRUE;
+        }
+      }
+
+      $item['name'] = _alshaya_acm_update_product_name(
+        $sku_entity,
+        $item,
+        $cart_item[$id],
+        $is_item_free,
+        $cart_rules,
+        $is_free_sku_item,
+        $cart->getCoupon()
+      );
+
+      $item['quantity']['#type'] = 'select';
+      $item['quantity']['#attributes']['gtm-type'] = 'gtm-quantity';
+      // Add ajax callback to update cart's total on quantity change.
+      $item['quantity']['#ajax'] = [
+        'callback' => 'alshaya_acm_cart_ajax_quantity_callback',
+        'event' => 'change',
+      ];
+
+      // For free gift item, disable quantity drop down.
+      if ($is_item_free) {
+        $item['quantity']['#attributes']['disabled'] = 'disabled';
+      }
+
+      $item['quantity']['#prefix'] = '<div class="select-quantity-' . str_replace(' ', '-', $id) . '">';
+      $item['quantity']['#suffix'] = '</div>';
+      $item['quantity']['#suffix'] .= alshaya_acm_get_remove_from_basket_link($cart, $sku_entity);
+
+      // Process quantity limit only if enabled.
+      $max_sale_qty = 0;
+      if (\Drupal::config('alshaya_acm.settings')->get('quantity_limit_enabled')) {
+        $productOrderLimit = \Drupal::service('alshaya_acm_product.product_order_limit');
+        $plugin = $sku_entity->getPluginInstance();
+
+        // Check if max sale qty limit is set for parent.
+        $parent_sku = $skuManager->getParentSkuBySku($id);
+        // Get max sale qty for the variant in cart if not present for parent.
+        $parent_max_sale_qty = $parent_sku ? $plugin->getMaxSaleQty($parent_sku) : 0;
+        $max_sale_qty = !empty($parent_max_sale_qty) ? $parent_max_sale_qty : $plugin->getMaxSaleQty($id);
+
+        if (!empty($max_sale_qty)) {
+          // Get product qty in cart for variant.
+          $current_variant_in_cart_qty = $productOrderLimit->getCartItemQtyLimit($id);
+
+          if ($current_variant_in_cart_qty && ($current_variant_in_cart_qty >= $max_sale_qty)) {
+            // Show msg if order limit is reached.
+            $item['quantity']['#suffix'] .= '<div class="order-quantity-limit-message">' . $productOrderLimit->maxSaleQtyMessage($max_sale_qty, TRUE) . '</div>';
+          }
+          else {
+            $item['quantity']['#suffix'] .= '<div class="order-quantity-limit-message">' . $productOrderLimit->maxSaleQtyMessage($max_sale_qty) . '</div>';
+          }
+        }
+      }
+
+      _alshaya_acm_check_cart_item_stock($sku_entity, $item, $out_of_stock_message, $max_sale_qty);
+
+      // Add sub total price of product.
+      if ($is_item_free) {
+        $item['sub_total'] = [
+          '#markup' => '',
+        ];
+        $item['price'] = [
+          '#markup' => '<div class="price-free">' . t('FREE') . '</div>',
+        ];
+      }
+      else {
+        $item_quantity = $item['quantity']['#default_value'];
+        $item_price = $cart_item[$id]['price'] * $item_quantity;
+        $item['sub_total'] = [
+          '#markup' => alshaya_acm_price_format($item_price),
+          '#price' => $item_cart_price['price'],
+        ];
+      }
+
+      // Adding class attribute to columns for mobile view.
+      $item['name']['#wrapper_attributes'] = ['class' => ['name']];
+      $item['quantity']['#wrapper_attributes'] = ['class' => ['quantity']];
+      $item['price']['#wrapper_attributes'] = ['class' => ['price dark']];
+      $item['sub_total']['#wrapper_attributes'] = [
+        'class' => ['subtotal', 'blend', 'dark'],
+      ];
+    }
+  }
+
+  // Add checkout button on top.
+  $form['actions_top'] = [
+    '#type' => 'container',
+    '#weight' => -98,
+  ];
+
+  // Change checkout button text to 'Checkout Securely'.
+  $form['actions']['checkout']['#value'] = t('checkout securely');
+  $form['actions']['checkout']['#suffix'] = '</div>';
+  $form['actions']['checkout']['#prefix'] = '<div id="secure-checkout-button">';
+  // We need to change the markup for submit button.
+  // @see alshaya_white_label_theme_suggestions_input_alter().
+  $form['actions']['checkout']['#attributes']['data-twig-suggestion'] = 'secure-checkout';
+  $form['actions']['checkout']['#attributes']['class'][] = 'bottom-edit-checkout';
+
+  if (!empty($out_of_stock_message)) {
+    $form['actions']['checkout']['#attributes']['disabled'] = 'disabled';
+
+    $form['actions_top']['checkout_top'] = [
+      '#markup' => '<a class="checkout-top-button top-edit-checkout disabled" id="checkout-top">' . $form['actions']['checkout']['#value']->render() . '</a>',
+    ];
+
+    // Out of stock error message.
+    $form['form_level_error_wrapper']['out_of_stock']['#markup'] = '<div id="out-of-stock-message">' . $out_of_stock_message . '</div>';
+  }
+
+  // Add class to checkout and update button as well as actions.
+  $form['actions']['update']['#attributes']['class'][] = 'edit-update';
+  $form['actions']['checkout']['#attributes']['class'][] = 'edit-checkout';
+  $form['actions']['#attributes']['class'][] = 'edit-actions';
+
+  // Add wrapper to cart table for themeing.
+  $form['cart']['#prefix'] = '<div id="table-cart-items">';
+  $form['cart']['#suffix'] = '</div>';
+
+  // Add wrapper to cart totals table for themeing.
+  $form['totals']['#prefix'] = '<div id="table-cart-totals">';
+
+  // Update some labels to match wireframe/mockup.
+  $form['totals']['sub']['label'] = ['#markup' => t('Sub total')];
+  $form['totals']['grand']['label'] = ['#markup' => t('Order Total <span>(Before Delivery)</span>')];
+
+  // Adding vat text to cart.
+  if ($vat_text = \Drupal::config('alshaya_acm_product.settings')->get('vat_text')) {
+    $form['totals']['vat_tax'] = [
+      'label' => [
+        '#markup' => '',
+      ],
+      'value' => [
+        '#markup' => "<span class = 'vat-text'>$vat_text</span>",
+      ],
+    ];
+  }
+
+  $form['totals']['#weight'] = 10;
+
+  // Wrap Promotion code in a fieldset.
+  $form['promotion_code_wrapper'] = [
+    '#type' => '#markup',
+    '#prefix' => '<div class="promo-continue-shopping-wrapper">',
+  ];
+
+  unset($form['coupon']);
+
+  $form['promotion_code_wrapper']['coupon'] = [
+    '#title' => t('Promotion code'),
+    '#type' => 'textfield',
+    '#prefix' => '<div class="coupon-code-wrapper"><div class="card__header">' . t('Add a promotional code') . '</div>',
+    '#default_value' => $cart->getCoupon(),
+    '#attributes' => [
+      'class' => [(empty($cart->getCoupon())) ? 'apply-promocode' : 'cancel-promocode'],
+    ],
+  ];
+
+  if (empty($cart->getCoupon())) {
+    $form['promotion_code_wrapper']['coupon']['#suffix'] = '<span id="coupon-button" class="add">' . t('apply') . '</span></div>';
+  }
+  else {
+    $form['promotion_code_wrapper']['coupon']['#suffix'] = '<a href="#" id="coupon-button" class="remove">' . t('Remove') . '</a></div>';
+  }
+
+  if (!empty($cart_items)) {
+    // Add continue shopping link, that redirect user to homepage.
+    $form['continue_shopping'] = [
+      '#type' => 'link',
+      '#title' => t('continue shopping'),
+      '#url' => Url::fromRoute('<front>'),
+      '#weight' => 4,
+      '#suffix' => '</div>',
+    ];
+
+    // Add continue shopping link, that redirect user to homepage.
+    $form['actions']['continue_shopping_mobile'] = [
+      '#type' => 'link',
+      '#title' => t('continue shopping'),
+      '#url' => Url::fromRoute('<front>'),
+      '#suffix' => '</div>',
+    ];
+  }
+
+  // Add class to continue shopping link.
+  $form['actions']['continue_shopping_mobile']['#attributes']['class'][] = 'edit-continue-shopping-mobile';
+
+  // Attach library, to cater to Coupon submit button.
+  $form['#attached']['library'][] = 'alshaya_acm/alshaya.acm.js';
+
+  _alshaya_acm_format_cart_total($form, $cart);
+}
+
+/**
+ * Alter totals to use markup instead of plain text.
+ *
+ * @param array $form
+ *   The form array.
+ * @param object $cart
+ *   The cart object.
+ */
+function _alshaya_acm_format_cart_total(array &$form, $cart) {
+  // Get the new totals of cart.
+  $totals = $cart->totals();
+
+  $form['totals']['sub']['value'] = [
+    '#markup' => alshaya_acm_price_format($totals['sub']),
+  ];
+
+  if ((float) $totals['tax'] > 0) {
+    $form['totals']['tax']['value'] = [
+      '#markup' => alshaya_acm_price_format($totals['tax']),
+    ];
+  }
+
+  // Check tax config.
+  $tax_config = \Drupal::config('alshaya_acm_checkout.settings')->get('checkout_show_tax_info');
+  // If not showing the tax config.
+  if (!$tax_config && isset($form['totals']['tax'])) {
+    unset($form['totals']['tax']);
+  }
+
+  if ((float) $totals['discount'] != 0) {
+    $cart_rules = $cart->getCart()->cart_rules;
+    $promotions = [];
+    foreach ($cart_rules as $rule_id) {
+      $promotionManager = \Drupal::service('alshaya_acm_promotion.manager');
+      $promotion = $promotionManager->getPromotionByRuleId($rule_id);
+      $langcode = \Drupal::service('language_manager')->getCurrentLanguage(LanguageInterface::TYPE_CONTENT)
+        ->getId();
+      // Get the promotion with language fallback, if it did not have a
+      // translation for $langcode.
+      if ($promotion) {
+        $promotion = \Drupal::service('entity.repository')->getTranslationFromContext($promotion, $langcode);
+        if ($promotion) {
+          $promotion_description = '';
+          $promotion_description_item = $promotion->get('field_acq_promotion_description')->first();
+          if ($promotion_description_item) {
+            $promotion_description = $promotion_description_item->getValue();
+          }
+
+          $promotion_label = $promotion->get('field_acq_promotion_label')->getString();
+          $promotions[$rule_id]['description'] = $promotion_description;
+          $promotions[$rule_id]['label'] = $promotion_label;
+        }
+      }
+    }
+    $form['totals']['discount']['value'] = [
+      '#markup' => alshaya_acm_price_format($totals['discount'], $promotions),
+    ];
+  }
+
+  if ((float) $totals['shipping'] != 0) {
+    $totals['grand'] -= $totals['shipping'];
+  }
+
+  // We don't show surcharge in totals on basket page.
+  // @todo Re-visit when working on CORE-4483.
+  $surcharge = $cart->getExtension('surcharge');
+
+  if ($surcharge) {
+    $surcharge['amount'] = (float) $surcharge['amount'];
+    if ($surcharge['amount'] > 0) {
+      $totals['grand'] -= $surcharge['amount'];
+    }
+  }
+
+  // Add shipping info.
+  $cart_rules_applied = $cart->getCart()->cart_rules;
+  if (!empty($cart_rules_applied)) {
+    $subtype_promotions = \Drupal::service('alshaya_acm_promotion.manager')
+      ->getAllPromotions([
+        [
+          'field' => 'field_alshaya_promotion_subtype',
+          'value' => AlshayaPromotionsManager::SUBTYPE_FREE_SHIPPING_ORDER,
+        ],
+      ]);
+    if (!empty($subtype_promotions)) {
+      foreach ($subtype_promotions as $subtype_promotion) {
+        // If subtype is free_shipping_order and is applied, add it to totals.
+        if (in_array($subtype_promotion->get('field_acq_promotion_rule_id')->getString(), $cart_rules_applied)) {
+          $shipping_info = [
+            'label' => [
+              '#markup' => t('Shipping'),
+            ],
+            'value' => [
+              '#markup' => t('Free'),
+            ],
+          ];
+
+          \Drupal::moduleHandler()->loadInclude('alshaya', 'inc', 'utilities/alshaya.utilities.array');
+          $form['totals'] = \Drupal::service('alshaya.alshaya_array_utils')->arrayInsert($form['totals'], 'grand', 'shipping', $shipping_info, FALSE);
+          break;
+        }
+      }
+    }
+  }
+
+  $form['totals']['grand']['value'] = [
+    '#markup' => alshaya_acm_price_format($totals['grand']),
+  ];
+}
+
+/**
+ * Ajax callback: Update cart item's sub total and cart's total / sub total.
+ */
+function alshaya_acm_cart_ajax_quantity_callback(&$form, FormStateInterface $form_state) {
+  if ($errors = $form_state->getErrors()) {
+    return $form;
+  }
+
+  // Prepare the ajax Response.
+  $response = new AjaxResponse();
+
+  if (UpdateCartErrorEventSubscriber::getErrorStatus()) {
+    $errors = UpdateCartErrorEventSubscriber::getErrors();
+    $message = '<div id="out-of-stock-message">' . reset($errors) . '</div>';
+
+    if (acq_commerce_is_code_api_down_code(UpdateCartErrorEventSubscriber::getCode())) {
+      // Show the error or remove existing errors.
+      $response->addCommand(new HtmlCommand('.form-level-error-wrapper', $message));
+      return $response;
+    }
+
+    $error = reset($errors);
+    $exception = new \Exception($error);
+    if (!_alshaya_acm_is_out_of_stock_exception($exception)) {
+      \Drupal::service('messenger')->addError($error);
+    }
+  }
+
+  // Refresh the page.
+  $response->addCommand(new RedirectCommand(Url::fromRoute('acq_cart.cart')->toString()));
+
+  return $response;
+}
+
+/**
+ * Implements hook_preprocess_HOOK().
+ */
+function alshaya_acm_preprocess_page_title(&$variables) {
+  $route_match = \Drupal::routeMatch();
+
+  // Change cart page title with quantity count.
+  if ($route_match->getRouteName() == 'acq_cart.cart') {
+    $cart = \Drupal::service('acq_cart.cart_storage')->getCart(FALSE);
+    $count = $cart ? $cart->getCartItemsCount() : 0;
+
+    $variables['title'] = [
+      '#markup' => t("Basket (%count)", ['%count' => $count]),
+    ];
+  }
+}
+
+/**
+ * Get all cart items as sku associated array.
+ *
+ * @return array
+ *   Array of all skus assiciated by sku key.
+ */
+function alshaya_acm_get_cart_items_by_sku() {
+  $cart = \Drupal::service('acq_cart.cart_storage')->getCart(FALSE);
+  if (!($cart instanceof CartInterface)) {
+    return [];
+  }
+
+  $skus = [];
+  foreach ($cart->items() ?? [] as $line_item) {
+    $skus[$line_item['sku']] = $line_item;
+  }
+
+  return $skus;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function alshaya_acm_form_multistep_default_alter(&$form, FormStateInterface $form_state, $form_id) {
+  // Create the cart page link.
+  $url = Url::fromRoute('acq_cart.cart');
+  $link = Link::fromTextAndUrl('Back to Basket', $url)->getGeneratedLink();
+  $form['back_to_cart'] = [
+    '#markup' => $link,
+    '#weight' => -5,
+  ];
+}
+
+/**
+ * Implements hook_theme().
+ */
+function alshaya_acm_theme($existing, $type, $theme, $path) {
+  return [
+    'alshaya_cart_product_name' => [
+      'variables' => [
+        'sku_attributes' => '',
+        'promotions' => '',
+        'item_code' => '',
+        'total_price' => '',
+        'name' => '',
+        'image' => '',
+        'include_in_bundle' => '',
+        'available_delivery_methods' => '',
+        'free_gift_label' => '',
+        'free_gift_promos' => '',
+        'is_free_gift_item' => '',
+      ],
+    ],
+    'global_error' => [
+      'variables' => [
+        'message' => '',
+      ],
+    ],
+  ];
+}
+
+/**
+ * Wrapper function to format price value with currency.
+ *
+ * @param float $price
+ *   Price value.
+ * @param array $promotions
+ *   Promotions if available to display as tooltip.
+ * @param string $tooltip
+ *   Simple tooltip to display along with price.
+ *
+ * @return mixed|null
+ *   Return rendered theme with html for price.
+ */
+function alshaya_acm_price_format($price, array $promotions = [], $tooltip = '') {
+  $output = [
+    '#theme' => 'acq_commerce_price',
+    '#price' => acq_commerce_get_clean_price($price),
+  ];
+
+  if ($promotions) {
+    $output['#promotions'] = $promotions;
+  }
+
+  if ($tooltip) {
+    $output['#tooltip'] = $tooltip;
+  }
+
+  static $renderer;
+
+  if (empty($renderer)) {
+    /** @var \Drupal\Core\Render\Renderer $renderer */
+    $renderer = \Drupal::service('renderer');
+  }
+
+  $render = $renderer->renderPlain($output);
+  return $render;
+}
+
+/**
+ * Wrapper function to format price value with currency.
+ *
+ * It also does an additional check for free and returns FREE as text if price
+ * is 0.
+ *
+ * @param mixed $price
+ *   Price value.
+ *
+ * @return mixed|null
+ *   Return rendered theme with html for price.
+ */
+function alshaya_acm_price_get_formatted_price($price) {
+  if (empty($price)) {
+    return t('FREE');
+  }
+
+  return alshaya_acm_price_format($price);
+}
+
+/**
+ * Helper function to get cart quantity options.
+ *
+ * @param int|null $max
+ *   Maximum possible quantity.
+ * @param int|null $selected
+ *   Current selection.
+ *
+ * @return array
+ *   Options array.
+ */
+function _alshaya_acm_get_cart_quantity_options($max = NULL, $selected = NULL) {
+  // Get max possible from config.
+  $max_config = \Drupal::config('alshaya_acm.cart_config')->get('max_cart_qty');
+
+  // We display options till current selection if available.
+  if ($selected > $max_config) {
+    $max_config = $selected;
+  }
+
+  // We take lower value for quantity options as per config or provided value.
+  $max = $max && $max_config > $max ? $max : $max_config;
+
+  // Get array using range() with 1 as minimum and maximum value from config.
+  $range = range(1, $max);
+
+  // Using array_combine to ensure we have same data in key and value.
+  return array_combine($range, $range);
+}
+
+/**
+ * Implements hook_alshaya_i18n_onetime_translation_add().
+ */
+function alshaya_acm_alshaya_i18n_onetime_translation_add() {
+  $country_code = _alshaya_custom_get_site_level_country_code(TRUE);
+
+  // Translate currency code in config.
+  $currency_code = \Drupal::service('alshaya_custom.alshaya_country_manager')->getCurrencyCode($country_code, 'ar');
+  $config = \Drupal::languageManager()->getLanguageConfigOverride('ar', 'acq_commerce.currency');
+  $config->set('currency_code', $currency_code);
+  $config->set('currency_code_position', 'after');
+  $config->save();
+
+  // Add translation for the error messages we check in API response.
+  // Set initial translation string for en language.
+  // Array of language translation strings.
+  $strings = [
+    'This product is out of stock.' => [
+      'ar' => 'هذا المنتج غير متوفر في المخزن.',
+    ],
+    "We don't have as many" => [
+      'ar' => 'ليس لدينا العديد من',
+    ],
+    'Some of the products are out of stock.' => [
+      'ar' => 'بعض المنتجات غير متوفرة بالمخزن.',
+    ],
+    'Not all of your products are available in the requested quantity.' => [
+      'ar' => 'بعض المنتجات غير متوفرة بالمخزن.',
+    ],
+    'Coupon code is not valid' => [
+      'ar' => 'رمز قسيمة الخصم غير صالحة',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Helper function prepare name for basket page and reused in summary block.
+ *
+ * @param \Drupal\acq_sku\Entity\SKU $sku_entity
+ *   SKU entity of the form item.
+ * @param array $item
+ *   Form item array.
+ * @param array $cart_item
+ *   Cart item array.
+ * @param bool $is_free_item
+ *   If the line item is  a free item.
+ * @param array $cart_rules
+ *   Promotion rules applicable to  this cart.
+ * @param bool $is_free_sku_item
+ *   Boolean to denote if the line item is a free gift.
+ *
+ * @return array
+ *   Item name build array.
+ */
+function _alshaya_acm_update_product_name(SKU $sku_entity,
+                                          array $item,
+                                          array $cart_item,
+                                          $is_free_item = FALSE,
+                                          array $cart_rules = [],
+                                          $is_free_sku_item = FALSE,
+                                          $coupon_applied_on_cart = '') {
+  $langcode = \Drupal::languageManager()->getCurrentLanguage()->getId();
+  $sku_cart_data_cid = 'sku_cart_data:' . $langcode . ':' . $sku_entity->id();
+  // If sku entity data exists in cache.
+  if ($sku_cart_data_cache = \Drupal::cache()->get($sku_cart_data_cid)) {
+    $sku_attributes = $sku_cart_data_cache->data['sku_attributes'];
+    $sku_image = $sku_cart_data_cache->data['sku_display_image'];
+    $parent_sku = $sku_cart_data_cache->data['parent_sku'];
+  }
+  else {
+    // Get SKU attributes.
+    $sku_attributes = alshaya_acm_product_get_sku_configurable_values($sku_entity);
+    $sku_image = alshaya_acm_get_product_display_image($sku_entity, SkuImagesHelper::STYLE_CART_THUMBNAIL, 'cart');
+    $parent_sku = alshaya_acm_product_get_parent_sku_by_sku($sku_entity);
+
+    // Set the cache.
+    $data = [
+      'sku_attributes' => $sku_attributes,
+      'sku_display_image' => $sku_image,
+      'parent_sku' => $parent_sku,
+    ];
+
+    // Set the cache.
+    \Drupal::cache()->set($sku_cart_data_cid, $data, Cache::PERMANENT, $sku_entity->getCacheTags());
+  }
+
+  $name = [];
+
+  // Call AlshayaPromoLabelManager to fetch dynamic promos for current SKU.
+  $promotions = \Drupal::service('alshaya_acm_promotion.label_manager')->getCurrentSkuPromos($sku_entity, 'default');
+
+  if (!$is_free_sku_item) {
+    if ($parent_sku) {
+      /** @var \Drupal\node\Entity\Node $parent_node */
+      $parent_node = alshaya_acm_product_get_display_node($parent_sku->getSKU());
+      if ($parent_node) {
+        $name = [
+          '#title' => $parent_node->getTitle(),
+          '#type' => 'link',
+          '#url' => Url::fromRoute('entity.node.canonical', ['node' => $parent_node->id()]),
+        ];
+      }
+    }
+    else {
+      /** @var \Drupal\node\Entity\Node $product_node */
+      $product_node = alshaya_acm_product_get_display_node($sku_entity);
+      if ($product_node) {
+        $name = [
+          '#title' => $product_node->getTitle(),
+          '#type' => 'link',
+          '#url' => Url::fromRoute('entity.node.canonical', ['node' => $product_node->id()]),
+        ];
+      }
+    }
+  }
+
+  $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+  $item_cart_price = $skuManager->buildCartItemPrice($sku_entity, $cart_item['price']);
+  $total_price = [
+    '#theme' => 'acq_commerce_price',
+    '#price' => $item_cart_price['price'] * $item['quantity']['#default_value'],
+  ];
+  if (!empty($item_cart_price['discount'])) {
+    $total_price['#discount'] = $item_cart_price['discount'];
+    // Remove comma if there in final price as this causes problem and comma
+    // will be added again by the `number_format()`.
+    $item_cart_price['final_price'] = str_replace(',', '', $item_cart_price['final_price']);
+    $total_price['#final_price'] = _alshaya_acm_format_price_with_decimal($item_cart_price['final_price'] * $item['quantity']['#default_value']);
+  }
+
+  // If free gift rule is based on quantity limit (quote_item_qty) then we want
+  // to show coupon details only when threshold is reached.
+  $show_coupon = TRUE;
+  foreach ($promotions as $id => $promotion) {
+    // 'condition_value' is set in promotions only for
+    // rule with 'quote_item_qty' in conditions.
+    $condition_value = $promotion['condition_value'] ?? '';
+    if (!empty($condition_value)) {
+      // Calculate cart quantity.
+      /** @var \Drupal\acq_cart\CartSessionStorage $cart_storage */
+      $cart_storage = \Drupal::service('acq_cart.cart_storage');
+      $cart_items = $cart_storage->getCart(FALSE)->items();
+
+      // If cart is not empty and has matching products.
+      if (!empty($cart_items)) {
+        $eligible_cart_qty = 0;
+        $cart_skus = array_column($cart_items, 'sku');
+        $promotion_node = \Drupal::entityTypeManager()->getStorage('node')->load($id);
+
+        /** @var \Drupal\alshaya_acm_promotion\AlshayaPromoLabelManager $promotionLabelManager */
+        $promotionLabelManager = \Drupal::service('alshaya_acm_promotion.label_manager');
+        $eligibleSKUs = $promotionLabelManager->getPromoEligibleSkus($promotion_node, $cart_skus);
+
+        foreach ($cart_items as $item) {
+          if (in_array($item['sku'], $eligibleSKUs)) {
+            $eligible_cart_qty += $item['qty'];
+          }
+        }
+        $show_coupon = (($condition_value - $eligible_cart_qty) >= 1) ? FALSE : $show_coupon;
+      }
+    }
+  }
+
+  /** @var \Drupal\alshaya_acm_promotion\AlshayaPromotionsManager $promotions_manager */
+  $promotions_manager = \Drupal::service('alshaya_acm_promotion.manager');
+
+  // Extract free gift promotions & Add sku title, entity id to the promotions
+  // with free gift skus.
+  $free_gift_promos = $promotions_manager->getPromotionsToShowForSkuInCart(
+    $cart_item['sku'],
+    $coupon_applied_on_cart
+  );
+
+  // If we have free gift promotions linked with the current item, generate
+  // the label for them.
+  $free_gift_cart_promotions = [];
+  if (!empty($free_gift_promos) && $show_coupon) {
+    $free_gift_cart_promotions = [
+      '#theme' => 'free_gift_cart_label',
+      '#promos' => $free_gift_promos,
+    ];
+  }
+
+  // If line item's price is 0, its a free item & set the label for it.
+  $free_gift_label = [];
+  if ($is_free_sku_item &&
+    isset($total_price['#final_price']) && $total_price['#final_price'] == 0) {
+    $total_price = '';
+    $free_gift_label['#markup'] = t('Free Gift with Purchase');
+  }
+
+  if (empty($name)) {
+    if ($is_free_sku_item) {
+      /** @var \Drupal\node\Entity\Node $product_node */
+      $product_node = alshaya_acm_product_get_display_node($sku_entity);
+      $name = [
+        '#title' => $product_node ? $product_node->getTitle() : $sku_entity->get('name')->getString(),
+        '#type' => 'link',
+        '#url' => Url::fromRoute('alshaya_acm_promotion.free_gift_modal',
+          [
+            'acq_sku' => $sku_entity->id(),
+            'js' => 'nojs',
+          ]),
+        '#attributes' => [
+          'class' => ["use-ajax above-mobile-block"],
+          'data-dialog-type' => "modal",
+          'data-dialog-options' => '{"width":"auto"}',
+        ],
+      ];
+    }
+    else {
+      $name = [
+        '#markup' => $sku_entity->get('name')->getString(),
+      ];
+    }
+  }
+
+  return [
+    '#theme' => 'alshaya_cart_product_name',
+    '#sku_attributes' => $sku_attributes,
+    '#name' => $name,
+    '#promotions' => $promotions,
+    '#free_gift_promos' => $free_gift_cart_promotions,
+    '#image' => $sku_image,
+    '#total_price' => $total_price,
+    '#item_code' => $sku_entity->getSku(),
+    '#free_gift_label' => !empty($free_gift_label) ? $free_gift_label : '',
+    '#is_free_gift_item' => $is_free_sku_item,
+  ];
+}
+
+/**
+ * Helper function to handle out of stock check for cart item.
+ *
+ * @param \Drupal\acq_sku\Entity\SKU $sku_entity
+ *   SKU entity of the form item.
+ * @param array $item
+ *   Form item array.
+ * @param string $out_of_stock_message
+ *   Out of stock message.
+ */
+function _alshaya_acm_check_cart_item_stock(SKU $sku_entity, array &$item, &$out_of_stock_message, $max_sale_qty) {
+  $item_stock_error = '';
+  $selected_quantity = $item['quantity']['#default_value'];
+
+  /** @var \Drupal\alshaya_acm_product\SkuManager $skuManager */
+  $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+
+  // If item is not available in stock.
+  if ($quantity = $skuManager->getStockQuantity($sku_entity)) {
+    // Maximum to show show in quantity dropdown.
+    $cart_quantity = $quantity;
+
+    if ($selected_quantity > $quantity) {
+      $out_of_stock_message = t('Sorry, one or more products in your basket are no longer available. Please review your basket in order to checkout securely.');
+      $item_stock_error = t('This product is not available in the selected quantity. Please adjust the quantity to proceed.');
+    }
+    elseif (!empty($max_sale_qty)) {
+      // Use lower value for showing in quantity dropdown.
+      $cart_quantity = ($max_sale_qty < $quantity) ? $max_sale_qty : $quantity;
+
+      /** @var \Drupal\alshaya_acm_product\Service\ProductOrderLimit $productOrderLimit */
+      $productOrderLimit = \Drupal::service('alshaya_acm_product.product_order_limit');
+      // Get product qty in cart for variant considering parent as well.
+      $current_variant_in_cart_qty = $productOrderLimit->getCartItemQtyLimit($sku_entity->getSku());
+
+      if ($current_variant_in_cart_qty > $max_sale_qty) {
+        $item['#attributes']['class'][] = 'sku-max-quantity-limit-reached';
+      }
+    }
+
+    // We display dropdown with selected quantity to avoid confusions.
+    $cart_quantity = ($selected_quantity > $cart_quantity)
+      ? $selected_quantity
+      : $cart_quantity;
+
+    $item['quantity']['#options'] = _alshaya_acm_get_cart_quantity_options($cart_quantity, $selected_quantity);
+  }
+  else {
+    $out_of_stock_message = t('Sorry, one or more products in your basket are no longer available. Please review your basket in order to checkout securely.');
+    $item_stock_error = t('This product is out of stock. Please remove to proceed.');
+
+    $item['#attributes']['class'][] = 'sku-out-stock';
+
+    // We display dropdown with selected quantity to avoid confusions.
+    $item['quantity']['#options'] = _alshaya_acm_get_cart_quantity_options($selected_quantity);
+  }
+
+  // Add remove link as suffix of quantity.
+  $item['quantity']['#suffix'] .= '<div class="inline-stock-error" id="stock-error-' . str_replace(' ', '-', $sku_entity->getSku()) . '">' . $item_stock_error . '</div>';
+}
+
+/**
+ * Alters the list of admin roles of users to preserve.
+ *
+ * @param array $admin_roles
+ *   A numeric array of admin roles of users to preserve.
+ *
+ * @see \Acquia\Acsf\AcsfDuplicationScrubUserHandler::getOpenIdAdmins()
+ */
+function alshaya_acm_acsf_duplication_scrub_admin_roles_alter(array &$admin_roles) {
+  $admin_roles[] = 'acq_commerce_sync';
+}
+
+/**
+ * Get remove from basket link.
+ *
+ * @param \Drupal\acq_cart\CartInterface $cart
+ *   Cart object.
+ * @param \Drupal\acq_sku\Entity\SKU $sku
+ *   SKU entity.
+ *
+ * @return \Drupal\Core\GeneratedLink|null
+ *   Link or empty string.
+ */
+function alshaya_acm_get_remove_from_basket_link(CartInterface $cart, SKU $sku) {
+  /** @var \Drupal\Core\Access\CsrfTokenGenerator $csrf_token_generator */
+  $csrf_token_generator = \Drupal::service('csrf_token');
+
+  // We use encoded string to handle cases like "MHHW0629 1 6/7Y".
+  $sku_text = base64_encode($sku->getSku());
+  $token = $csrf_token_generator->get($cart->id() . '/' . $sku_text);
+
+  // Add remove link as suffix of quantity.
+  $remove_url = Url::fromRoute('alshaya_acm.cart_remove_sku',
+    [
+      'js' => 'nojs',
+      'sku' => $sku_text,
+      'token' => $token,
+      'coupon' => 'nochange',
+    ],
+    [
+      'attributes' => [
+        'gtm-type' => 'gtm-remove-cart',
+        'class' => 'use-ajax',
+      ],
+    ]
+  );
+
+  \Drupal::moduleHandler()->alter('alshaya_acm_get_remove_from_basket_link', $remove_url, $cart, $sku);
+
+  return $remove_url
+    ? Link::fromTextAndUrl(t('Remove'), $remove_url)->toString()
+    : NULL;
+}
+
+/**
+ * Check if Exception from API response is for OOS products in cart.
+ *
+ * @param \Exception $e
+ *   Exception to check.
+ *
+ * @return bool
+ *   TRUE if exception matches OOS criteria.
+ */
+function _alshaya_acm_is_out_of_stock_exception(\Exception $e) {
+  // We are RELYING ON ERROR MESSAGE FROM MAGENTO.
+  // We use t() to match translated message.
+  // It is contributor's responsibility to add the translation in Magento
+  // and in Drupal.
+  $oos_messages = [
+    t('This product is out of stock.')->render(),
+    t('Some of the products are out of stock.')->render(),
+    t('Not all of your products are available in the requested quantity.')->render(),
+    t("We don't have as many")->render(),
+  ];
+
+  foreach ($oos_messages as $message) {
+    if (str_contains($e->getMessage(), $message)) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+/**
+ * Format the price with decimal.
+ *
+ * @param float $price
+ *   Price to format.
+ * @param string $dec_point
+ *   Decimal point.
+ * @param string $thousands_sep
+ *   Thousand separator.
+ *
+ * @return string
+ *   Formatted price with decimal.
+ */
+function _alshaya_acm_format_price_with_decimal(float $price, string $dec_point = '.', string $thousands_sep = ',') {
+  $decimals = \Drupal::config('acq_commerce.currency')->get('decimal_points');
+  return number_format($price, $decimals, $dec_point, $thousands_sep);
+}
+
+/**
+ * Implements hook_modules_installed().
+ */
+function alshaya_acm_modules_installed($modules) {
+  if (in_array('shield', $modules)) {
+    _alshaya_acm_exclude_sync_from_shield();
+  }
+}
+
+/**
+ * Wrapper function to exclude sync requests from shield.
+ */
+function _alshaya_acm_exclude_sync_from_shield() {
+  if (\Drupal::moduleHandler()->moduleExists('shield')) {
+    $config = \Drupal::configFactory()->getEditable('shield.settings');
+
+    $paths = explode(PHP_EOL, $config->get('paths'));
+
+    // This list contains all the api urls used to post data to Drupal.
+    $paths = array_merge($paths, [
+      '/productsync',
+      '/productstocksync',
+      '/categorysync',
+      '/customer/delete',
+      '/oauth/token',
+      '/rest/session/token',
+      '/rest/v1/product-category-mapping',
+    ]);
+
+    $config->set('paths', implode(PHP_EOL, $paths));
+    $config->save();
+  }
+}
+
+/**
+ * Check if Exception is for Order Limit Exceeded products in cart.
+ *
+ * @param \Exception $e
+ *   Exception to check.
+ *
+ * @return bool
+ *   TRUE if exception matches Order Limit Exceeded criteria.
+ */
+function _alshaya_acm_is_order_limit_exceeded_exception(\Exception $e) {
+  // We are RELYING ON ERROR MESSAGE FROM MAGENTO.
+  // We use t() to match translated message.
+  // It is contributor's responsibility to add the translation in Magento
+  // and in Drupal.
+  $ole_messages = [
+    t('The maximum quantity per item has been exceeded')->render(),
+  ];
+
+  foreach ($ole_messages as $message) {
+    if (str_contains($e->getMessage(), $message)) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter().
+ */
+function alshaya_acm_form_sku_base_form_alter(&$form, FormStateInterface $form_state) {
+  $config = \Drupal::config('alshaya_acm.cart_config');
+  $form['#cache']['tags'] = Cache::mergeTags($form['#cache']['tags'] ?? [], $config->getCacheTags());
+
+  $featureStatus = $config->get('checkout_feature') ?? 'enabled';
+  if ($featureStatus === 'disabled') {
+    $form['add_to_cart']['#access'] = FALSE;
+    $form['quantity']['#access'] = FALSE;
+
+    $form['not_buyable_message'] = [
+      '#weight' => $form['add_to_cart']['#weight'] ?? 100,
+      '#type' => 'markup',
+      '#markup' => '<p class="not-buyable-message">' . t('Add to bag is temporarily unavailable') . '</p>',
+    ];
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_view_alter().
+ */
+function alshaya_acm_node_view_alter(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display) {
+  if (($entity->bundle() == 'acq_product')) {
+    $config = \Drupal::config('alshaya_acm.cart_config');
+    $build['#cache']['tags'] = Cache::mergeTags($build['#cache']['tags'] ?? [], $config->getCacheTags());
+
+    $featureStatus = $config->get('checkout_feature') ?? 'enabled';
+    if ($featureStatus === 'disabled') {
+      $build['#attributes']['class'][] = 'checkout-disabled';
+    }
+  }
+}

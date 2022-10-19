@@ -1,0 +1,38 @@
+.is-not-buyable,
+.addtobag-config-button,
+.addtobag-button {
+  text-transform: uppercase;
+  border-radius: rem(3);
+  font-family: $alshaya-bold;
+  color: $primary_btn_text;
+  border: rem(1) solid $btn_border;
+
+
+  @include normal-arabic-letter-spacing;
+}
+
+.addtobag-button {
+  border: 0;
+
+  &:hover {
+    opacity: 0.75;
+  }
+}
+
+.product-drawer-content-wrapper .config-form-addtobag-button {
+  border: 0;
+
+  &:hover {
+    background: $primary_btn_bg;
+  }
+}
+
+.qty-sel-btn {
+  border-radius: 0;
+}
+
+.is-not-buyable {
+  &:hover {
+    color: $primary_btn_text;
+  }
+}

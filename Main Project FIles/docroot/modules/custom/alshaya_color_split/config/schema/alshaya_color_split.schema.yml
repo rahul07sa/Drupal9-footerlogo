@@ -1,0 +1,10 @@
+alshaya_color_split.settings:
+  type: config_object
+  label: 'Color split settings'
+  mapping:
+    color_label_cart_form:
+      type: string
+      label: 'Color label cart form'
+    process_swatch_for_grouping_attributes:
+      type: boolean
+      label: 'Process to show swatch for grouping attributes'

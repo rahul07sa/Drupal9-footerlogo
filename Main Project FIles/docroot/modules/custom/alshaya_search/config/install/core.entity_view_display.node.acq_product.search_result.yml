@@ -1,0 +1,35 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - core.entity_view_mode.node.search_result
+    - field.field.node.acq_product.body
+    - field.field.node.acq_product.field_category
+    - field.field.node.acq_product.field_meta_tags
+    - field.field.node.acq_product.field_product_color
+    - field.field.node.acq_product.field_skus
+    - node.type.acq_product
+  module:
+    - alshaya_acm_product
+    - user
+third_party_settings: { }
+id: node.acq_product.search_result
+targetEntityType: node
+bundle: acq_product
+mode: search_result
+content:
+  field_skus:
+    type: sku_gallery_formatter
+    weight: 0
+    region: content
+    label: hidden
+    settings:
+      view_mode: default
+    third_party_settings: {  }
+hidden:
+  body: true
+  field_category: true
+  field_meta_tags: true
+  field_product_color: true
+  langcode: true
+  links: true

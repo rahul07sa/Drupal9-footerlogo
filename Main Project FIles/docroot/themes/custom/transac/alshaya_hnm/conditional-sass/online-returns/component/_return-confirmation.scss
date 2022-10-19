@@ -1,0 +1,37 @@
+.return-confirmation-wrapper {
+  .order-details-button-wrapper {
+    a {
+      font-family: $hnm-demibold;
+      text-transform: uppercase;
+    }
+  }
+
+  .refund-success-message {
+    font-family: $hnm-demibold;
+  }
+
+  .whats-next-section {
+    .whats-next-wrapper {
+      .title {
+        font-family: $hnm-demibold;
+      }
+    }
+  }
+
+  .return-details-section {
+    .return-confirmation-detail-wrapper {
+      padding: rem(24) rem(25) rem(14);
+
+      .return-request-date {
+        html[lang='ar'] & {
+          direction: ltr;
+          text-align: right;
+        }
+      }
+    }
+
+    .return-note-label {
+      margin: rem(16) rem(25);
+    }
+  }
+}

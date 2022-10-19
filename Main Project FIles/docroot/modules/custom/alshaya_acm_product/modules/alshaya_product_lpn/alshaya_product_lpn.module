@@ -1,0 +1,203 @@
+<?php
+
+/**
+ * @file
+ * Contains general hooks and alters.
+ */
+
+use Drupal\acq_sku\Plugin\AcquiaCommerce\SKUType\Configurable;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\acq_sku\Entity\SKU;
+use Drupal\Core\Cache\Cache;
+
+/**
+ * Implements hook_page_attachments().
+ */
+function alshaya_product_lpn_page_attachments(array &$page) {
+  $config = \Drupal::config('alshaya_product_lpn.settings');
+  $lpn_attribute = $config->get('lpn_attribute')
+    ? 'attr_' . $config->get('lpn_attribute')
+    : '';
+
+  $page['#attached']['drupalSettings']['lpn'] = [
+    'lpn_attribute' => $lpn_attribute,
+  ];
+
+  $page['#attached']['drupalSettings']['hidden_form_attributes'][] = $config->get('lpn_attribute');
+  $page['#cache']['tags'] = Cache::mergeTags($page['#cache']['tags'] ?? [], $config->getCacheTags());
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter().
+ */
+function alshaya_product_lpn_form_sku_base_form_alter(&$form, FormStateInterface $form_state) {
+  // Get lpn_attribute id from config.
+  $lpn_attribute = \Drupal::config('alshaya_product_lpn.settings')->get('lpn_attribute') ?? '';
+
+  // Hide the LPN attribute.
+  if (!empty($lpn_attribute) && isset($form['ajax']['configurables'][$lpn_attribute])) {
+    $form['ajax']['configurables'][$lpn_attribute]['#prefix'] = '<div class="hidden">';
+    $form['ajax']['configurables'][$lpn_attribute]['#suffix'] = '</div>';
+    $form['ajax']['configurables'][$lpn_attribute]['#weight'] = 999;
+  }
+}
+
+/**
+ * Implements hook_acq_sku_configurable_variants_alter().
+ *
+ * Remove the child product having all same attributes but
+ * belongs to new season to ensure old season products are sold first.
+ */
+function alshaya_product_lpn_acq_sku_configurable_variants_alter(array &$children, SKU $sku) {
+  // Get lpn_attribute id from config.
+  $lpn_attribute = \Drupal::config('alshaya_product_lpn.settings')->get('lpn_attribute') ?? '';
+
+  if (empty($lpn_attribute)) {
+    return;
+  }
+
+  $configurable_attribute_codes = Configurable::getConfigurableAttributeCodes($sku);
+
+  // Do not process further if we don't have lpn_attribute as
+  // configurable_attribute for the product.
+  if (!in_array($lpn_attribute, $configurable_attribute_codes)) {
+    return;
+  }
+
+  $children_flat = [];
+  $season_code_values = [];
+
+  /** @var \Drupal\acq_sku\Entity\SKU $child */
+  foreach ($children as $child_sku => $child) {
+    $parent = $child->getPluginInstance()->getParentSku($child);
+
+    // Ignore children for which we do not have a parent available yet.
+    if (!($parent instanceof SKU)) {
+      continue;
+    }
+
+    $attributes = $child->get('attributes')->getValue();
+    $attributes = array_column($attributes, 'value', 'key');
+
+    $non_lpn_attribute_values = [];
+    foreach ($configurable_attribute_codes as $code) {
+      if ($code === $lpn_attribute) {
+        continue;
+      }
+
+      $non_lpn_attribute_values[$code] = $attributes[$code];
+    }
+
+    $non_lpn_attribute_values = implode('|', $non_lpn_attribute_values);
+
+    // This here will give us the internal id of season code value/label.
+    $child_lpn_key = $attributes[$lpn_attribute];
+
+    if (empty($season_code_values[$child_lpn_key])) {
+      // We will need to do this once for every parent to ensure we consider
+      // different season codes available in same size of different colors.
+      // phpcs:ignore
+      $configurations = unserialize($parent->get('field_configurable_attributes')->getString());
+      foreach ($configurations as $configuration) {
+        if ($lpn_attribute == $configuration['code']) {
+          foreach ($configuration['values'] as $value) {
+            $season_code_values[$value['value_id']] = $value['label'];
+          }
+        }
+      }
+    }
+
+    // We need to use the actual label for sorting (201, 202, etc.) instead
+    // of internal ids.
+    $child_lpn_value = $season_code_values[$child_lpn_key];
+
+    // Group children per parent.
+    // We do not want to group color blue size small season 2 with color red
+    // size small season 3.
+    $children_flat[$parent->getSku()][$non_lpn_attribute_values][$child_lpn_value] = $child_sku;
+  }
+
+  foreach ($children_flat as $product_children) {
+    foreach ($product_children as $children_group) {
+      // Sort by season code value.
+      ksort($children_group);
+
+      // We need to show the first in-stock one.
+      array_shift($children_group);
+
+      // Remove all other season code children.
+      foreach ($children_group as $new_season_child) {
+        unset($children[$new_season_child]);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function alshaya_product_lpn_module_implements_alter(&$implementations, $hook) {
+  // Call the alshaya_product_lpn_acq_sku_configurable_variants_alter at end.
+  if ($hook === 'acq_sku_configurable_variants_alter') {
+    $group = $implementations['alshaya_product_lpn'];
+    unset($implementations['alshaya_product_lpn']);
+    $implementations['alshaya_product_lpn'] = $group;
+  }
+}
+
+/**
+ * Compare Season code 1 and 2 value.
+ *
+ * @param array $season_codes
+ *   Season codes value_id, value array.
+ * @param string $code_id_1
+ *   Season code 1 value id.
+ * @param string $code_id_2
+ *   Season code 2 value id.
+ *
+ * @return bool
+ *   Comparison season_code1, season_code2 true or false.
+ */
+function _alshaya_product_lpn_compare_season_codes(array $season_codes, $code_id_1, $code_id_2) {
+  // Get Season code value from value id.
+  $season_code1 = $season_codes[$code_id_1];
+  $season_code2 = $season_codes[$code_id_2];
+
+  // Split code to get year for each code.
+  $season_code1_year = substr($season_code1, 0, 2);
+  $season_code2_year = substr($season_code2, 0, 2);
+
+  $flag = FALSE;
+
+  // If season code 1 year > season code 2 year
+  // then season code 2 will shown.
+  if ($season_code1_year > $season_code2_year) {
+    $flag = TRUE;
+  }
+  elseif ($season_code2_year > $season_code1_year) {
+    // Season code 1 will shown.
+    $flag = FALSE;
+  }
+
+  if ($season_code1_year == $season_code2_year) {
+    // Get season code digit for each code.
+    $season_code1_digit = $season_code1[strlen($season_code1) - 1] == 0 ? 10 : $season_code1[strlen($season_code1) - 1];
+    $season_code2_digit = $season_code2[strlen($season_code2) - 1] == 0 ? 10 : $season_code2[strlen($season_code2) - 1];
+
+    // If season code 1 digit > season code 2 digit
+    // then season code 2 will be shown.
+    if ($season_code1_digit > $season_code2_digit) {
+      $flag = TRUE;
+    }
+    elseif ($season_code2_digit > $season_code1_digit) {
+      // Season code 1 will be shown.
+      $flag = FALSE;
+    }
+    else {
+      // If both digit are same then season code 1 will shown.
+      $flag = FALSE;
+    }
+  }
+
+  return $flag;
+}

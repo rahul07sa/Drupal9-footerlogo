@@ -1,0 +1,61 @@
+.region-page-header .site__logo {
+  display: table;
+  padding: 1.25rem 0 0.75rem;
+  margin: 0;
+  height: auto;
+  text-align: center;
+  width: 100%;
+
+  @include breakpoint($upto-palm) {
+    margin: 0 auto;
+    padding: 0.3125rem 0 0;
+  }
+
+  a {
+    display: table-cell;
+    vertical-align: middle;
+  }
+
+  img {
+    @include breakpoint($upto-palm) {
+      width: 4.5rem;
+    }
+
+    @include breakpoint($lap) {
+      max-height: none;
+    }
+
+    @include breakpoint($desk) {
+      max-height: none;
+      padding: 0;
+      height: 6.0625rem;
+      width: 100%;
+    }
+  }
+}
+
+header[role="banner"] {
+  position: fixed;
+  width: 100%;
+  display: block;
+  background: $white;
+  margin: 0;
+  padding: 0;
+  left: 0;
+  top: 0;
+  z-index: $z-9;
+
+  @include breakpoint($upto-palm) {
+    height: 3.313rem;
+  }
+}
+
+main[role="main"] {
+  @include breakpoint($lap) {
+    margin-top: 12.75rem;
+  }
+
+  @include breakpoint($desk) {
+    margin-top: 14.0625rem;
+  }
+}

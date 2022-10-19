@@ -1,0 +1,18 @@
+services:
+  alshaya_algoila_react.alshaya_algolia_react_config:
+    class: Drupal\alshaya_algolia_react\Services\AlshayaAlgoliaReactConfig
+    arguments:
+     - '@config.factory'
+     - '@language_manager'
+     - '@facets.manager'
+     - '@alshaya_acm_product.sku_images_manager'
+     - '@entity_type.manager'
+     - '@alshaya_acm_product_position.sort_labels'
+     - '@alshaya_acm_product_position.sort_options'
+     - '@alshaya_acm_product.context_manager'
+     - '@alshaya_options_list.alshaya_options_service'
+     - '@module_handler'
+     - '@alshaya_acm_product.delivery_options_helper'
+
+  alshaya_algolia_react.helper:
+    class: Drupal\alshaya_algolia_react\Services\AlshayaAlgoliaReactHelper

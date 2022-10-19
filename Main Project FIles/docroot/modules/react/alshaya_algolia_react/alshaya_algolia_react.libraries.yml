@@ -1,0 +1,94 @@
+autocomplete:
+  js:
+    dist/autocomplete.js: {}
+  dependencies:
+    - alshaya_algolia_react/vendor
+    - alshaya_algolia_react/search_insights_listing
+    - alshaya_algolia_react/algolia_common
+
+vendor:
+  js:
+    dist/algolia.bundle.js: {}
+    js/alshaya_algolia_react.js: {}
+  dependencies:
+    - core/jquery.once
+    - alshaya_react/react
+    - alshaya_algolia_react/back_to_search
+    - alshaya_search_api/product_height
+
+search_insights_listing:
+  js:
+    js/search-insights.listing.js: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.once
+    - alshaya_algolia_react/search_insights
+
+search_insights_detail:
+  js:
+    js/search-insights.detail.js: {}
+  dependencies:
+    - core/jquery.once
+    - alshaya_master/common_functions
+    - alshaya_algolia_react/search_insights
+
+search_insights:
+  js:
+    js/algolia/search-insights.js: { scope: footer }
+    js/search-insights.common.js: {}
+  dependencies:
+    - core/drupalSettings
+    - core/jquery.cookie
+    - alshaya_master/local_storage_manager
+
+plp:
+  js:
+    dist/plp.js: {}
+    js/alshaya_algolia_plp.js: {}
+    js/alshaya_algolia_subcategory_scroll.js: {}
+  dependencies:
+    - core/drupalSettings
+    - alshaya_algolia_react/algolia_common
+    - core/jquery.once
+
+plpv2:
+  js:
+    dist/plpv2.js: {}
+    js/alshaya_algolia_plp.js: {}
+  dependencies:
+    - core/drupalSettings
+    - alshaya_algolia_react/algolia_common
+
+product_category_carousel:
+  js:
+    dist/productCategoryCarousel.js: {}
+  dependencies:
+    - core/drupalSettings
+    - alshaya_acm_product_category/product_carousel_utility
+
+product_category_carousel_rcs:
+  js:
+    dist/ProductCategoryCarouselRcs.js: {}
+  dependencies:
+    - core/drupalSettings
+
+algolia_common:
+  js:
+    js/alshaya_algolia_global.js: {}
+  dependencies:
+    - core/jquery
+    - alshaya_master/jquery_is_in_viewport
+    - alshaya_master/local_storage_manager
+
+back_to_plp:
+  js:
+    js/back_to_plp.js: {}
+  dependencies:
+    - alshaya_master/jquery_is_in_viewport
+
+back_to_search:
+  js:
+    js/back_to_search.js: {}
+  dependencies:
+    - alshaya_algolia_react/algolia_common
+    - alshaya_master/jquery_is_in_viewport

@@ -1,0 +1,420 @@
+.user-page {
+  &.c-user-password {
+    padding: 1.563rem 0;
+  }
+
+  .c-sidebar-second,
+  #block-youllbeableto {
+    h3 {
+      @include arabic-letter-spacing;
+
+      color: $user_block_title;
+      font-size: 0.875rem;
+      font-family: $hnm-demibold;
+      letter-spacing: 0.4px;
+      line-height: 1.29;
+      text-transform: none;
+    }
+  }
+
+  #block-youllbeableto {
+    margin-top: 0.5rem;
+
+    @include breakpoint($only-tablet) {
+      margin-top: -0.5rem;
+    }
+
+    @include breakpoint($only-mobile) {
+      margin-top: 5.5rem;
+    }
+
+    a {
+      font-weight: normal;
+    }
+  }
+
+  #block-jointheclub {
+    h3 {
+      color: $user_block_link;
+      font-family: $hnm-demibold;
+      margin-bottom: 0.1rem;
+    }
+
+    a {
+      font-weight: normal;
+      margin-top: 1em;
+      display: inline-block;
+    }
+
+    p {
+      font-size: 0.875rem;
+    }
+  }
+
+  #block-onlineexclusiveheadingovertwolinesneverthree {
+    display: none;
+
+    @include breakpoint($tablet) {
+      display: block;
+    }
+
+    a {
+      font-weight: normal;
+      color: $user_block_link;
+      text-decoration: underline;
+      font-family: $hnm-demibold;
+    }
+
+    .field--name-body {
+      font-size: 0.875rem;
+    }
+
+    p {
+      line-height: 1.5;
+    }
+  }
+
+  .form-wrapper,
+  .form-item {
+    @include breakpoint($desktop) {
+      margin-top: 3.125rem;
+    }
+  }
+
+  #edit-account {
+    @include breakpoint($desktop) {
+      margin-top: 3.813rem;
+    }
+  }
+
+  .user-form,
+  .user-login-form,
+  .user-pass,
+  .multistep-checkout {
+    .form-submit {
+      background: $hnm-black-three;
+      font-family: $hnm_demibold;
+      text-transform: uppercase;
+      font-size: 0.8125rem;
+
+      &:hover {
+        background: $gray44;
+      }
+    }
+
+    label.option {
+      p {
+        a {
+          font-weight: normal;
+        }
+      }
+    }
+
+    input.error {
+      border-color: $primary_input_inline_error !important;
+      border-width: 0 0 0.125rem !important;
+    }
+
+    label.form-required:not(.error),
+    .form-type-textfield label:not(.error),
+    .field--name-field-privilege-card-number label:not(.error),
+    .form-item-privilege-card-number label:not(.error),
+    .form-item-privilege-card-number2 label:not(.error) {
+      color: $primary_input_label_hnm;
+    }
+
+    .form-item {
+      input {
+        background-color: $default_background_color;
+        color: $primary_input !important;
+        letter-spacing: normal !important;
+      }
+
+      label {
+        color: $primary_input_label !important;
+        font-size: 0.8125rem !important;
+
+        &.error {
+          color: $primary_input_inline_error !important;
+          font-size: 0.6875rem;
+          background: $default_background_color !important;
+          bottom: -1.5rem;
+        }
+      }
+    }
+  }
+
+  #edit-checkout-terms {
+    margin-top: 0;
+  }
+
+  &.c-user-register {
+    #edit-account {
+      @include breakpoint($desktop) {
+        margin-top: 0;
+      }
+    }
+  }
+}
+
+.user-login-form {
+  & > a {
+    font-weight: normal;
+    color: $hnm-black-three;
+    font-family: $hnm-regular;
+    font-size: 0.8125rem;
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    &:hover:active {
+      color: $default-anchor-link-hover;
+      text-decoration: none;
+    }
+  }
+}
+
+.c-content {
+  .c-content__region {
+    .user-login-form {
+      p {
+        font-size: rem(11);
+        color: $user_field_link;
+        margin-top: rem(26);
+
+        a {
+          color: $user_field_link;
+          font-family: $hnm-regular;
+          text-decoration: underline;
+          font-weight: normal;
+
+          &:hover {
+            color: $login_tnc_link_hover;
+          }
+        }
+      }
+    }
+  }
+}
+
+#block-youllbeableto,
+#block-jointheclub {
+  a {
+    color: $user_block_link !important;
+    text-decoration: underline;
+    font-family: $hnm-demibold;
+  }
+}
+
+.alias--user-password {
+  .user-page {
+    .user-pass {
+      input[type=submit] {
+        @include breakpoint($tablet) {
+          min-width: 5.688rem;
+          width: auto;
+        }
+      }
+    }
+  }
+}
+
+#block-content {
+  .order-items {
+    li {
+      .order-list-wrapper-container {
+        .second-third {
+          @include breakpoint($desktop) {
+            > div {
+              vertical-align: middle;
+            }
+          }
+        }
+
+        .light {
+          font-family: $hnm-regular;
+        }
+
+        .dark {
+          @include arabic-letter-spacing;
+
+          font-family: $hnm-demibold;
+          font-weight: normal;
+        }
+
+        .date {
+          html[lang='ar'] & {
+            direction: ltr;
+            text-align: right;
+          }
+        }
+      }
+
+      a.order-detail-page {
+        position: absolute;
+        padding: 0.125rem;
+        padding-#{$left}: 0.25rem;
+        top: 2rem;
+        height: 2.1875rem;
+        width: 2.1875rem;
+        font-size: 1.25rem;
+
+        @include breakpoint($only-mobile) {
+          #{$right}: 3.125rem;
+          top: 50%;
+          background-color: transparent;
+        }
+
+        @include icon(arrow-#{$right}, after) {
+          font-size: 1.25rem;
+        }
+      }
+    }
+  }
+}
+
+//Email verification page.
+.alias--user-register-complete {
+  .c-page-title {
+    font-family: $hnm-demibold;
+
+    @include breakpoint($only-tablet) {
+      padding-bottom: 1rem;
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+  }
+
+  #block-content {
+    @include breakpoint($only-tablet) {
+      padding: 0 1rem;
+    }
+  }
+}
+
+.change-pwd-form {
+  .form-wrapper {
+    .form-text {
+      @include arabic-letter-spacing;
+
+      margin-top: 0;
+    }
+
+    .form-item {
+      margin-top: 2.7em;
+    }
+
+    .form-item-pass {
+      margin-top: 2.563rem;
+    }
+  }
+
+  input {
+    background-color: $default_background_color;
+    color: $primary_input !important;
+  }
+
+  label {
+    color: $primary_input_label !important;
+    font-size: 0.8125rem !important;
+
+    &.error {
+      color: $primary_input_inline_error !important;
+      font-size: 0.6875rem;
+      background: $default_background_color !important;
+    }
+  }
+}
+
+.c-change-password {
+  input {
+    html[lang=ar] & {
+      font-family: $hnm-regular-nodir;
+    }
+  }
+}
+
+.path--user {
+  .c-order-help .field--name-body {
+    color: $myaccountneedhelp_text;
+    overflow: hidden;
+    font-size: 0;
+    background: $info;
+
+    p,
+    ul {
+      @include breakpoint($tablet) {
+        width: 50%;
+      }
+    }
+
+    p {
+      font-family: $hnm-bold;
+      font-weight: normal;
+
+      @include breakpoint($only-tablet) {
+        float: $left;
+      }
+
+      @include breakpoint($desktop) {
+        width: 33.5%;
+      }
+    }
+
+    ul {
+      @include breakpoint($desktop) {
+        width: 65%;
+      }
+    }
+
+    a {
+      color: $myaccountneedhelp_text;
+      font-family: $hnm-regular;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+.privilege-card-wrapper {
+  .privilege-card-wrapper-title {
+    color: $privilege_card_title;
+    font-family: $hnm-demibold;
+  }
+}
+
+.c-input__privilege-card {
+  html[lang=ar] & {
+    font-family: $hnm-regular-nodir;
+  }
+}
+
+.user-page.c-user-register-complete {
+  border-top: none;
+  margin: 1rem auto 2rem;
+  padding: 1rem;
+
+  main {
+    width: 100%;
+
+    p {
+      font-size: 0.8125rem;
+    }
+
+    a {
+      font-family: $hnm-demibold;
+      font-weight: normal;
+      color: $user_block_link;
+      text-decoration: underline;
+    }
+  }
+}
+
+#unmask_password {
+  text-transform: uppercase;
+  font-family: $hnm-demibold;
+  color: $hnm-black-three;
+}

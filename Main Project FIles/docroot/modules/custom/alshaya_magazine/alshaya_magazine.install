@@ -1,0 +1,72 @@
+<?php
+
+/**
+ * @file
+ * Install file.
+ */
+
+/**
+ * Implements hook_update_dependencies().
+ */
+function alshaya_magazine_update_dependencies() {
+  return [
+    'alshaya_magazine' => [
+      8001 => [
+        'alshaya_seo_transac' => 8408,
+      ],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Configure sitemap bundle settings again for magazine_article.
+ */
+function alshaya_magazine_update_8001() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['simple_sitemap.bundle_settings.default.node.magazine_article'],
+    'alshaya_magazine'
+  );
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_magazine_install() {
+  $strings = [
+    'all filters' => [
+      'ar' => 'جميع اختياراتك',
+    ],
+    'Magazine' => [
+      'ar' => 'المجلة',
+    ],
+    'read the story' => [
+      'ar' => 'اقرأ المقال',
+    ],
+    'Back to feed' => [
+      'ar' => 'الرجوع إلى قائمة المقالات',
+    ],
+    'Shop the story' => [
+      'ar' => 'تسوق منتجات المقال',
+    ],
+    'Load More Content' => [
+      'ar' => 'حمل مزيد من المحتوى',
+    ],
+    'READ H&M MAGAZINE' => [
+      'ar' => 'اقرأ مجلة اتش آند ام',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+
+  // Get current default theme.
+  $current_theme = \Drupal::config('system.theme')->get('default');
+
+  // Move blocks to current default theme.
+  if (!empty($current_theme)) {
+    alshaya_block_move_blocks_theme_to_theme($current_theme, 'alshaya_white_label');
+  }
+}

@@ -1,0 +1,50 @@
+.filter-fixed-top {
+  .sticky-filter-wrapper {
+    @include breakpoint($desktop) {
+      .c-facet {
+        &.c-accordion {
+          .c-accordion__title {
+            color: $lhn_sticky-filter-title;
+          }
+        }
+      }
+
+      .block-views-exposed-filter-blocksearch-page legend {
+        color: $lhn_sticky-filter-title;
+      }
+
+      // Sort by filter widget on sticky header.
+      .views-exposed-form.bef-exposed-form .form--inline .form-item legend {
+        .fieldset-legend {
+          color: $lhn_sticky-filter-title;
+        }
+
+        &::after {
+          color: $lhn_sticky-filter-title;
+        }
+      }
+    }
+
+    @include breakpoint($tablet) {
+      background: $lhn_sticky-filter-background_desktop;
+
+      .show-all-filters {
+        color: $lhn_sticky-filter-title;
+
+        &::before {
+          color: $lhn_sticky-filter-title_icon;
+        }
+      }
+    }
+  }
+}
+
+.c-plp .block-facets-summary-blockfilter-bar {
+  .filter-list-label {
+    text-transform: capitalize;
+  }
+
+  ul li a span.facet-item__value {
+    text-transform: uppercase !important;
+  }
+}

@@ -1,0 +1,31 @@
+alshaya_acm_checkout.checkout_settings_form:
+  path: '/admin/commerce/config/checkout-settings'
+  defaults:
+    _form: '\Drupal\alshaya_acm_checkout\Form\CheckoutSettingsForm'
+    _title: 'Checkout Settings'
+  requirements:
+    _permission: 'access commerce administration pages'
+
+alshaya_acm_checkout.use_delivery_address:
+  path: 'checkout-delivery/use-address/{profile}'
+  defaults:
+    _controller: '\Drupal\alshaya_acm_checkout\Controller\CheckoutController::useAddress'
+    _title: ''
+  requirements:
+    _custom_access: '\Drupal\acq_checkout\Controller\CheckoutController::checkAccess'
+
+alshaya_acm_checkout.edit_delivery_address:
+  path: 'checkout-delivery/edit-address/{profile}'
+  defaults:
+    _controller: '\Drupal\alshaya_acm_checkout\Controller\CheckoutController::editAddress'
+    _title: ''
+  requirements:
+    _custom_access: '\Drupal\acq_checkout\Controller\CheckoutController::checkAccess'
+
+alshaya_acm_checkout.select_payment_method:
+  path: 'checkout-payment/select-payment-method'
+  defaults:
+    _controller: '\Drupal\alshaya_acm_checkout\Controller\CheckoutController::selectPaymentMethod'
+    _title: ''
+  requirements:
+    _custom_access: '\Drupal\acq_checkout\Controller\CheckoutController::checkAccess'

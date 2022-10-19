@@ -1,0 +1,21 @@
+alshaya_seo.google_knowledge_graph_form:
+  path: '/admin/config/search/google-knowledge-graph'
+  defaults:
+    _form: '\Drupal\alshaya_seo\Form\GoogleKnowledgeGraphConfigForm'
+    _title: 'Google Knowledge Graph'
+  requirements:
+    _permission: 'access google knowledge graph'
+alshaya_seo.settings:
+  path: '/admin/seo-settings'
+  defaults:
+    _controller: '\Drupal\system\Controller\SystemController::systemAdminMenuBlockPage'
+    _title: 'SEO Settings'
+  requirements:
+    _role: 'seo_admin'
+alshaya_seo.sitelink_search_form:
+  path: '/admin/config/search/sitelink-search'
+  defaults:
+    _form: '\Drupal\alshaya_seo\Form\SitelinkSearchConfigForm'
+    _title: 'Sitelink Search'
+  requirements:
+    _permission: 'administer site configurations'

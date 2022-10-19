@@ -1,0 +1,91 @@
+.c-menu-secondary {
+  text-transform: none;
+
+  .menu--account,
+  .block-alshaya-stores-finder,
+  .block-language-blocklanguage-interface,
+  li {
+    height: auto;
+  }
+
+  a {
+    font-size: 0.75rem;
+    padding: 0.875rem 0;
+    display: block;
+    height: auto;
+
+    @include breakpoint($desktop) {
+      padding: 0.875rem;
+    }
+
+    &::before,
+    &::after {
+      content: none !important;
+    }
+  }
+
+  li {
+    @include breakpoint($upto-desktop) {
+      border-bottom: 0;
+    }
+
+    &::after {
+      @include breakpoint($upto-desktop) {
+        font-size: rem(24);
+        #{$right}: rem(-3);
+      }
+    }
+  }
+
+  .block-alshaya-main-menu-super-category {
+    float: $left;
+
+    ul.menu--one__list {
+      background: transparent;
+    }
+
+    ul.menu--one__list a {
+      color: $vanilla;
+      border-bottom: none;
+    }
+  }
+
+  .c-menu-secondary__region {
+    max-width: none;
+    margin: 0;
+  }
+}
+
+.header--wrapper {
+  @include breakpoint($desktop) {
+    height: 2.5rem;
+  }
+}
+
+.block-alshaya-algolia-react-autocomplete {
+  &::before {
+    @include breakpoint($only-tablet) {
+      content: '';
+      background: transparent;
+      position: absolute;
+      z-index: -1;
+      left: 0;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out, background-color 0.5s ease-in-out, z-index 0.5s ease-in-out;
+    }
+  }
+}
+
+// Mobile needs z-index as well.
+body.mobile--overlay .block-alshaya-algolia-react-autocomplete {
+  &::before {
+    @include breakpoint($upto-desktop) {
+      opacity: 1;
+      z-index: 15;
+      background: $header_mobile_menu_overlay;
+    }
+  }
+}

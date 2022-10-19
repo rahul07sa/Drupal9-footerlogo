@@ -1,0 +1,184 @@
+<?php
+
+/**
+ * @file
+ * Install file.
+ */
+
+use Drupal\alshaya_config\AlshayaConfigManager;
+use Drupal\user\Entity\Role;
+use Drupal\user\RoleInterface;
+
+/**
+ * Implements hook_update_N().
+ *
+ * [6.2.0] Removing dm_version from alshaya_addressbook.settings.
+ */
+function alshaya_addressbook_update_8309() {
+  \Drupal::service('alshaya_config.manager')->updateConfigs(
+    ['alshaya_addressbook.settings'],
+    'alshaya_addressbook',
+    'install',
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add max_length alshaya_addressbook.settings.
+ */
+function alshaya_addressbook_update_8308() {
+  \Drupal::service('alshaya_config.manager')->updateConfigs(
+    ['alshaya_addressbook.settings'],
+    'alshaya_addressbook',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+
+  \Drupal::cache('addressbook')->invalidateAll();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add sort order and required in alshaya_addressbook.settings.
+ * Make address fields optional.
+ */
+function alshaya_addressbook_update_8307() {
+  \Drupal::service('alshaya_config.manager')->updateConfigs(
+    ['alshaya_addressbook.settings'],
+    'alshaya_addressbook',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+
+  \Drupal::service('alshaya_config.manager')->updateConfigs(
+    ['field.field.profile.address_book.field_address'],
+    'alshaya_addressbook'
+  );
+
+  \Drupal::cache('addressbook')->invalidateAll();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Make field_address required for Address Profile.
+ */
+function alshaya_addressbook_update_8306() {
+  alshaya_config_install_configs(['field.field.profile.address_book.field_address'], 'alshaya_addressbook');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add mapping for EG and make V2 default and sync areas.
+ * Correct the mapping to handle additional fields in EG
+ * without creating issue for other markets.
+ */
+function alshaya_addressbook_update_8305() {
+  alshaya_config_install_configs(['alshaya_addressbook.settings'], 'alshaya_addressbook');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add prefix_key to alshaya_addressbook.settings.
+ */
+function alshaya_addressbook_update_8304() {
+  \Drupal::service('alshaya_config.manager')
+    ->updateConfigs(
+      ['alshaya_addressbook.settings'],
+      'alshaya_addressbook',
+      'install',
+      AlshayaConfigManager::MODE_ADD_MISSING
+    );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add mapping for AE and make V2 default and sync areas.
+ * Correct the mapping to handle locality in AE without creating issue for KW.
+ */
+function alshaya_addressbook_update_8303() {
+  alshaya_config_install_configs(['alshaya_addressbook.settings'], 'alshaya_addressbook');
+
+  /** @var \Drupal\alshaya_addressbook\AlshayaAddressBookManager $addressbook_manager */
+  $addressbook_manager = \Drupal::service('alshaya_addressbook.manager');
+  $addressbook_manager->syncAreas();
+  $addressbook_manager->resetMagentoFormFields();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update addressbook mapping for kw and sa.
+ * This is here to ensure mapping already added in live sites use the new
+ * config when we move to V2.
+ */
+function alshaya_addressbook_update_8302() {
+  alshaya_config_install_configs(['alshaya_addressbook.settings'], 'alshaya_addressbook');
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function alshaya_addressbook_update_8301() {
+  $configs = [
+    'alshaya_addressbook.settings',
+    'field.storage.taxonomy_term.field_location_id',
+    'field.field.taxonomy_term.area_list.field_location_id',
+    'core.entity_form_display.taxonomy_term.area_list.default',
+  ];
+
+  alshaya_config_install_configs($configs, 'alshaya_addressbook');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Re-create all areas from updated values.
+ */
+function alshaya_addressbook_update_8002() {
+  // Delete all the terms in area_list.
+  $result = \Drupal::entityQuery('taxonomy_term')
+    ->condition('vid', 'area_list')
+    ->execute();
+
+  if ($result) {
+    $term_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+    $terms = $term_storage->loadMultiple($result);
+    $term_storage->delete($terms);
+  }
+
+  // Include the inc file containing all areas.
+  \Drupal::moduleHandler()->loadInclude('alshaya_addressbook', 'inc', 'alshaya_addressbook.areas');
+
+  _alshaya_addressbook_create_area_terms();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Grant view profile permission to all users.
+ */
+function alshaya_addressbook_update_8001() {
+  $role = Role::load(RoleInterface::AUTHENTICATED_ID);
+  $role->grantPermission('view profile');
+  $role->save();
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_addressbook_install() {
+  // Save permission of address_book for authenticated user.
+  $role = Role::load(RoleInterface::AUTHENTICATED_ID);
+  $role->grantPermission('create address_book profile');
+  $role->grantPermission('update own address_book profile');
+  $role->grantPermission('delete own address_book profile');
+  $role->grantPermission('view own address_book profile');
+  $role->grantPermission('view profile');
+  $role->save();
+}

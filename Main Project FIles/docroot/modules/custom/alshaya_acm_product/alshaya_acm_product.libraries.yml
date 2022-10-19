@@ -1,0 +1,82 @@
+product_view:
+  version: 1.x
+  js:
+    js/alshaya_acm_product.js: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.once
+    - core/drupal
+
+product_detail:
+  version: 1.x
+  js:
+    js/alshaya_acm_product.detail.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupalSettings
+    - core/drupal.ajax
+    - core/drupal.dialog.ajax
+    - core/drupal.form
+    - clientside_validation_jquery/cv.jquery.validate
+    - alshaya_master/common_functions
+    - alshaya_acm_product/product_view
+    - alshaya_acm_cart_notification/cart_notification_js
+    - alshaya_white_label/jquery_mobile_touch_swipe
+    - alshaya_white_label/attribute
+    - alshaya_master/local_storage_manager
+
+sku_gallery_format:
+  version: 1.x
+  js:
+    js/sku_gallery_format.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/jquery.once
+
+show_color_images_on_filter:
+  version: 1.x
+  js:
+    js/show_color_images_on_filter.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/jquery.once
+
+sharethis:
+  js:
+    js/sharethis.js: { weight: -3, attributes: { defer: true } }
+  dependencies:
+    - core/jquery.once
+    - core/drupalSettings
+    - alshaya_master/jquery_is_in_viewport
+
+add_free_gift_promotions:
+  version: 1.x
+  js:
+    js/alshaya_acm_product.addfreegift.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupalSettings
+
+acq_product_info:
+  version: 1.x
+  js:
+    js/alshaya_acm_product.pdp.v1.js: {}
+
+product_utility:
+  version: 1.x
+  js:
+    js/alshaya_acm_product.utility.js: {}
+  dependencies:
+    - alshaya_master/common_functions
+
+add_to_bag_utility:
+  version: 1.x
+  js:
+    js/alshaya_acm_add_to_bag.utility.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/drupalSettings
+    - alshaya_master/local_storage_manager

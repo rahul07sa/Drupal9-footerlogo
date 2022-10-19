@@ -1,0 +1,125 @@
+.has--three-levels {
+  .menu--three__list-item > .menu-two__link-wrapper .menu__link {
+    @include breakpoint($desktop) {
+      font-size: 0.75rem !important;
+      text-transform: none;
+    }
+  }
+
+  .menu--two__list {
+    .menu__links__wrapper {
+      @include breakpoint($desktop) {
+        padding-#{$left}: 5.75rem;
+        padding-bottom: 2.5rem;
+      }
+    }
+  }
+}
+
+.menu--two__list {
+  .menu--two__list-item {
+    @include breakpoint($desktop) {
+      padding-bottom: 1.563rem;
+
+      &.has-child {
+        margin-bottom: 0.3125rem;
+      }
+    }
+
+    .menu__link-wrapper {
+      .menu-two__link {
+        @include breakpoint($desktop) {
+          font-size: 0.75rem;
+        }
+      }
+    }
+
+    & > .menu__link-wrapper.menu-two__link-wrapper {
+      @include breakpoint($desktop) {
+        margin-bottom: 0.3125rem !important;
+      }
+    }
+
+    & > .menu-two__link-wrapper {
+      &:hover::after,
+      &::after {
+        content: none;
+      }
+    }
+
+    .menu--three__list {
+      li a:hover {
+        text-decoration: none;
+      }
+    }
+  }
+
+  .highlights {
+    @include breakpoint($desktop) {
+      background: $mm_highlight_bg;
+      margin-#{$right}: 0;
+      padding: 2.5rem;
+      height: 18.4rem;
+      margin-top: -2.55rem;
+    }
+  }
+}
+
+.highlights {
+  img {
+    @include breakpoint($desktop) {
+      display: block;
+    }
+  }
+
+  .highlighted {
+    @include breakpoint($desktop) {
+      margin-#{$right}: 1.5rem;
+    }
+
+    &:last-child {
+      @include breakpoint($desktop) {
+        margin-#{$right}: 0;
+      }
+    }
+
+    a {
+      &:hover {
+        .hightlight__description {
+          text-decoration: none;
+        }
+      }
+    }
+  }
+}
+
+.block-alshaya-main-menu {
+  li.menu--one__list-item {
+    & > ul.menu--two__list {
+      @include breakpoint($desktop) {
+        padding-top: 1.5rem;
+        min-height: 0;
+      }
+    }
+  }
+}
+
+.first--child_open {
+  & > .menu-two__link-wrapper::after {
+    content: none;
+  }
+}
+
+.megamenu-inline-layout {
+  .has--three-levels {
+    @include breakpoint($desktop) {
+      .menu--two__list {
+        .menu__links__wrapper {
+          column-width: 13.2rem;
+          height: 18rem;
+          min-height: 0;
+        }
+      }
+    }
+  }
+}

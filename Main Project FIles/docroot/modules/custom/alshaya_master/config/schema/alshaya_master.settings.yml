@@ -1,0 +1,33 @@
+alshaya_master.theme.*:
+  type: config_object
+  label: 'Alshaya email logo settings'
+  mapping:
+    email_logo_path:
+      type: label
+      label: 'Email logo path'
+    email_logo_url:
+      type: label
+      label: 'Email logo url'
+    mobile_logo_path:
+      type: label
+      label: 'Mobile logo path'
+    mobile_logo_url:
+      type: label
+      label: 'Mobile logo url'
+    langcode:
+      type: string
+      label: 'Language code'
+
+alshaya_master.settings:
+  type: config_object
+  label: 'Alshaya master site settings'
+  mapping:
+    js_disable_message:
+      type: text
+      label: 'Disabled js message'
+    sub_brand_logo_link:
+      type: label
+      label: 'Sub brand logo link'
+    sub_brand_logo_img:
+      type: string
+      label: 'Sub brand logo image'

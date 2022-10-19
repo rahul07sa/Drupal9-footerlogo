@@ -1,0 +1,36 @@
+name: 'Alshaya Paragraphs'
+type: module
+core: 8.x
+core_version_requirement: ^8 || ^9
+description: 'All the paragraphs and its fields and field settings.'
+dependencies:
+  - alshaya_config:alshaya_config
+  - alshaya_image_styles:alshaya_image_styles
+  - alshaya_media:alshaya_media
+  - drupal:block
+  - block_field:block_field
+  - drupal:content_translation
+  - entity_reference_revisions:entity_reference_revisions
+  - drupal:field
+  - drupal:file
+  - drupal:image
+  - inline_entity_form:inline_entity_form
+  - drupal:language
+  - lightning:lightning_core
+  - drupal:link
+  - drupal:options
+  - paragraphs:paragraphs
+  - drupal:path
+  - drupal:responsive_image
+  - drupal:system
+  - drupal:text
+  - drupal:user
+  - drupal:views
+  - field_group:field_group
+  - viewsreference:viewsreference
+  - jquery_minicolors:jquery_minicolors
+  - ckeditor_font:ckeditor_font
+  - allowed_formats:allowed_formats
+  - drupal:link_attributes
+  - drupal:content_moderation
+package: Alshaya

@@ -1,0 +1,161 @@
+.alshaya_search_slider {
+  // Need this in px for JS consistency for slider.
+  width: 15.6875rem;
+  height: 0;
+  margin: 0 auto;
+  position: relative;
+
+  .product-small & {
+    width: 12.5rem;
+  }
+
+  .slick-slider {
+    padding-#{$left}: 0;
+
+    .slick-slide {
+      margin: 0.1875rem;
+      position: relative;
+
+      img {
+        height: 3.75rem;
+        margin: 0 auto;
+        max-width: 3.6875rem;
+
+        .product-small & {
+          height: 2.5rem;
+        }
+      }
+    }
+  }
+
+  // Center non slider thumbnails.
+  ul {
+    & > div.slick-list {
+      & > .slick-track {
+        margin: 0 auto;
+      }
+    }
+
+    &.slick-slider {
+      margin: 0;
+    }
+  }
+}
+
+#hits,
+#plp-hits,
+.view-alshaya-product-list {
+  .c-products__item {
+    .alshaya_search_mainimage {
+      & > img,
+      .img-wrapper img {
+        width: 100%;
+      }
+    }
+
+    .alshaya_search_gallery {
+      .img-wrapper {
+        position: relative;
+        width: 100%;
+      }
+
+      .alshaya_search_slider {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100% !important;
+        height: 100% !important;
+        margin-top: 0;
+        z-index: 1;
+
+        .slick-track {
+          display: flex;
+          align-items: center;
+        }
+
+        .slick-slide {
+          width: 100% !important;
+          margin: 0;
+
+          img {
+            height: auto;
+            width: 100%;
+            max-width: none;
+          }
+        }
+
+        .slick-dots {
+          margin: 0;
+          bottom: 0;
+          width: 100%;
+          background-color: $plp-hover-slider-dot-container-bg-color;
+          height: 0;
+          transition: height 0.2s ease-in-out;
+
+          li {
+            margin: 0 0.25rem;
+            background-color: $plp-hover-slider-dot-color;
+            border: 0;
+            width: 0.25rem;
+            height: 0.25rem;
+
+            button {
+              width: 0.25rem;
+              height: 0.25rem;
+
+              &::before {
+                content: '';
+                width: 0.25rem;
+                height: 0.25rem;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    article:hover {
+      .alshaya_search_gallery {
+        .alshaya_search_mainimage {
+          .slider-wrapper {
+            > img {
+              @include breakpoint($desktop) {
+                visibility: hidden;
+              }
+            }
+          }
+        }
+
+        .alshaya_search_slider {
+          .slick-dots {
+            height: 1rem;
+            transition: height 0.2s ease-in-out;
+            display: flex !important;
+            justify-content: center;
+            align-items: flex-end;
+          }
+
+          img {
+            @include breakpoint($desktop) {
+              visibility: visible;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+.view-alshaya-product-list {
+  .c-products__item {
+    .alshaya_search_gallery {
+      .alshaya_search_slider {
+        .slick-slide {
+          img {
+            max-width: 100%;
+          }
+        }
+      }
+    }
+  }
+}

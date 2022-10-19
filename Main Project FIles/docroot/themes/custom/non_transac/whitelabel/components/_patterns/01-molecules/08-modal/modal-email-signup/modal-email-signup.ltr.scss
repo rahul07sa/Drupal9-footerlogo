@@ -1,0 +1,126 @@
+@import '../../../../sass/config/**/*.scss';
+
+.modal-form-elements-wrapper {
+  .form--content {
+    display: none;
+
+    @include breakpoint($desk) {
+      display: block;
+      float: direction(right);
+      margin-right: 1rem;
+    }
+
+    ul {
+      padding-#{direction(left)}: 1.5rem;
+    }
+
+    li {
+      font-size: 0.75rem;
+    }
+  }
+
+  .mobile-number-field .local-number {
+    direction: ltr;
+    width: 9.375rem;
+
+    &::placeholder {
+      color: transparent;
+    }
+  }
+
+  .form__form-fields {
+    @include breakpoint($upto-palm) {
+      width: 100%;
+    }
+
+    width: 25rem;
+
+    @include breakpoint($desk) {
+      float: direction(left);
+    }
+
+    & > p {
+      font-size: 0.75rem;
+      color: $brownish-grey;
+
+      @include breakpoint($lap) {
+        margin-left: 1rem;
+      }
+
+      a {
+        color: $windows-blue;
+        text-decoration: none;
+      }
+    }
+  }
+
+  .country-select {
+    .mobile-number-flag,
+    .arrow {
+      display: none;
+    }
+  }
+
+  .input--inner__container .option {
+    font-size: 0.75rem;
+    color: $brownish-grey;
+  }
+}
+
+.webform-submission-form {
+  margin-bottom: 1rem;
+
+  .form-actions {
+    clear: both;
+  }
+
+  .webform-button--submit {
+    color: $medium-pink;
+    width: 5.6875rem;
+    height: 2.1875rem;
+    border: 1px solid $medium-pink;
+    background: transparent;
+  }
+}
+
+.captcha {
+  clear: both;
+}
+
+.captcha-inline-error {
+  color: $venetian-red;
+  font-size: 0.75rem;
+  margin-top: 0.3125rem;
+
+  &.form-item--error-message {
+    margin-bottom: 0;
+  }
+}
+
+.webform-submission-alshaya-email-signup-form {
+  .input__container--half {
+    @include breakpoint($upto-palm) {
+      width: 100%;
+    }
+  }
+
+  .webform-button--submit {
+    @include breakpoint($upto-palm) {
+      border: 1px solid $light-pink;
+      text-align: center;
+      width: 100%;
+      background: transparent;
+      padding: 0.54rem;
+      margin-bottom: 3.2rem;
+      margin-top: 2rem;
+      font-weight: bold;
+      color: $light-pink;
+    }
+  }
+}
+
+body {
+  &.signup-modal-overlay {
+    overflow: hidden;
+  }
+}
