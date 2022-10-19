@@ -1,0 +1,177 @@
+// Define Fonts
+$base_theme_fonts_directory_path: '/themes/custom/transac/alshaya_american_eagle/fonts';
+
+@font-face {
+  font-family: "AvenirNext-DemiBold";
+  src:
+    local("Avenir Next Demi Bold"),
+    url("#{$base_theme_fonts_directory_path}/AvenirNext-DemiBold.woff2") format("woff2"),
+    url("#{$base_theme_fonts_directory_path}/AvenirNext-DemiBold.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "AvenirNext";
+  src:
+    local("Avenir Next"),
+    url("#{$base_theme_fonts_directory_path}/AvenirNext.woff2") format("woff2"),
+    url("#{$base_theme_fonts_directory_path}/AvenirNext.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "AvenirNextLTW01-Regular";
+  src:
+    url("#{$base_theme_fonts_directory_path}/AvenirNextLTW01-Regular.woff2") format("woff2"),
+    url("#{$base_theme_fonts_directory_path}/AvenirNextLTW01-Regular.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Tahoma-Bold";
+  src:
+    local("Tahoma Bold"),
+    url("#{$base_theme_fonts_directory_path}/Tahoma-Bold.woff2") format("woff2"),
+    url("#{$base_theme_fonts_directory_path}/Tahoma-Bold.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Tahoma";
+  src:
+    local("Tahoma"),
+    url("#{$base_theme_fonts_directory_path}/Tahoma.woff2") format("woff2"),
+    url("#{$base_theme_fonts_directory_path}/Tahoma.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+// AEO new fonts
+@font-face {
+  font-family: "AvenirNext LT Pro";
+  src:
+    url("#{$base_theme_fonts_directory_path}/AvenirNextLTPro-Bold.woff2") format("woff2"),
+    url("#{$base_theme_fonts_directory_path}/AvenirNextLTPro-Bold.woff") format("woff");
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+// DY fonts.
+@font-face {
+  font-family: "Avenir-Next-LT-Pro-Heavy-Condensed";
+  src:
+    local("Avenir Next Condensed Heavy"),
+    url("#{$base_theme_fonts_directory_path}/Avenir-Next-LT-Pro-Heavy-Condensed_5190.woff2") format("woff2"),
+    url("#{$base_theme_fonts_directory_path}/Avenir-Next-LT-Pro-Heavy-Condensed_5190.ttf");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "AvenirNext-Bold";
+  src:
+    local("Avenir Next Bold"),
+    url("#{$base_theme_fonts_directory_path}/AvenirNextLTPro-Bold.woff2") format("woff2"),
+    url("#{$base_theme_fonts_directory_path}/AvenirNextLTPro-Bold.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "AvenirNext-Bold-Condensed";
+  src:
+    local("Avenir Next Condensed Bold"),
+    url("#{$base_theme_fonts_directory_path}/AvenirNextLTPro-BoldCn.woff2") format("woff2"),
+    url("#{$base_theme_fonts_directory_path}/AvenirNextLTPro-BoldCn.otf");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "AvenirNext-Demi-Italic";
+  src:
+    local("Avenir Next Demi Bold Italic"),
+    url("#{$base_theme_fonts_directory_path}/AvenirNextLTPro-DemiIt.woff2") format("woff2"),
+    url("#{$base_theme_fonts_directory_path}/AvenirNextLTPro-DemiIt.otf");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "AvenirNextLTPro-Heavy";
+  src:
+    local("Avenir Next Heavy"),
+    url("#{$base_theme_fonts_directory_path}/AvenirNextLTPro-Heavy.woff2") format("woff2"),
+    url("#{$base_theme_fonts_directory_path}/AvenirNextLTPro-Heavy.otf");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "AvenirNextLTPro-Italic";
+  src:
+    local("Avenir Next Italic"),
+    url("#{$base_theme_fonts_directory_path}/AvenirNextLTPro-It.woff2") format("woff2"),
+    url("#{$base_theme_fonts_directory_path}/AvenirNextLTPro-It.otf");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "AvenirNextLTPro-Light";
+  src:
+    url("#{$base_theme_fonts_directory_path}/AvenirNextLTPro-Light.woff2") format("woff2"),
+    url("#{$base_theme_fonts_directory_path}/AvenirNextLTPro-Light.otf");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "AvenirNextLTPro-MediumIt";
+  src:
+    local("Avenir Next Medium Italic"),
+    url("#{$base_theme_fonts_directory_path}/AvenirNextLTPro-MediumIt.woff2") format("woff2"),
+    url("#{$base_theme_fonts_directory_path}/AvenirNextLTPro-MediumIt.otf");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "AvenirNextLTPro-UltLtCn";
+  src:
+    local("Avenir Next Condensed Ultra Light"),
+    url("#{$base_theme_fonts_directory_path}/AvenirNextLTPro-UltLtCn.woff2") format("woff2"),
+    url("#{$base_theme_fonts_directory_path}/AvenirNextLTPro-UltLtCn.otf");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+// DY fonts - 11 Aug 2020
+@font-face {
+  font-family: "DidonesqueW05-Bold";
+  src:
+    url("#{$base_theme_fonts_directory_path}/DidonesqueW05-Bold.woff2") format("woff2"),
+    url("#{$base_theme_fonts_directory_path}/DidonesqueW05-Bold.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}

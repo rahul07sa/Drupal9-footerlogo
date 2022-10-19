@@ -1,0 +1,39 @@
+name: Bath and Body Works
+description: Theme for Bath and Body Works - Non Transac site.
+type: theme
+core: 8.x
+core_version_requirement: ^8 || ^9
+base theme: whitelabel
+alshaya_theme_type: non_transac
+
+regions:
+  header_primary: 'Header Primary'
+  header_secondary: 'Header Secondary'
+  header: Header
+  admin_content: 'Admin Content'
+  content: Content
+  sidebar: Sidebar
+  footer: Footer
+  footer_primary: 'Footer Primary'
+  footer_secondary: 'Footer Secondary'
+
+libraries:
+  - whitelabel/global
+  - bath_body_works/global
+
+libraries-extend:
+  whitelabel/menu-logo-navigation:
+    - bath_body_works/menu-logo-navigation
+
+components:
+  namespaces:
+    atoms:
+      - components/_patterns/00-atoms
+    molecules:
+      - components/_patterns/01-molecules
+    organisms:
+      - components/_patterns/02-organisms
+    templates:
+      - components/_patterns/03-templates
+    pages:
+      - components/_patterns/04-pages

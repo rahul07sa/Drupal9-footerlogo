@@ -1,0 +1,122 @@
+.user-page {
+  .user-form,
+  .user-login-form,
+  .user-pass,
+  .multistep-checkout {
+    label.form-required:not(.error),
+    .form-type-textfield label:not(.error),
+    .field--name-field-privilege-card-number label:not(.error),
+    .form-item-privilege-card-number label:not(.error),
+    .form-item-privilege-card-number2 label:not(.error) {
+      font-size: 0.875rem;
+    }
+
+    .form-submit {
+      min-width: 11.5rem;
+      width: auto;
+
+      @include breakpoint($only-mobile) {
+        width: 100%;
+      }
+    }
+  }
+
+  .form-item input:focus ~ label:not(.error),
+  .form-item input:not(:focus):valid ~ label:not(.error),
+  .form-item input:active ~ label:not(.error),
+  .form-item input:not(:active):valid ~ label:not(.error),
+  .form-item input.error ~ label:not(.error) {
+    font-size: 0.875rem;
+  }
+
+  #block-jointheclub {
+    @include breakpoint($desktop) {
+      border-top: 0;
+    }
+
+    a {
+      font-weight: normal;
+    }
+  }
+
+  .c-sidebar-second,
+  #block-youllbeableto {
+    h3 {
+      font-family: $alshaya-thin;
+    }
+  }
+
+  #edit-checkout-terms {
+    @include breakpoint($mobile) {
+      margin-top: 0.5rem;
+    }
+  }
+}
+
+#block-youllbeableto-checkout-confirm,
+#block-youllbeableto,
+.block-join-the-club {
+  font-size: 0.875rem;
+
+  span {
+    height: 1.1875rem;
+  }
+
+  span.icon {
+    &-offer {
+      background-image: url("../imgs/icons/ic-rewards.svg");
+    }
+
+    &-win {
+      background-image: url("../imgs/icons/ic-delivery.svg");
+    }
+
+    &-reward {
+      background-image: url("../imgs/icons/ic-unlock.svg");
+    }
+
+    &-heart {
+      background-image: url("../imgs/icons/ic-newsletter.svg");
+    }
+  }
+}
+
+.user-login-form {
+  & > a {
+    font-size: 0.875rem;
+    font-weight: normal;
+
+    @include breakpoint($tablet) {
+      #{$left}: 12.75rem;
+      bottom: 0.75rem;
+    }
+  }
+}
+
+.alias--user-password {
+  .user-page {
+    .user-pass {
+      input[type=submit] {
+        @include breakpoint($tablet) {
+          width: auto;
+        }
+      }
+    }
+  }
+}
+
+.path--user {
+  .c-order-help {
+    .field--name-body p {
+      @include breakpoint($desktop) {
+        font-size: 0.875rem;
+      }
+    }
+  }
+}
+
+#unmask_password {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  top: 0.5rem;
+}

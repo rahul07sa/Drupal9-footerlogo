@@ -1,0 +1,18 @@
+body {
+  font-family: $hnm-regular;
+  color: $hnm-black-three;
+}
+
+body,
+.branding__menu {
+  background-color: $default_background_color !important;
+}
+
+html,
+button,
+input,
+select,
+textarea {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

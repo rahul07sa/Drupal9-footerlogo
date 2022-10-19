@@ -1,0 +1,290 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.advanced_page.body
+    - field.field.node.advanced_page.field_banner
+    - field.field.node.advanced_page.field_delivery_banner
+    - field.field.node.advanced_page.field_meta_tags
+    - field.field.node.advanced_page.field_product_category
+    - field.field.node.advanced_page.field_promo_blocks
+    - field.field.node.advanced_page.field_related_info
+    - field.field.node.advanced_page.field_show_left_menu
+    - field.field.node.advanced_page.field_slider
+    - field.field.node.advanced_page.field_use_as_department_page
+    - field.field.node.advanced_page.field_use_as_egift_landing_page
+    - node.type.advanced_page
+  module:
+    - content_moderation
+    - datetime
+    - field_group
+    - metatag
+    - paragraphs
+    - path
+    - text
+third_party_settings:
+  field_group:
+    group_views_reference:
+      children:
+        - field_views
+      parent_name: ''
+      weight: 23
+      label: 'Views Reference'
+      format_type: details
+      format_settings:
+        open: false
+        required_fields: true
+        classes: ''
+        id: ''
+      region: hidden
+    group_banner_full_width:
+      children:
+        - field_banner
+      parent_name: ''
+      weight: 13
+      label: 'Banner full width'
+      format_type: details
+      format_settings:
+        open: false
+        required_fields: true
+        classes: ''
+        id: ''
+      region: content
+    group_related:
+      children:
+        - field_related_info
+      parent_name: ''
+      weight: 16
+      label: Related
+      format_type: details
+      format_settings:
+        label: Related
+        element: div
+        show_label: true
+        label_element: h3
+        attributes: ''
+        effect: collapsible
+        speed: fast
+        id: ''
+        classes: ''
+        open: false
+        required_fields: true
+      region: content
+    group_promo_blocks:
+      children:
+        - field_promo_blocks
+      parent_name: ''
+      weight: 17
+      label: 'Promo blocks'
+      format_type: details
+      format_settings:
+        required_fields: true
+        id: ''
+        classes: ''
+        open: false
+      region: content
+    group_block_reference:
+      children:
+        - field_block
+      parent_name: ''
+      weight: 15
+      label: 'Block Reference'
+      format_type: details
+      format_settings:
+        open: false
+        required_fields: true
+        classes: ''
+        id: ''
+      region: content
+    group_department_page_settings:
+      children:
+        - field_use_as_department_page
+        - field_product_category
+        - field_show_left_menu
+      parent_name: ''
+      weight: 10
+      format_type: fieldset
+      format_settings:
+        id: ''
+        classes: ''
+        open: false
+        required_fields: true
+        description: ''
+      label: 'Department page settings'
+      region: content
+    group_egift_landing_page_setting:
+      children:
+        - field_use_as_egift_landing_page
+      parent_name: ''
+      weight: 9
+      format_type: fieldset
+      region: content
+      format_settings:
+        show_empty_fields: true
+        id: ''
+        classes: ''
+        description: ''
+        required_fields: true
+      label: 'Egift landing page settings'
+id: node.advanced_page.default
+targetEntityType: node
+bundle: advanced_page
+mode: default
+content:
+  body:
+    type: text_textarea_with_summary
+    weight: 11
+    settings:
+      rows: 9
+      summary_rows: 3
+      placeholder: ''
+    third_party_settings: {  }
+    region: content
+  created:
+    type: datetime_timestamp
+    weight: 3
+    settings: {  }
+    third_party_settings: {  }
+    region: content
+  field_banner:
+    type: entity_reference_paragraphs
+    weight: 8
+    settings:
+      title: Paragraph
+      title_plural: Paragraphs
+      edit_mode: open
+      add_mode: dropdown
+      form_display_mode: default
+      default_paragraph_type: ''
+    third_party_settings: {  }
+    region: content
+  field_delivery_banner:
+    type: entity_reference_paragraphs
+    weight: 19
+    settings:
+      title: Paragraph
+      title_plural: Paragraphs
+      edit_mode: open
+      add_mode: dropdown
+      form_display_mode: default
+      default_paragraph_type: ''
+    third_party_settings: {  }
+    region: content
+  field_meta_tags:
+    weight: 18
+    settings: {  }
+    third_party_settings: {  }
+    type: metatag_firehose
+    region: content
+  field_product_category:
+    type: options_select
+    weight: 7
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_promo_blocks:
+    type: entity_reference_paragraphs
+    weight: 13
+    settings:
+      title: Paragraph
+      title_plural: Paragraphs
+      edit_mode: open
+      add_mode: dropdown
+      form_display_mode: default
+      default_paragraph_type: ''
+    third_party_settings: {  }
+    region: content
+  field_related_info:
+    type: entity_reference_paragraphs
+    weight: 1
+    settings:
+      title: Paragraph
+      title_plural: Paragraphs
+      edit_mode: open
+      add_mode: dropdown
+      form_display_mode: default
+      default_paragraph_type: ''
+    third_party_settings: {  }
+    region: content
+  field_show_left_menu:
+    type: boolean_checkbox
+    weight: 8
+    region: content
+    settings:
+      display_label: true
+    third_party_settings: {  }
+  field_slider:
+    type: entity_reference_paragraphs
+    weight: 12
+    settings:
+      title: Paragraph
+      title_plural: Paragraphs
+      edit_mode: open
+      add_mode: dropdown
+      form_display_mode: default
+      default_paragraph_type: ''
+    third_party_settings: {  }
+    region: content
+  field_use_as_department_page:
+    type: boolean_checkbox
+    weight: 6
+    region: content
+    settings:
+      display_label: true
+    third_party_settings: {  }
+  field_use_as_egift_landing_page:
+    type: boolean_checkbox
+    weight: 7
+    region: content
+    settings:
+      display_label: true
+    third_party_settings: {  }
+  langcode:
+    type: language_select
+    weight: 1
+    settings: {  }
+    third_party_settings: {  }
+    region: content
+  path:
+    type: path
+    weight: 8
+    settings: {  }
+    third_party_settings: {  }
+    region: content
+  promote:
+    type: boolean_checkbox
+    settings:
+      display_label: true
+    weight: 4
+    third_party_settings: {  }
+    region: content
+  sticky:
+    type: boolean_checkbox
+    settings:
+      display_label: true
+    weight: 5
+    third_party_settings: {  }
+    region: content
+  title:
+    type: string_textfield
+    weight: 0
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    region: content
+  translation:
+    weight: 14
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  uid:
+    type: entity_reference_autocomplete
+    weight: 2
+    settings:
+      match_operator: CONTAINS
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    region: content
+hidden: {  }

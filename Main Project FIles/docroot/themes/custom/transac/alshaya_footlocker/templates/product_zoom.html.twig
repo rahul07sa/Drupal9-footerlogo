@@ -1,0 +1,28 @@
+{% extends "@alshaya_product_zoom/product_zoom.html.twig" %}
+
+{% block modalGallery %}
+  <div id="product-full-screen-gallery-container" style="display: none;">
+    <div class="imagegallery__wrapper thumbnail-count-{{ thumbnails|length }}">
+      <div class="yt-vi-container cloudzoom__video_modal"></div>
+      <ul id="product-full-screen-gallery">
+        {% for thumbs in thumbnails %}
+          {% if thumbs.type == 'youtube' %}
+            <li data-iframe="{{ thumbs.url }}" class="imagegallery__thumbnails__video youtube">
+              <img loading="lazy" width='{{ thumbs.width }}' height='{{ thumbs.height }}' src="{{ thumbs.thumburl }}"/>
+            </li>
+          {% elseif thumbs.type == 'vimeo' %}
+            <li data-iframe="{{ thumbs.url }}" class="imagegallery__thumbnails__video vimeo">
+              <img loading="lazy" width='{{ thumbs.width }}' height='{{ thumbs.height }}' src="{{ thumbs.thumburl }}"/>
+            </li>
+          {% else %}
+            <li>
+              <a href="{{ thumbs.fullurl }}" class="imagegallery__thumbnails__image a-gallery">
+                <img loading="lazy" src="{{ thumbs.fullurl }}" alt="{{ thumbs.label }}" title="{{ thumbs.label }}" />
+              </a>
+            </li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+{% endblock %}

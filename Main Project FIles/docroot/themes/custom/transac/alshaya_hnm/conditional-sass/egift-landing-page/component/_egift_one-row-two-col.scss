@@ -1,0 +1,40 @@
+.egift-landing-page {
+  .paragraph--type--_-row-2-col {
+    .field--name-field-1-row-2-col {
+      .field--name-field-1-row-2-col {
+        .check-balance-wrapper {
+          .checkbalance-title {
+            font-family: $hnm-demibold;
+          }
+
+          #check-balance-button {
+            & > button {
+              font-family: $hnm-demibold;
+              text-transform: unset;
+            }
+          }
+        }
+
+        .paragraph--type--image-title-subtitle {
+          .field--name-field-title {
+            font-family: $hnm-demibold;
+          }
+
+          .field--name-field-button-link {
+            .field--name-field-button-link {
+              font-family: $hnm-demibold;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .c-content__container {
+    .field--name-field-1-row-2-col {
+      .field__items {
+        width: auto;
+      }
+    }
+  }
+}

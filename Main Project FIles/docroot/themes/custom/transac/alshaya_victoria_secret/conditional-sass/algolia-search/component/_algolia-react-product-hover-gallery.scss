@@ -1,0 +1,24 @@
+#hits {
+  .c-products__item {
+    .alshaya_search_gallery {
+      .alshaya_search_slider {
+        margin: 0 auto;
+
+        .slick-slider {
+          padding-#{$left}: 0;
+
+          .slick-slide {
+            position: relative;
+
+            img {
+              width: 100%;
+              height: auto;
+              margin: 0 auto;
+              display: block !important;
+            }
+          }
+        }
+      }
+    }
+  }
+}

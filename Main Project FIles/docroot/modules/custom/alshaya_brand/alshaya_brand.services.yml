@@ -1,0 +1,23 @@
+services:
+  alshaya_brand.stream_wrapper:
+    class: Drupal\alshaya_brand\StreamWrapper\BrandFilesStreamWrapper
+    tags:
+      - { name: stream_wrapper, scheme: brand }
+
+  alshaya_brand.path_processor_image_styles:
+    class: Drupal\alshaya_brand\PathProcessor\PathProcessorImageStyles
+    arguments: ['@stream_wrapper_manager']
+    tags:
+      - { name: path_processor_inbound, priority: 301 }
+
+  alshaya_brand.stage_file_proxy_subscriber:
+    class: Drupal\alshaya_brand\EventSubscriber\StageFileProxyProxySubscriber
+    tags:
+      - { name: event_subscriber }
+    arguments:
+      - '@config.factory'
+      - '@request_stack'
+      - '@file_system'
+      - '@http_client'
+    calls:
+      - [ setStageFileProxy, [ '@?stage_file_proxy.fetch_manager' ] ]

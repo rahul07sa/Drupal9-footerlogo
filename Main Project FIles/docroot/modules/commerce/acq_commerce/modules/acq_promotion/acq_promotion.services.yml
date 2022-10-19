@@ -1,0 +1,22 @@
+services:
+  acq_promotion.promotions_manager:
+    class: Drupal\acq_promotion\AcqPromotionsManager
+    arguments:
+      - '@entity_type.manager'
+      - '@acq_commerce.api'
+      - '@logger.factory'
+      - '@language_manager'
+      - '@entity.repository'
+      - '@queue'
+      - '@config.factory'
+      - '@database'
+      - '@acq_commerce.i18n_helper'
+      - '@event_dispatcher'
+      - '@lock'
+  plugin.manager.acq_promotion:
+    class: Drupal\acq_promotion\AcqPromotionPluginManager
+    parent: default_plugin_manager
+  acq_promotion.promotion_mapping_updated_event:
+    class: Drupal\acq_promotion\EventSubscriber\PromotionMappingUpdatedEventSubscriber
+    tags:
+      - { name: 'event_subscriber' }

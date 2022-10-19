@@ -1,0 +1,5 @@
+country_center:
+  latitude: ''
+  longitude: ''
+  zoom: 7
+cnc_stores_limit: 20 #Config to restrict number of CnC stores to display on FE.

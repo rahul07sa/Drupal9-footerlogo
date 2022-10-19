@@ -1,0 +1,381 @@
+<?php
+
+/**
+ * @file
+ * Contains install, update, uninstall hooks for alshaya_acm module.
+ */
+
+use Drupal\acq_sku\Entity\SKU;
+use Drupal\alshaya_config\AlshayaConfigManager;
+use Drupal\consumers\Entity\Consumer;
+use Drupal\Core\Site\Settings;
+use Drupal\lightning_core\ConfigHelper;
+use Drupal\user\Entity\User;
+use Symfony\Component\Yaml\Yaml;
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update decimal_points for currency config.
+ */
+function alshaya_acm_update_8019() {
+  \Drupal::configFactory()->getEditable('acq_commerce.currency')->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Set hide_max_qty_limit_message => false.
+ */
+function alshaya_acm_update_8018() {
+  \Drupal::configFactory()->getEditable('alshaya_acm.settings')
+    ->set('hide_max_qty_limit_message', FALSE)
+    ->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add settings to display upsell and related product on pdp
+ * and show / hide cross-sell products on cart page.
+ */
+function alshaya_acm_update_8017() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm.settings', 'alshaya_acm.cart_config'],
+    'alshaya_acm',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Allow product category mapping API in shield.
+ */
+function alshaya_acm_update_8016() {
+  _alshaya_acm_exclude_sync_from_shield();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new string translations.
+ */
+function alshaya_acm_update_8015() {
+  $strings = [
+    'We have improved the checkout experience, please review your bag to proceed.' => [
+      'ar' => 'لقد قمنا بتحسين تجربة الدفع ، يرجى مراجعة حقيبتك للمتابعة',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new string translations.
+ */
+function alshaya_acm_update_8014() {
+  $strings = [
+    'Add to bag is temporarily unavailable' => [
+      'ar' => 'الإضافة إلى حقيبة التسوق غير متوفرة مؤقتاً',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add config to enable/disable quantity limit.
+ */
+function alshaya_acm_update_8013() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(['alshaya_acm.settings'], 'alshaya_acm');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Delete unused image styles.
+ * Clear all cache tags related to oauth2_token.
+ */
+function alshaya_acm_update_8012() {
+  alshaya_config_delete_configs(['image.style.checkout_summary_block_thumbnail']);
+
+  /** @var \Drupal\Core\Database\Connection $connection */
+  $connection = \Drupal::service('database');
+
+  // Clearing this will expire all caches for oauth2_token entities, which is
+  // expected. New oauth2_token entities & cache refresh for the older ones will
+  // use a common cache tag: oauth2_token.
+  $connection->delete('cachetags')
+    ->condition('tag', 'oauth2_token:%', 'LIKE')
+    ->execute();
+}
+
+/**
+ * Implements hook_update_dependencies().
+ */
+function alshaya_acm_update_dependencies() {
+  return [
+    'alshaya_acm' => [
+      8008 => [
+        'acq_commerce' => 8001,
+      ],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Cleanup cache tags.
+ */
+function alshaya_acm_update_8011() {
+  $db = \Drupal::database();
+  $logger = \Drupal::logger('alshaya_acm');
+
+  // Gather data for metrics.
+  $before = $db->select('cachetags')->countQuery()->execute()->fetchField();
+
+  // Delete obsolete cart_ cachetags.
+  $query = $db->delete('cachetags');
+  $query->condition('tag', 'cart_%', 'like');
+  $query->execute();
+
+  // Delete obsolete mini_cart cachetags.
+  $db = \Drupal::database();
+  $query = $db->delete('cachetags');
+  $query->condition('tag', 'mini_cart%', 'like');
+  $query->execute();
+
+  // Delete all the caches from alshaya_api bin before deleting cachetags
+  // related to it.
+  $cache = \Drupal::cache('alshaya_api');
+  $cache->deleteAll();
+
+  $query = $db->delete('cachetags');
+  $query->condition('tag', 'acq_cart_shipping_estimate%', 'like');
+  $query->execute();
+
+  $query = $db->delete('cachetags');
+  $query->condition('tag', 'acq_cart_payment_methods%', 'like');
+  $query->execute();
+
+  $after = $db->select('cachetags')->countQuery()->execute()->fetchField();
+  $logger->notice('Number of entries in cachetags before alshaya_acm_update_8011: @before and after that: @after', [
+    '@before' => $before,
+    '@after' => $after,
+  ]);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Correct price info in local.
+ */
+function alshaya_acm_update_8010() {
+  $db = \Drupal::database();
+
+  $query = $db->query('select distinct(en.sku) from acq_sku_field_data en inner join acq_sku_field_data ar on en.sku = ar.sku where en.price != ar.price OR en.final_price != ar.final_price');
+  $result = $query->fetchAllAssoc('sku');
+
+  foreach ($result as $row) {
+    $sku = SKU::loadFromSku($row->sku, 'en');
+    if ($sku instanceof SKU && $sku->hasTranslation('ar')) {
+      $translation = $sku->getTranslation('ar');
+      $translation->price = $sku->price;
+      $translation->special_price = $sku->special_price;
+      $translation->final_price = $sku->final_price;
+      $translation->save();
+    }
+  }
+}
+
+/**
+ * Implements hook_update().
+ *
+ * Enable consumers module and configure client.
+ */
+function alshaya_acm_update_8009() {
+  // @todo Move module dependency to acq_commerce module after discussion.
+  // We have to create consumer in custom code only so nothing blocking us
+  // from using it in our custom module for now.
+  // Enable consumers module.
+  \Drupal::service('module_installer')->install(['consumers']);
+
+  // Load the user which we want to bind to the consumer.
+  $user = user_load_by_name(Settings::get('alshaya_acm_user_username'));
+
+  /** @var \Drupal\Core\Entity\EntityRepositoryInterface $repository */
+  $repository = \Drupal::service('entity.repository');
+  $consumer = $repository->loadEntityByUuid('consumer', Settings::get('alshaya_acm_soauth_client_uuid'));
+
+  if ($consumer instanceof Consumer) {
+    // Consumer is already created. Log message and return.
+    \Drupal::logger('alshaya_acm')->warning('Consumer already created for uuid @uuid.', [
+      '@uuid' => Settings::get('alshaya_acm_soauth_client_uuid'),
+    ]);
+
+    return;
+  }
+
+  // Add Simple Oauth - Consumer client.
+  $client = Consumer::create([]);
+  $client->set('label', 'Alshaya ACM');
+  $client->set('user_id', $user->id());
+  $client->set('secret', Settings::get('alshaya_acm_soauth_client_secret'));
+  $client->set('roles', ['administrator']);
+  $client->set('uuid', Settings::get('alshaya_acm_soauth_client_uuid'));
+  $client->save();
+}
+
+/**
+ * Implements hook_update().
+ *
+ * Add new role for sync user.
+ */
+function alshaya_acm_update_8008() {
+  /** @var \Drupal\user\Entity\User $user */
+  $user = user_load_by_name(Settings::get('alshaya_acm_user_username'));
+
+  if ($user) {
+    // Add new role to sync user.
+    $user->addRole('acq_commerce_sync');
+
+    // Remove admin role from sync user.
+    $user->removeRole('administrator');
+
+    $user->save();
+  }
+}
+
+/**
+ * Implements hook_update().
+ *
+ * Delete all nodes of 'page' type bundle.
+ */
+function alshaya_acm_update_8007() {
+  // Delete default store node.
+  _alshaya_acm_delete_default_store_node();
+}
+
+/**
+ * Implements hook_update().
+ *
+ * Update the C&C STS message, change placeholder to stop forced italic.
+ */
+function alshaya_acm_update_8005() {
+  // Array of language translation strings.
+  $strings = [
+    'Your order will be available in @duration' => [
+      'ar' => 'سيتم توصيل طلبيتك خلال @duration',
+    ],
+  ];
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update().
+ *
+ * Set new config for interval in alshaya_acm.settings.
+ */
+function alshaya_acm_update_8004() {
+  // This setting is no longer in use.
+}
+
+/**
+ * Implements hook_update().
+ *
+ * Update image styles.
+ */
+function alshaya_acm_update_8003() {
+  $module_name = 'alshaya_acm';
+  $path = 'install';
+  $configs = [
+    'image.style.checkout_summary_block_thumbnail',
+  ];
+
+  foreach ($configs as $config) {
+    $config_yaml = Yaml::parse(file_get_contents(drupal_get_path('module', $module_name) . '/config/' . $path . '/' . $config . '.yml'));
+    \Drupal::configFactory()
+      ->getEditable($config)
+      ->setData($config_yaml)
+      ->save();
+  }
+}
+
+/**
+ * Implements hook_update().
+ *
+ * Update debug config.
+ */
+function alshaya_acm_update_8002() {
+  $config = \Drupal::configFactory()->getEditable('acq_commerce.conductor');
+  $config->set('debug', Settings::get('acq_commerce.conductor')['debug']);
+  $config->save();
+}
+
+/**
+ * Implements hook_update().
+ *
+ * Install new config - alshaya_acm.settings.
+ */
+function alshaya_acm_update_8001() {
+  ConfigHelper::forModule('alshaya_acm')
+    ->install()
+    ->get('alshaya_acm.settings')
+    ->save();
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_acm_install() {
+  // Create a user that will be used by ACM when pushing to Drupal.
+  $user = User::create();
+  $user->setPassword(Settings::get('alshaya_acm_user_password'));
+  $user->enforceIsNew();
+  $user->setEmail(Settings::get('alshaya_acm_user_email'));
+  $user->setUsername(Settings::get('alshaya_acm_user_username'));
+  $user->activate();
+  $user->addRole('acq_commerce_sync');
+  $user->save();
+
+  // Configure Simple Oauth.
+  $config = \Drupal::configFactory()->getEditable('simple_oauth.settings');
+  $config->set('public_key', Settings::get('alshaya_acm_soauth_public_key'));
+  $config->set('private_key', Settings::get('alshaya_acm_soauth_private_key'));
+  $config->save();
+
+  // Add Simple Oauth - Consumer client.
+  $client = Consumer::create([]);
+  $client->set('label', 'Alshaya ACM');
+  $client->set('user_id', $user->id());
+  $client->set('secret', Settings::get('alshaya_acm_soauth_client_secret'));
+  $client->set('roles', ['administrator']);
+  $client->set('uuid', Settings::get('alshaya_acm_soauth_client_uuid'));
+  $client->save();
+
+  // Update product category sync root setting.
+  $config = \Drupal::configFactory()->getEditable('acq_commerce.conductor');
+  $config->set('filter_root_category', TRUE);
+
+  $acq_commerce_conductor_settings = Settings::get('acq_commerce.conductor');
+
+  foreach ($acq_commerce_conductor_settings as $key => $value) {
+    $config->set($key, $value);
+  }
+
+  $config->save();
+
+  // Exclude sync requests from shield.
+  _alshaya_acm_exclude_sync_from_shield();
+}

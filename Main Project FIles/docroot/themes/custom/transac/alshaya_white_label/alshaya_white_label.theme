@@ -1,0 +1,1731 @@
+<?php
+
+/**
+ * @file
+ * Theme specific functionality.
+ */
+
+use Drupal\Component\Utility\Html;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\file\Plugin\Field\FieldType\FileFieldItemList;
+use Drupal\Core\Field\FieldItemList;
+use Drupal\paragraphs\Entity\Paragraph;
+use Drupal\Core\Url;
+use Drupal\Core\Template\Attribute;
+use Drupal\node\Entity\Node;
+use Drupal\taxonomy\TermInterface;
+use Drupal\alshaya_acm_product_category\ProductCategoryTree;
+use Drupal\node\NodeInterface;
+use Drupal\alshaya_main_menu\Form\AlshayaMainMenuConfigForm;
+use Drupal\file\Entity\File;
+
+/**
+ * Implements hook_preprocess_html().
+ */
+function alshaya_white_label_preprocess_html(&$variables) {
+  $path = \Drupal::service('path.current')->getPath();
+  $alias = trim(\Drupal::service('path_alias.manager')
+    ->getAliasByPath($path), '/');
+  // Body classes for sidebars.
+  if (isset($variables['page']['sidebar_first']) && isset($variables['page']['sidebar_second'])) {
+    $variables['attributes']['class'][] = Html::cleanCssIdentifier('body-sidebars-both');
+  }
+  elseif (isset($variables['page']['sidebar_first'])) {
+    $variables['attributes']['class'][] = Html::cleanCssIdentifier('body-sidebars-first');
+  }
+  elseif (isset($variables['page']['sidebar_second'])) {
+    $variables['attributes']['class'][] = Html::cleanCssIdentifier('body-sidebars-second');
+  }
+  else {
+    $variables['attributes']['class'][] = Html::cleanCssIdentifier('body-sidebars-none');
+  }
+
+  $page_path = explode('/', $path)[1];
+  if (!empty($page_path)) {
+    // Adding class based on page type in body.
+    $variables['attributes']['class'][] = Html::cleanCssIdentifier('path--' . $page_path);
+  }
+
+  $sub_brand_logo = _alshaya_master_get_subbrand_logo_image_link();
+  // If both sub brand logo image and link available.
+  if (!empty($sub_brand_logo)) {
+    $variables['attributes']['class'][] = 'sub-brand-logo';
+  }
+  // BazaarVoice reviews and ratings.
+  if (\Drupal::service('module_handler')->moduleExists('alshaya_bazaar_voice')) {
+    $variables['#attached']['library'][] = 'alshaya_white_label/bazaar-voice';
+  }
+  // Alias path class.
+  $alias_class = preg_replace("/\//", '-', $alias);
+  if (!empty($alias_class) && !str_starts_with($alias_class, 'node')) {
+    $variables['attributes']['class'][] = Html::cleanCssIdentifier('alias--' . $alias_class);
+  }
+  // If is homepage.
+  $variables['attributes']['class'][] = \Drupal::service('path.matcher')
+    ->isFrontPage() ? 'frontpage' : '';
+  // Node type class.
+  $variables['attributes']['class'][] = isset($variables['node_type']) ? 'nodetype--' . $variables['node_type'] : '';
+  // Logged in class.
+  $variables['attributes']['class'][] = $variables['logged_in'] ? 'logged-in' : 'logged-out';
+  // Update the meta to include noscalable for iphone.
+  $html_head = &$variables['page']['#attached']['html_head'];
+  $node = \Drupal::routeMatch()->getParameter('node');
+  foreach ($html_head as $index => $val) {
+    if ($val[1] == 'viewport') {
+      if ($node instanceof NodeInterface && $node->bundle() === 'acq_product') {
+        $html_head[$index][0]['#attributes']['content'] .= ', user-scalable=yes';
+      }
+      else {
+        $html_head[$index][0]['#attributes']['content'] .= ', user-scalable=no';
+      }
+    }
+  }
+
+  $current_route = \Drupal::routeMatch();
+
+  // Add class for products that have magazine layout.
+  if ($current_route->getRouteName() == 'entity.node.canonical'
+    && in_array($current_route->getParameter('node')->bundle(), [
+      'acq_product',
+      'rcs_product',
+    ])
+  ) {
+    $node = \Drupal::request()->attributes->get('node');
+    if ($node instanceof NodeInterface) {
+      $acm_settings = \Drupal::config('alshaya_acm.settings');
+      $variables['show_cart_matchback'] = $acm_settings->get('show_crosssell_as_matchback');
+      if ($variables['show_cart_matchback']) {
+        $variables['#attached']['library'][] = 'alshaya_white_label/matchback_cart_notification';
+        $variables['#cache']['tags'] = $acm_settings->getCacheTags();
+      }
+      /** @var \Drupal\alshaya_acm_product\SkuManager $skuManager */
+      $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+      $pdp_layout = $skuManager->getPdpLayout($node, 'pdp');
+      if ($pdp_layout == 'pdp-magazine') {
+        $variables['attributes']['class'][] = 'magazine-layout';
+        $product_display_settings = \Drupal::config('alshaya_acm_product.display_settings');
+
+        // Show additional attributes on PDP overlay.
+        if ($product_display_settings->get('show_pdp_additional_attributes_overlay')) {
+          $variables['#attached']['library'][] = 'alshaya_white_label/pdp-additional-attributes';
+        }
+      }
+
+      if ($pdp_layout == 'pdp-magazine_v2') {
+        $variables['attributes']['class'][] = 'magazine-layout-v2';
+      }
+    }
+  }
+
+  // Add body class for slug banner.
+  if (isset($variables['page']['banner_top']) && $current_route->getRouteName() != 'acq_checkout.form') {
+    $variables['attributes']['class'][] = 'slug-banner-processed';
+  }
+
+  // If store finder glossary view.
+  if ($current_route->getRouteName() == 'view.stores_finder.page_2') {
+    $variables['attributes']['class'][] = 'store-finder-view';
+  }
+
+  // Add class for page PLP.
+  if ($current_route->getRouteName() == 'entity.taxonomy_term.canonical') {
+    $term = $current_route->getParameter('taxonomy_term');
+    if ($term->bundle() == 'acq_product_category') {
+      $variables['attributes']['class'][] = 'plp-page-only';
+      if (!empty($term->get('field_plp_layout')->value)) {
+        $variables['attributes']['class'][] = $term->get('field_plp_layout')->value . '-plp-layout';
+      }
+    }
+  }
+
+  // Add country specific class for doing any style overrides.
+  $variables['attributes']['class'][] = Html::cleanCssIdentifier('country-' . strtolower(_alshaya_custom_get_site_level_country_code()));
+
+  $current_theme = \Drupal::theme()->getActiveTheme()->getName();
+  $direction = \Drupal::service('language_manager')->getCurrentLanguage()->getDirection();
+
+  $variables['#attached']['library'][] = $current_theme . '/' . $direction . '_styles';
+
+  // Add class for sites with super menu.
+  if (isset($variables['page']['menu_secondary']['supermenu'])) {
+    $variables['attributes']['class'][] = 'supermenu';
+  }
+
+}
+
+/**
+ * Implements hook_preprocess_page().
+ */
+function alshaya_white_label_preprocess_page(&$variables) {
+  $direction = \Drupal::service('language_manager')->getCurrentLanguage()->getDirection();
+  // Adding a variable for html direction.
+  $variables['html_direction'] = $direction;
+
+  // Check if page is panel pages.
+  $routematch = \Drupal::routeMatch();
+  $route_options = $routematch->getRouteObject()->getOptions();
+  if (isset($route_options['parameters']['page_manager_page'])) {
+    $variables['attributes']['class'][] = Html::cleanCssIdentifier('page-panel');
+    $variables['attributes']['class'][] = Html::cleanCssIdentifier('overlay__wrapper');
+  }
+  else {
+    $variables['attributes']['class'][] = Html::cleanCssIdentifier('page-standard');
+    $variables['attributes']['class'][] = Html::cleanCssIdentifier('overlay__wrapper');
+  }
+
+  if ($routematch->getRouteName() === "acq_customer.orders" || $routematch->getRouteName() === 'acq_cart.cart') {
+    $variables['#attached']['library'][] = 'alshaya_white_label/convert_to_select2';
+  }
+
+  $node_bundle = '';
+  if (isset($variables['node'])) {
+    if (is_object($variables['node'])) {
+      $node_bundle = $variables['node']->bundle();
+    }
+  }
+
+  if ($node_bundle === 'acq_product') {
+    $variables['#attached']['library'][] = 'alshaya_white_label/convert_to_select2';
+  }
+
+  $variables['nojs_message'] = [
+    '#markup' => \Drupal::config('alshaya_master.settings')->get('js_disable_message'),
+  ];
+
+  // Initialising the variable to check the sidebar visibilty.
+  // This will be disable by default.
+  if (!array_key_exists('enable_lhn_tree', $variables)) {
+    $variables['enable_lhn_tree'] = 0;
+  }
+
+  // Attach the plp search js library to PLP page.
+  if ($routematch->getRouteName() === 'entity.taxonomy_term.canonical' || $routematch->getRouteName() === 'alshaya_main_menu.category_view_all') {
+    $term = $routematch->getParameter('taxonomy_term');
+    if ($term->bundle() == 'acq_product_category') {
+      $variables['#attached']['library'][] = 'alshaya_white_label/plp_search_js';
+
+      // Taking the sidebar visibility check from config for PLP.
+      $variables['enable_lhn_tree'] = \Drupal::config('alshaya_acm_product_category.settings')->get('enable_lhn_tree');
+
+      // If LHN config is enabled but the LHN block not rendering due to data.
+      $lhn_block = \Drupal::entityTypeManager()->getStorage('block')->load('categorylhnblock');
+      if (empty($lhn_block->getPlugin()->build())) {
+        $variables['enable_lhn_tree'] = 0;
+      }
+
+      $plp_type = $term->get('field_plp_layout')->value;
+      if ($plp_type == ProductCategoryTree::PLP_LAYOUT_1) {
+        $variables['plp_layout'] = ProductCategoryTree::PLP_LAYOUT_1;
+        // Load common library for campaign-plp-style-1.
+        $variables['#attached']['library'][] = 'alshaya_white_label/campaign-plp-style-1-common';
+
+        // Render incon image.
+        $variables['plp_icon'] = _alshaya_white_label_get_image_url($term->get('field_plp_menu_icon'));
+
+        // Videos on campaign-plp-style-1 PLP page.
+        if (!empty($term->get('field_plp_video_links')->first())) {
+          $desktopVideos = [];
+          $enable_autoplay = \Drupal::config('alshaya_master.plp_settings')->get('enable_autoplay');
+          $variables['#attached']['drupalSettings']['autoplay'] = $enable_autoplay;
+          if ($enable_autoplay == 1) {
+            $variables['autoplay_attributes'] = 'autoplay playsinline muted';
+          }
+          $variables['show_videos'] = 1;
+          $variables['#attached']['library'][] = 'alshaya_white_label/campaign-plp-style-1-video-provider';
+
+          $video_list = $term->get('field_plp_video_links');
+          foreach ($video_list as $embedded_video) {
+            $url = URL::fromUri($embedded_video->uri)->toString();
+            $desktopVideos[] = _alshaya_white_label_get_video_attributes($url);
+          }
+
+          if (!empty($term->get('field_mobile_plp_video_links')->first())) {
+            $mobile_video_list = $term->get('field_mobile_plp_video_links');
+            foreach ($mobile_video_list as $embedded_video) {
+              $url = URL::fromUri($embedded_video->uri)->toString();
+              $mobileVideos[] = _alshaya_white_label_get_video_attributes($url);
+            }
+          }
+
+          // If mobile videos are not set, use desktop videos on mobile.
+          $mobileVideos ??= $desktopVideos;
+
+          $variables['#attached']['drupalSettings']['desktopVideos'] = $desktopVideos;
+          $variables['#attached']['drupalSettings']['mobileVideos'] = $mobileVideos;
+        }
+      }
+
+      // Add term description in variables to be printed in page--plp.
+      $description = $term->getDescription();
+      if (isset($description)) {
+        $variables['category_term_name'] = $term->getName();
+        $variables['category_term_description'] = $description;
+      }
+    }
+  }
+
+  if ($node_bundle == 'advanced_page' && $variables['node']->get('field_use_as_department_page')->value == 1) {
+    $term_id = $variables['node']->get('field_product_category')->first();
+    if ($term_id) {
+      $term_id = $term_id->target_id;
+      $langcode = \Drupal::languageManager()->getCurrentLanguage()->getId();
+      // Load the term object.
+      $term = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->load($term_id);
+      // Get translated taxonomy term based on language.
+      if ($term instanceof TermInterface) {
+        $term_trans = \Drupal::service('entity.repository')
+          ->getTranslationFromContext($term, $langcode);
+        // Add term description in variables to be printed in page--department.
+        $description = $term_trans->getDescription();
+        if (isset($description)) {
+          $variables['category_term_name'] = $term_trans->getName();
+          $variables['category_term_description'] = $description;
+        }
+      }
+    }
+  }
+
+  // Attach the plp search js library to Search page.
+  if ($routematch->getRouteName() == 'view.search.page') {
+    $variables['#attached']['library'][] = 'alshaya_white_label/plp_search_js';
+    // Sidebar visibility for Search page.
+    $variables['enable_lhn_tree'] = \Drupal::config('alshaya_acm_product_category.settings')->get('enable_lhn_tree_search');
+  }
+
+  // Adding vat text footer to the page if SPC not enabled.
+  if (!\Drupal::moduleHandler()->moduleExists('alshaya_spc')) {
+    $variables['vat_text_footer'] = \Drupal::config('alshaya_acm_product.settings')->get('vat_text_footer');
+  }
+
+  // Attach the plp search js library to the promotion product listing page.
+  if ($node_bundle === 'acq_promotion') {
+    $variables['#attached']['library'][] = 'alshaya_white_label/plp_search_js';
+  }
+
+  // Make site_name and site_logo available to all TWIG templates.
+  $variables['site_name'] = \Drupal::config('system.site')->get('name');
+  $variables['site_logo'] = theme_get_setting('logo.url');
+  $mobile_logo = alshaya_master_get_mobile_logo();
+  $variables['mobile_site_logo'] = $mobile_logo['logo_url'] ?? '';
+
+  // Get cart configurations.
+  $cart_max_qty = \Drupal::config('alshaya_acm.cart_config')->get('max_cart_qty');
+  $checkout_feature_status = \Drupal::config('alshaya_acm.cart_config')->get('checkout_feature');
+  $variables['#attached']['drupalSettings']['checkoutFeatureStatus'] = $checkout_feature_status;
+  $variables['#attached']['drupalSettings']['cartMaxQty'] = $cart_max_qty;
+  $sub_brand_logo = _alshaya_master_get_subbrand_logo_image_link();
+  // If both sub brand logo image and link available.
+  if (!empty($sub_brand_logo)) {
+    $variables['sub_brand_logo_img'] = $sub_brand_logo['sub_brand_logo_img'];
+    $variables['sub_brand_logo_link'] = $sub_brand_logo['sub_brand_logo_link'];
+    $variables['sub_brand_logo_title'] = $sub_brand_logo['sub_brand_logo_title'];
+    $variables['sub_brand_logo_alt'] = $sub_brand_logo['sub_brand_logo_alt'];
+    $variables['#attached']['library'][] = 'alshaya_white_label/sub-brand-logo';
+  }
+
+  // Product List LHN Block.
+  if ($node_bundle === 'product_list') {
+    $lhn_block = \Drupal::entityTypeManager()->getStorage('block')->load('productlistlhnblock');
+    if (empty($lhn_block->getPlugin()->build())) {
+      $variables['enable_lhn_tree'] = 0;
+    }
+    else {
+      $variables['enable_lhn_tree'] = 1;
+    }
+  }
+}
+
+/**
+ * Implements template_preprocess_block().
+ */
+function alshaya_white_label_preprocess_block(&$variables) {
+  // Custom block type helper classes.
+  if (isset($variables['elements']['content']['#block_content'])) {
+    $bundle = $variables['elements']['content']['#block_content']->bundle();
+    $bundle_class = str_replace('_', '-', $bundle);
+    if (isset($variables['attributes']['class'])) {
+      $variables['attributes']['class'][] = Html::cleanCssIdentifier('block--' . $bundle_class);
+      $variables['attributes']['data-bundle-class'] = $bundle_class;
+    }
+
+    // Check if block is our brands block.
+    $block_id = $variables['elements']['content']['#block_content']->get('template_suggestion')->value;
+    if ($block_id === 'block__ourbrands') {
+      $paragraph_content = $variables['elements']['content']['#block_content']->get('field_paragraph_content')->getValue();
+      $brands = [];
+      foreach ($paragraph_content as $paragraph_id) {
+        $paragraph_entity = Paragraph::load($paragraph_id['target_id']);
+        $link = $paragraph_entity->get('field_link')->getValue();
+        $brand_logo_target_id = $paragraph_entity->get('field_banner')->getValue();
+        $file = File::load($brand_logo_target_id[0]['target_id']);
+        $brands[] = [
+          'title' => $paragraph_entity->get('field_title')->value,
+          'link' => Url::fromUri($link[0]['uri'])->toString(),
+          'brand_logo' => file_create_url($file->getFileUri()),
+        ];
+      }
+      $variables['brands'] = $brands;
+    }
+  }
+  elseif ($variables['plugin_id'] === 'keyword_search_block') {
+    $variables['attributes']['class'][] = 'block-views-exposed-filter-blocksearch-page';
+  }
+
+  if ($variables['plugin_id'] === 'basket_horizontal_recommendation') {
+    $variables['attributes']['class'][] = 'horizontal-crossell';
+  }
+
+  // Custom block type helper classes.
+  if (isset($variables['elements'], $variables['elements']['#id']) && $variables['elements']['#id'] === 'branding') {
+    $mobile_logo = alshaya_master_get_mobile_logo();
+    $variables['mobile_site_logo'] = $mobile_logo['logo_url'] ?? '';
+  }
+
+  // Sub brand logo.
+  if ($variables['plugin_id'] === 'system_branding_block') {
+    $sub_brand_logo = _alshaya_master_get_subbrand_logo_image_link();
+    // If both sub brand logo image and link available.
+    if (!empty($sub_brand_logo)) {
+      $variables['sub_brand_logo_img'] = $sub_brand_logo['sub_brand_logo_img'];
+      $variables['sub_brand_logo_link'] = $sub_brand_logo['sub_brand_logo_link'];
+      $variables['sub_brand_logo_title'] = $sub_brand_logo['sub_brand_logo_title'];
+      $variables['sub_brand_logo_alt'] = $sub_brand_logo['sub_brand_logo_alt'];
+    }
+  }
+
+  $listing_pages_plugin_id = [
+    'views_block:alshaya_product_list-block_1',
+    'views_block:alshaya_product_list-block_2',
+    'views_block:alshaya_product_list-block_3',
+  ];
+  if (in_array($variables['plugin_id'], $listing_pages_plugin_id)) {
+    $variables['attributes']['class'][] = 'c-products-list';
+    $variables['attributes']['class'][] = 'product-small';
+  }
+
+  // If `all filters` block of PLP.
+  if ($variables['plugin_id'] == 'alshaya_plp_facets_block_all') {
+    if ($variables['elements']['content']['#class'] == 'empty-category') {
+      $variables['attributes']['class'][] = 'empty-category';
+    }
+  }
+
+  if ($variables['plugin_id'] == 'search_api_algolia_autocomplete_block') {
+    $variables['#attached']['library'][] = 'alshaya_white_label/algolia_search';
+    if (\Drupal::service('module_handler')->moduleExists('alshaya_bazaar_voice')) {
+      $variables['#attached']['library'][] = 'alshaya_white_label/style-review-stars';
+    }
+  }
+
+  if ($variables['plugin_id'] == 'alshaya_main_menu' || $variables['plugin_id'] == 'alshaya_rcs_main_menu') {
+    $mega_menu_display = \Drupal::config('alshaya_main_menu.settings')->get('desktop_main_menu_layout');
+    if ($mega_menu_display === AlshayaMainMenuConfigForm::MAIN_MENU_INLINE_LAYOUT) {
+      $variables['attributes']['class'][] = 'megamenu-inline-layout';
+      $variables['#attached']['library'][] = 'alshaya_white_label/megamenu_inline_layout';
+    }
+    elseif ($mega_menu_display === AlshayaMainMenuConfigForm::MAIN_MENU_DYNAMIC_LAYOUT) {
+      $variables['attributes']['class'][] = 'megamenu-dynamic-layout';
+      $variables['#attached']['library'][] = 'alshaya_white_label/megamenu_dynamic_layout';
+    }
+  }
+
+  if ($variables['plugin_id'] == 'system_menu_block:super-menu') {
+    $variables['#attached']['library'][] = 'alshaya_white_label/super-menu';
+  }
+
+  if ($variables['plugin_id'] == 'alshaya_dp_navigation_link' || $variables['plugin_id'] == 'alshaya_rcs_dp_app_navigation') {
+    $variables['#attached']['library'][] = 'alshaya_white_label/app-navigation-links';
+  }
+
+  // Add class for category facet.
+  $category_facets = [
+    'facet_block:category_facet_plp',
+    'facet_block:category_facet_promo',
+    'facet_block:category_facet_search',
+  ];
+  if (in_array($variables['plugin_id'], $category_facets)) {
+    $variables['attributes']['class'][] = 'category-facet';
+  }
+}
+
+/**
+ * Implements template_view_alter().
+ */
+function alshaya_white_label_theme_suggestions_views_view_alter(array &$suggestions, &$variables) {
+  $config = \Drupal::config('alshaya_acm_product.carousel_settings');
+  $product_settings = \Drupal::config('alshaya_acm_product.settings');
+  $class = $product_settings->get('show_cart_form_in_related') == 0 ? 'no-cart-form' : '';
+  if ($variables['view']->current_display == "block_product_slider") {
+    $suggestions[] = 'views_view__product_slider';
+    $variables['row_limit'] = $config->get('carousel_recommended_product_limit');
+    $variables['show_cart_form_class'] = $class;
+  }
+
+  if ($variables['view']->current_display == "category_product_slider") {
+    $suggestions[] = 'views_view__category_product_slider';
+    $variables['row_limit'] = $config->get('carousel_category_product_limit');
+
+    if (\Drupal::service('path.matcher')->isFrontPage()) {
+      $variables['row_limit'] = $config->get('carousel_category_product_limit_front_page');
+    }
+  }
+}
+
+/**
+ * Implements template_view_grid_alter().
+ */
+function alshaya_white_label_theme_suggestions_views_view_grid_alter(array &$suggestions, &$variables) {
+  if ($variables['view']->id() == 'address_book') {
+    $suggestions[] = "views_view_grid__address_book";
+  }
+}
+
+/**
+ * Implements template_view_unformatted_alter().
+ */
+function alshaya_white_label_theme_suggestions_views_view_unformatted_alter(array &$suggestions, &$variables) {
+  if ($variables['view']->id() == 'stores_finder' && $variables['view']->current_display == 'page_1') {
+    // If store finder list view.
+    $suggestions[] = "views_view_unformatted__store_list";
+    $variables['load_more_button'] = [
+      '#title' => t('Load More'),
+      '#type' => 'link',
+      '#url' => Url::fromUserInput('#'),
+    ];
+  }
+  elseif ($variables['view']->id() == 'stores_finder' && $variables['view']->current_display == 'page_2') {
+    // If store finder glossary view.
+    $suggestions[] = "views_view_unformatted__store_glossary";
+  }
+
+  if ($variables['view']->id() == 'alshaya_product_list' && $variables['view']->current_display == 'block_1') {
+    $term = \Drupal::service('alshaya_acm_product_category.product_category_tree')->getCategoryTermFromRoute();
+    if ($term instanceof TermInterface && $term->get('field_group_by_sub_categories')->getString()) {
+      $suggestions[] = 'views_view_unformatted__alshaya_product_list_sub_cat';
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_views_view_field().
+ */
+function alshaya_white_label_preprocess_views_view_field__stores_finder__page_1__field_store_open_hours(&$variables) {
+  /** @var \Drupal\node\Entity\Node $node */
+  $node = $variables['row']->_entity;
+  $node = \Drupal::service('entity.repository')->getTranslationFromContext($node);
+  $output = $node->field_store_open_hours->view('default');
+  $variables['output'] = $output;
+}
+
+/**
+ * Implements hook_preprocess_views_view_field().
+ */
+function alshaya_white_label_preprocess_views_view_field__stores_finder__page_3__field_store_open_hours(&$variables) {
+  /** @var \Drupal\node\Entity\Node $node */
+  $node = $variables['row']->_entity;
+  $node = \Drupal::service('entity.repository')->getTranslationFromContext($node);
+  $output = $node->field_store_open_hours->view('default');
+  $variables['output'] = $output;
+}
+
+/**
+ * Implements hook_preprocess_views_view_field().
+ */
+function alshaya_white_label_preprocess_views_view_field__stores_finder__attachment_1__field_store_open_hours(&$variables) {
+  /** @var \Drupal\node\Entity\Node $node */
+  $node = $variables['row']->_entity;
+  $node = \Drupal::service('entity.repository')->getTranslationFromContext($node);
+  $output = $node->field_store_open_hours->view('default');
+  $variables['output'] = $output;
+}
+
+/**
+ * Implements hook_preprocess_field().
+ */
+function alshaya_white_label_preprocess_field__node__field_store_open_hours__store(&$variables) {
+  if ($lat_lng = $variables['element']['#object']->get('field_latitude_longitude')) {
+    $variables['lat_lng'] = $lat_lng[0];
+  }
+}
+
+/**
+ * Implements hook_preprocess_field().
+ */
+function alshaya_white_label_preprocess_field__field_slider(&$variables) {
+  $data = [];
+  if (!empty($variables['items'])) {
+    foreach ($variables['items'] as $item) {
+      $data[$item['content']['#paragraph']->getType()][] = $item['content'];
+    }
+  }
+
+  $variables['slider_usp_data'] = $data;
+}
+
+/**
+ * Implements hook_preprocess_node().
+ */
+function alshaya_white_label_preprocess_node(&$variables) {
+  // Helper variables for multiple nodes.
+  if (!empty($variables['elements']['#entity_type'])) {
+    $variables['attributes']['class'][] = Html::cleanCssIdentifier('entity--type-' . $variables['elements']['#entity_type']);
+  }
+
+  $variables['is_front'] = ($variables['view_mode'] == 'full' && \Drupal::service('path.matcher')->isFrontPage()) ? TRUE : FALSE;
+
+  if ($variables['node']->bundle() == 'advanced_page') {
+    $node = $variables['node']->toArray();
+    // Check and set the "show_right_sidebar" variable, to show or hide sidebar.
+    // This is a workaround, because of https://www.drupal.org/node/2864220.
+    if ((is_countable($node['field_related_info']) ? count($node['field_related_info']) : 0) >= 1) {
+      $paragraph = Paragraph::load($node['field_related_info'][0]['target_id'])->toArray();
+      if (!empty($paragraph['field_banner']) || !empty($paragraph['field_body']) || !empty($paragraph['field_title'])) {
+        $variables['show_right_sidebar'] = TRUE;
+      }
+    }
+    // Remove wrapper html for banner, slider, delivery banner
+    // if they are empty.
+    if (empty($variables['content']['field_banner']['#items'])) {
+      unset($variables['content']['field_banner']);
+    }
+    if (empty($variables['content']['field_slider']['#items'])) {
+      unset($variables['content']['field_slider']);
+    }
+    if (empty($variables['content']['field_delivery_banner']['#items'])) {
+      unset($variables['content']['field_delivery_banner']);
+    }
+  }
+  elseif ($variables['node']->bundle() == 'acq_product' && $variables['elements']['#view_mode'] == 'product_list') {
+    // Hide the node title on product list/search page.
+    $variables['label'] = NULL;
+  }
+  elseif (in_array($variables['node']->bundle(), ['acq_product', 'rcs_product'])) {
+    $product_display_settings = \Drupal::config('alshaya_acm_product.display_settings');
+    // Add class for enabling hover effect on PDP.
+    if ($product_display_settings->get('color_swatches_hover')) {
+      $variables['attributes']['class'][] = 'color-swatches-hover';
+    }
+    $settings = \Drupal::config('alshaya_acm_product.settings');
+    $acm_settings = \Drupal::config('alshaya_acm.settings');
+
+    $variables['vat_text_footer'] = $settings->get('vat_text_footer');
+    $variables['vat_text'] = $settings->get('vat_text');
+    $variables['attributes']['data-nid'] = $variables['node']->id();
+    $variables['attributes']['data-vmode'] = $variables['view_mode'];
+    $variables['pdp_layout'] = $settings->get('pdp_layout');
+    $variables['display_crosssell'] = $acm_settings->get('display_crosssell');
+    $variables['show_crosssell_as_matchback'] = $acm_settings->get('show_crosssell_as_matchback');
+    $variables['quantity_limit_enabled'] = $acm_settings->get('quantity_limit_enabled');
+
+    // Cross sell/ Up sell items count on carousel on pdp page.
+    $variables['#attached']['drupalSettings']['pdp_items_mob'] = $settings->get('cross_up_sell_items_settings.pdp_carousel_items_size_0');
+    $variables['#attached']['drupalSettings']['pdp_items_tab'] = $settings->get('cross_up_sell_items_settings.pdp_carousel_items_size_768');
+    $variables['#attached']['drupalSettings']['pdp_items_desk'] = $settings->get('cross_up_sell_items_settings.pdp_carousel_items_size_1025');
+    // Related product items count on carousel on Basket page.
+    $variables['#attached']['drupalSettings']['basket_carousel_items'] = $settings->get('cross_up_sell_items_settings.basket_carousel_items_size');
+    // Product items count on carousel.
+    $variables['#attached']['drupalSettings']['dp_product_carousel_items'] = $settings->get('product_carousel_items_settings.dp_product_carousel_items_number');
+    $variables['#attached']['drupalSettings']['hp_product_carousel_items'] = $settings->get('product_carousel_items_settings.hp_product_carousel_items_number');
+    // Number of items to show in a slider on PDP.
+    $variables['#attached']['drupalSettings']['pdp_slider_items'] = $settings->get('pdp_slider_items_settings.pdp_slider_items_number');
+    $variables['#attached']['drupalSettings']['pdp_slider_items_cs_us'] = $settings->get('pdp_slider_items_settings.pdp_slider_items_number_cs_us');
+    // Number of items to show in a colour swatches on PDP.
+    $variables['#attached']['drupalSettings']['colour_swatch_items_mob'] = $settings->get('pdp_colour_swatch_items_settings.pdp_colour_swatch_items_0');
+    $variables['#attached']['drupalSettings']['colour_swatch_items_tab'] = $settings->get('pdp_colour_swatch_items_settings.pdp_colour_swatch_items_768');
+    $variables['#attached']['drupalSettings']['colour_swatch_items_desk'] = $settings->get('pdp_colour_swatch_items_settings.pdp_colour_swatch_items_1025');
+    // Number of items to show in a Product swatches on PDP.
+    $variables['#attached']['drupalSettings']['product_swatch_items_mob'] = $settings->get('pdp_product_swatch_items_settings.pdp_product_swatch_items_0');
+    $variables['#attached']['drupalSettings']['product_swatch_items_tab'] = $settings->get('pdp_product_swatch_items_settings.pdp_product_swatch_items_768');
+    $variables['#attached']['drupalSettings']['product_swatch_items_desk'] = $settings->get('pdp_product_swatch_items_settings.pdp_product_swatch_items_1025');
+    $variables['#attached']['drupalSettings']['color_swatches_hover'] = $product_display_settings->get('color_swatches_hover');
+
+    if ($variables['view_mode'] == 'full') {
+      $node = $variables['node'];
+      if ($node instanceof NodeInterface) {
+        /** @var \Drupal\alshaya_acm_product\SkuManager $skuManager */
+        $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+        $pdp_layout = $skuManager->getPdpLayout($node, 'pdp');
+        // Classic gallery for cos PDP magazine layout.
+        $pdp_gallery_type = \Drupal::config('alshaya_acm_product.settings')->get('pdp_gallery_type');
+        if ($pdp_gallery_type == 'classic' && $pdp_layout == 'pdp-magazine') {
+          $variables['#attached']['drupalSettings']['pdp_gallery_type'] = $pdp_gallery_type;
+        }
+        $pdp_layout_plugin_manager = \Drupal::service('plugin.manager.alshaya_pdp_layouts');
+        $pdp_plugin = $pdp_layout_plugin_manager->getInstanceByLayout($pdp_layout);
+        $pdp_plugin->getRenderArray($variables);
+        if ($variables['show_crosssell_as_matchback']) {
+          $variables['#attached']['library'][] = 'alshaya_white_label/matchback_layout';
+        }
+      }
+    }
+    elseif ($variables['elements']['#view_mode'] == 'teaser') {
+      $current_route = \Drupal::routeMatch();
+      $variables['modal_link'] = TRUE;
+      if ($current_route->getRouteName() == 'entity.node.canonical') {
+        $node = $current_route->getParameter('node');
+        // Make modal link based on condition.
+        if ($node instanceof NodeInterface && $node->bundle() == 'magazine_article') {
+          $variables['modal_link'] = FALSE;
+        }
+      }
+    }
+  }
+  elseif ($variables['node']->bundle() === 'store') {
+    $current_route = \Drupal::routeMatch();
+    if ($current_route->getRouteName() == 'alshaya_stores_finder.store_detail') {
+      $variables['previous_page'] = $current_route->getParameter('type') ?: 'glossary';
+      $variables['#attached']['library'][] = 'alshaya_stores_finder/store_finder_preserve_history';
+    }
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_form_alter().
+ */
+function alshaya_white_label_theme_suggestions_form_alter(array &$suggestions, array $variables) {
+  $route_match = \Drupal::routeMatch();
+  if ($route_match->getRouteName() == 'acq_checkout.form') {
+    $suggestions[] = "form__checkout_form";
+  }
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter() for \Drupal\node\NodeForm.
+ *
+ * Changes vertical tabs to container and adds meta information.
+ * Code borrowed from Seven theme.
+ */
+function alshaya_white_label_form_node_form_alter(&$form, FormStateInterface $form_state) {
+  $node = $form_state->getFormObject()->getEntity();
+  $form['#theme'] = ['node_edit_form'];
+  $form['advanced']['#type'] = 'container';
+  $is_new = !$node->isNew() ? \Drupal::service('date.formatter')->format($node->getChangedTime(), 'short') : t('Not saved yet');
+  $form['meta'] = [
+    '#attributes' => ['class' => ['entity-meta__header']],
+    '#type'       => 'container',
+    '#group'      => 'advanced',
+    '#weight'     => -100,
+    'published'   => [
+      '#type'       => 'html_tag',
+      '#tag'        => 'h3',
+      '#value'      => $node->isPublished() ? t('Published') : t('Not published'),
+      '#access'     => !$node->isNew(),
+      '#attributes' => [
+        'class' => 'entity-meta__title',
+      ],
+    ],
+    'changed'     => [
+      '#type'               => 'item',
+      '#wrapper_attributes' => [
+        'class' => [
+          'entity-meta__last-saved',
+          'container-inline',
+        ],
+      ],
+      '#markup'             => '<h4 class="label inline">' . t('Last saved') . '</h4> ' . $is_new,
+    ],
+    'author'      => [
+      '#type'               => 'item',
+      '#wrapper_attributes' => [
+        'class' => [
+          'author',
+          'container-inline',
+        ],
+      ],
+      '#markup'             => '<h4 class="label inline">' . t('Author') . '</h4> ' . $node->getOwner()->getUsername(),
+    ],
+  ];
+  $form['revision_information']['#type'] = 'container';
+  $form['revision_information']['#group'] = 'meta';
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+// phpcs:ignore
+function alshaya_white_label_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  switch ($form_id) {
+    case "views_exposed_form":
+      // Adding Place holder on Search.
+      if ($form['#id'] == 'views-exposed-form-search-page') {
+        $form['keywords']['#attributes']['placeholder'] = \Drupal::config('alshaya_search.settings')->get('search_field_placeholder');
+      }
+      break;
+
+    case "user_login_form":
+      $form['#attached']['library'][] = 'alshaya_white_label/unmask_password';
+      break;
+
+    case "change_pwd_form":
+      $form['#attached']['library'][] = 'alshaya_white_label/unmask_password';
+      break;
+
+    case "user_register_form":
+    case "user_form":
+      if (\Drupal::moduleHandler()->moduleExists('alshaya_loyalty')) {
+        if (isset($form['privilege_card_wrapper'])) {
+          $prefix = $form['privilege_card_wrapper']['#prefix'];
+          $suffix = $form['privilege_card_wrapper']['#suffix'];
+          $prefix .= '<div class="privilege-card-wrapper">';
+          $prefix .= '<div class="privilege-card-wrapper-title"><p class="title">';
+          $prefix .= t('Have a PRIVILEGES CLUB card?');
+          $prefix .= '</p><p class="sub-title">';
+          $prefix .= t('Enter card number');
+          $prefix .= ' </p></div>';
+          $form['privilege_card_wrapper']['#prefix'] = $prefix;
+          $form['privilege_card_wrapper']['#suffix'] = '</div>' . $suffix;
+          $form['privilege_card_wrapper']['#title'] = t('Enter card details');
+          $form['privilege_card_wrapper']['privilege_card_number']['#title'] = t('PRIVILEGES CLUB card number (optional)');
+          $form['privilege_card_wrapper']['privilege_card_number2']['#title'] = t('Re-enter PRIVILEGES CLUB card number');
+        }
+      }
+      if ($form_id == 'user_register_form') {
+        $form['#attached']['library'][] = 'alshaya_white_label/unmask_password';
+      }
+      break;
+
+    case "webform_submission_alshaya_contact_add_form":
+      $form['#attached']['library'][] = 'alshaya_white_label/autosize_textarea';
+      $form['elements']['message']['#rows'] = 1;
+      $form['elements']['message']['#attributes']['maxlength'] = 220;
+      break;
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function alshaya_white_label_theme() {
+  return [
+    'customer_cart_form' => [
+      'render element' => 'form',
+      'path' => drupal_get_path('theme', 'alshaya_white_label') . '/templates/form',
+    ],
+    'alshaya_white_label_accordion' => [
+      'render element' => 'elements',
+      'variables' => [
+        'title' => NULL,
+        'content' => NULL,
+        'view_all' => NULL,
+      ],
+      'path' => drupal_get_path('theme', 'alshaya_white_label') . '/templates',
+    ],
+    'alshaya_white_label_picture' => [
+      'variables' => [
+        'desktop_image' => NULL,
+        'mobile_image' => NULL,
+        'default_image' => NULL,
+      ],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_theme_suggestions_page_alter().
+ */
+function alshaya_white_label_theme_suggestions_page_alter(array &$suggestions, array $variables) {
+  $routmatch = \Drupal::routeMatch();
+  if ($routmatch->getRouteName() === 'entity.taxonomy_term.canonical' || $routmatch->getRouteName() === 'alshaya_main_menu.category_view_all') {
+    $term = $routmatch->getParameter('taxonomy_term');
+    if ($term->bundle() === 'acq_product_category') {
+      $suggestions[] = 'page__plp';
+    }
+  }
+
+  // For 404 page.
+  if ($routmatch->getRouteName() == 'system.404') {
+    $suggestions[] = 'page__404';
+  }
+
+  // Check if we are on node page.
+  if ($routmatch->getRouteName() == 'entity.node.canonical') {
+    $node = \Drupal::request()->attributes->get('node');
+
+    if ($node->bundle() == 'advanced_page') {
+      $suggestions[] = 'page__advanced';
+    }
+    elseif ($node->bundle() == 'acq_product') {
+      $suggestions[] = 'page__pdp';
+    }
+    elseif ($node->bundle() == 'acq_promotion') {
+      $suggestions[] = 'page__plp';
+    }
+    elseif ($node->bundle() == 'product_list') {
+      $suggestions[] = 'page__plp';
+    }
+  }
+
+  if (\Drupal::service('path.matcher')->isFrontPage()) {
+    $suggestions[] = 'page__front';
+  }
+
+  if ($routmatch->getRouteName() == 'alshaya_acm_customer.orders_print'
+    || $routmatch->getRouteName() == 'alshaya_acm_customer.print_last_order') {
+    $suggestions[] = 'page__orderprint';
+  }
+
+  // SPC checkout.
+  if ($routmatch->getRouteName() === 'alshaya_spc.checkout') {
+    $suggestions[] = 'page__spc_checkout';
+  }
+
+  // SPC checkout confirmation.
+  if ($routmatch->getRouteName() === 'alshaya_spc.checkout.confirmation') {
+    $suggestions[] = 'page__spc_checkout_confirmation';
+  }
+}
+
+/**
+ * Implements hook_page_attachments_alter().
+ */
+function alshaya_white_label_page_attachments_alter(array &$attachments) {
+  // Get current route.
+  $route_name = \Drupal::routeMatch()->getRouteName();
+
+  // Routes from where we need to remove the 'back_to_top' button.
+  $skip_back_to_top_routes = [
+    'acq_checkout.form',
+  ];
+
+  if (in_array($route_name, $skip_back_to_top_routes)) {
+    // If back_to_top library is added to page, remove it.
+    if (in_array('back_to_top/back_to_top_js', $attachments['#attached']['library'])) {
+      $index = array_search('back_to_top/back_to_top_js', $attachments['#attached']['library']);
+      unset($attachments['#attached']['library'][$index]);
+    }
+  }
+
+  // For performance testing & debugging purposes adding a quick bypass for
+  // escaping GTM JS on a page.
+  // Usage: ?GTM=BLOCK (OR) ?external=0.
+  $param = \Drupal::request()->get('GTM');
+  $external = \Drupal::request()->get('external');
+  if ((isset($external) && $external == 0) || $param === 'BLOCK') {
+    foreach ($attachments['#attached']['html_head'] ?? [] as $index => $script) {
+      if ($script[1] === 'google_tag_script_tag__primary' || $script[1] === 'google_tag_data_layer_tag__primary') {
+        unset($attachments['#attached']['html_head'][$index]);
+        return;
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_node_alter().
+ */
+function alshaya_white_label_theme_suggestions_node_alter(array &$suggestions, array $variables) {
+  $node = $variables['elements']['#node'];
+
+  // Check if the current node is front page.
+  if ($node instanceof Node) {
+    if (\Drupal::service('path.matcher')->isFrontPage() && $node->getType() == 'advanced_page') {
+      $suggestions[] = 'node__advanced_page_front';
+    }
+    elseif ($variables['elements']['#view_mode'] == 'full'
+      && in_array($node->getType(), ['rcs_product', 'acq_product'])) {
+      /** @var \Drupal\alshaya_acm_product\SkuManager $skuManager */
+      $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+      $pdp_layout = $skuManager->getPdpLayout($node, 'pdp');
+      $pdp_layout_plugin_manager = \Drupal::service('plugin.manager.alshaya_pdp_layouts');
+      $pdp_plugin = $pdp_layout_plugin_manager->getInstanceByLayout($pdp_layout);
+      $pdp_plugin->getTemplateName($suggestions, $node->getType());
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_field().
+ */
+function alshaya_white_label_preprocess_field(&$variables, $hook) {
+  $element = $variables['element'];
+  // If 'acq_sku' entity with 'product_list' display mode.
+  if ($element['#entity_type'] == 'acq_sku' && $element['#view_mode'] == 'product_list') {
+    if (isset($element['#field_name'])) {
+      // Hide/Remove all images except first.
+      if ($element['#field_name'] == 'attr_image') {
+        if (!empty($variables['items'])) {
+          $variables['items'] = [$variables['items'][0]];
+        }
+      }
+
+      // Added the currency label.
+      if ($element['#field_name'] == 'price') {
+        if (!empty($variables['items'])) {
+          $price = $variables['items'][0]['content']['#context']['value'];
+          $variables['items'][0]['content'] = [
+            '#theme' => 'alshaya_acm_price',
+            '#price' => $price,
+          ];
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_user().
+ */
+function alshaya_white_label_preprocess_user(&$variables) {
+  /** @var \Drupal\user\Entity\User $user */
+  $user = $variables['user'];
+  if ($user) {
+    $variables['email'] = $user->get('mail') ? $user->get('mail')->getValue()[0]['value'] : '';
+
+    // We always initialise the variable to get no notices.
+    $variables['contact_number'] = '';
+    $variables['privilege_card'] = '';
+
+    if (isset($user->field_mobile_number)) {
+      if ($mobile_number = $user->get('field_mobile_number')->getValue()) {
+        $variables['contact_number'] = \Drupal::service('mobile_number.util')->getFormattedMobileNumber($mobile_number[0]['value']);
+      }
+    }
+
+    // Check if loyalty module is enabled.
+    if (\Drupal::moduleHandler()->moduleExists('alshaya_loyalty')) {
+      // Get loyalty settings.
+      $loyalty_settings = alshaya_loyalty_get_validation_settings();
+
+      // Check if site has loyalty enabled in config.
+      if ($loyalty_settings['enable_disable_loyalty']) {
+
+        // Check if we have some value stored for the user.
+        if ($privilege_card = $user->get('field_privilege_card_number')->getValue()) {
+          $variables['privilege_card'] = alshaya_loyalty_format_card_number($privilege_card[0]['value'], TRUE);
+        }
+      }
+    }
+  }
+
+  // Removing the metatag as it contains user specific information.
+  foreach ($variables['#attached']['html_head'] as $key => $attachment) {
+    if (array_search('rdf_user_username', $attachment)) {
+      unset($variables['#attached']['html_head'][$key]);
+      break;
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_menu().
+ */
+function alshaya_white_label_preprocess_menu(&$variables) {
+  if ($variables['menu_name'] === 'account') {
+    // Get the current path.
+    $current_path = \Drupal::routeMatch()->getRouteObject()->getPath();
+    $items = $variables['items'];
+    foreach ($items as $item) {
+      // If path is current_path, add active class.
+      if ($item['url']->isRouted() && $item['url']->getRouteName() == 'user.page') {
+        if (str_starts_with($current_path, '/user/') || str_starts_with($current_path, '/profile/')) {
+          $attributes = $item['url']->getOption('attributes');
+          $attributes['class'][] = 'is-active';
+          $item['url']->setOption('attributes', $attributes);
+        }
+      }
+    }
+  }
+  // Adding GTM label attribute Super Menu link items.
+  elseif ($variables['menu_name'] === 'super-menu') {
+    $langcode = \Drupal::languageManager()->getDefaultLanguage()->getId();
+    foreach ($variables['items'] as $item) {
+      $itemEntity = $item['original_link']->getTranslateRoute()->getOption('entity');
+      $attributes = $item['url']->getOption('attributes');
+      $attributes['gtm-menu-title'] = $itemEntity->hasTranslation($langcode) ? $itemEntity->getTranslation($langcode)->getTitle() : $item['original_link']->getTitle();
+      $item['url']->setOption('attributes', $attributes);
+    }
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_block_alter().
+ */
+function alshaya_white_label_theme_suggestions_block_alter(array &$suggestions, array $variables) {
+  $routmatch = \Drupal::service('path.matcher');
+  if ($routmatch->isFrontPage() && $variables['elements']['#plugin_id'] == 'system_branding_block') {
+    $suggestions[] = "block__system_branding__home_block";
+  }
+}
+
+/**
+ * Implements THEMENAME_preprocess().
+ */
+function alshaya_white_label_preprocess(&$variables, $hook) {
+  global $base_url;
+  $variables['site_base_path'] = $base_url . '/';
+}
+
+/**
+ * Implements hook_preprocess_views_view_unformatted().
+ */
+function alshaya_white_label_preprocess_views_view_unformatted__store_list(&$variables) {
+  // If store finder's list view.
+  if ($variables['view']->id() == 'stores_finder' && $variables['view']->current_display == 'page_1') {
+    if (!empty($variables['rows'])) {
+      foreach ($variables['rows'] as $key => $row) {
+        /** @var \Drupal\node\Entity\Node $store_node */
+        $store_node = $row['content']['#row']->_entity;
+        $store_node = \Drupal::service('entity.repository')->getTranslationFromContext($store_node);
+        if ($latitude_longitude = $store_node->get('field_latitude_longitude')) {
+          $lat_lang_value = $latitude_longitude->getValue();
+          $variables['rows'][$key]['lat_long'] = $lat_lang_value[0];
+          $variables['rows'][$key]['nid'] = $store_node->id();
+          $variables['rows'][$key]['title'] = $store_node->label();
+          $variables['rows'][$key]['counter'] = $key + 1;
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements THEMENAME_preprocess_input().
+ */
+function alshaya_white_label_preprocess_input(&$variables) {
+  $element = $variables['element'];
+  if (isset($element['#attributes']['data-twig-suggestion']) && $element['#attributes']['data-twig-suggestion'] == 'userregisterformpassword') {
+    // Get password tooltip content from config.
+    $tooltip = \Drupal::config('alshaya_user.settings')->get('password_tooltip.value');
+
+    // Get a different tooltip for change password page.
+    if (\Drupal::routeMatch()->getRouteName() == 'change_pwd_page.change_password_form') {
+      $tooltip = \Drupal::config('alshaya_user.settings')->get('password_tooltip_change_pwd.value');
+    }
+
+    $variables['password_tooltip'] = [
+      '#markup' => $tooltip,
+    ];
+  }
+
+  // If button is of submit and of the plp/srp/promo list page, not convert it.
+  if ($element['#type'] == 'submit' && isset($element['#attributes']['data-bef-auto-submit-click'])) {
+    $variables['no_ripple'] = TRUE;
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_input_alter().
+ */
+function alshaya_white_label_theme_suggestions_input_alter(&$suggestions, array $variables) {
+  $element = $variables['element'];
+
+  $suggestions[] = 'input__' . $element['#type'];
+
+  if (isset($element['#attributes']['data-twig-suggestion'])) {
+    if ($element['#attributes']['data-twig-suggestion'] == 'userregisterformpassword') {
+      $suggestions[] = 'input__' . $element['#attributes']['data-twig-suggestion'];
+    }
+    if ($element['#attributes']['data-twig-suggestion'] == 'addtocart') {
+      $suggestions[] = 'input__add_to_cart';
+    }
+    if ($element['#attributes']['data-twig-suggestion'] == 'secure-checkout') {
+      $suggestions[] = 'input__secure_checkout';
+    }
+    if ($element['#attributes']['data-twig-suggestion'] == 'newsletter') {
+      $suggestions[] = 'input__newsletter_submit';
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_mimemail_message().
+ */
+function alshaya_white_label_preprocess_mimemail_message(&$variables) {
+  // Currently we have alshaya_white_label theme enabled for non-transac sites
+  // too. We don't need to modify anything around mails for non-transac sites
+  // so we simply skip execution if installed profile is not transac.
+  if (\Drupal::installProfile() !== 'alshaya_transac') {
+    return;
+  }
+
+  $user = user_load_by_mail($variables['recipient']);
+  if ($user) {
+    $lang = $user->getPreferredLangcode();
+  }
+  else {
+    $lang = \Drupal::currentUser()->getPreferredLangcode();
+  }
+
+  // Get logo based on user preferred language.
+  $email_logo = alshaya_master_get_email_logo(NULL, $lang);
+  if (empty($email_logo['logo_url'])) {
+    $email_logo['logo_url'] = file_create_url($email_logo['logo_path']);
+  }
+  $variables['email_logo'] = $email_logo['logo_url'];
+
+  // Add website footer block information with UUID as this is the unique id
+  // with different env.
+  $uuid = '340b823b-e16c-457a-bc03-4a096f8ae171';
+  // Get copyright block based on language.
+  $copyright_block = \Drupal::service('entity.repository')->loadEntityByUuid('block_content', $uuid);
+  if ($copyright_block) {
+    $block_view = \Drupal::entityTypeManager()
+      ->getViewBuilder('block_content')
+      ->view($copyright_block, 'full', $lang);
+
+    $variables['email_footer'] = $block_view;
+  }
+
+  $variables['lang'] = $lang;
+
+  $menu_tree = \Drupal::menuTree();
+  // Build the typical default set of menu tree parameters.
+  $parameters = $menu_tree->getCurrentRouteMenuTreeParameters('social-links');
+  $parameters->onlyEnabledLinks();
+  $menus = $menu_tree->load('social-links', $parameters);
+  if (\Drupal::config('alshaya_super_category.settings')->get('status')) {
+    $default_tid = alshaya_super_category_get_default_term();
+  }
+
+  if (isset($menus)) {
+    foreach ($menus as $menu) {
+      if (isset($default_tid)) {
+        $selected_categories = array_filter($menu->link->getOptions()['categories']);
+        foreach ($selected_categories as $selected_category) {
+          if ($selected_category == $default_tid) {
+            $title = $menu->link->getTitle();
+            $links[strtolower($title)] = $menu->link->getUrlObject()
+              ->setAbsolute(TRUE)
+              ->toString();
+          }
+        }
+      }
+      else {
+        $title = $menu->link->getTitle();
+        $links[strtolower($title)] = $menu->link->getUrlObject()
+          ->setAbsolute(TRUE)
+          ->toString();
+      }
+    }
+    if (isset($links)) {
+      $variables['links'] = $links;
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_maintenance_page().
+ */
+function alshaya_white_label_preprocess_maintenance_page(&$variables) {
+  $config = \Drupal::config('alshaya_master.maintenanace_404_settings');
+  $maintenance_text = $config->get('maintenance_mode_rich_message');
+  $image = $config->get('maintenance_mode_image');
+  $variables['maintenance_text'] = [
+    '#markup' => $maintenance_text['value'],
+  ];
+  $variables['maintenance_image'] = '';
+  if (\Drupal::service('module_handler')->moduleExists('dynamic_yield')) {
+    // The function dynamic_yield_page_attachments expects html_head in the
+    // #attached.
+    if (!isset($variables['#attached']['html_head'])) {
+      $variables['#attached']['html_head'] = [];
+    }
+    dynamic_yield_page_attachments($variables);
+  }
+  if (!empty($image)) {
+    if ($file = File::load($image)) {
+      $variables['maintenance_image'] = file_create_url($file->getFileUri());
+    }
+  }
+  $container_service = \Drupal::service('entity_type.manager')->getStorage('google_tag_container');
+  $ids = $container_service
+    ->getQuery()
+    ->condition('status', 1)
+    ->execute();
+  $id = NULL;
+  if ($ids) {
+    $id = reset($ids);
+  }
+  $container = $container_service->load($id);
+  if ($container) {
+    $gtm_data = $container->snippets();
+    if ($gtm_data) {
+      $variables['#attached']['html_head'][] = [
+        [
+          '#tag' => 'script',
+          '#attributes' => ['type' => 'text/javascript'],
+          '#value' => $gtm_data['script'],
+        ],
+      ];
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_page__404().
+ */
+function alshaya_white_label_preprocess_page__404(&$variables) {
+  $langcode = \Drupal::languageManager()->getCurrentLanguage()->getId();
+  $config = \Drupal::config('alshaya_master.maintenanace_404_settings');
+  $text_404 = $config->get('404_message');
+  $image = $config->get('404_image.' . $langcode);
+  $variables['message_404'] = [
+    '#markup' => $text_404['value'],
+  ];
+  $variables['image_404'] = '';
+  if (!empty($image)) {
+    if ($file = File::load($image)) {
+      $variables['image_404'] = file_create_url($file->getFileUri());
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_facets_summary_item_list().
+ */
+function alshaya_white_label_preprocess_facets_summary_item_list(&$variables) {
+  // Move clear-all link item to the end of the array & attach clear-all class.
+  if ((is_countable($variables['items']) ? count($variables['items']) : 0) > 0) {
+    $variables['items'][0]['attributes']->addClass('clear-all');
+    $clear_all_item = $variables['items'][0];
+    array_splice($variables['items'], 0, 1);
+    $variables['items'][] = $clear_all_item;
+  }
+}
+
+/**
+ * Implements template_preprocess_form().
+ */
+function alshaya_white_label_preprocess_form(&$variables) {
+  if ($variables['element']['#id'] === 'views-exposed-form-search-page') {
+    $variables['attributes']['class'][] = 'views-exposed-form-search-page';
+  }
+}
+
+/**
+ * Implements template_preprocess_acq_sku().
+ */
+function alshaya_white_label_preprocess_acq_sku(&$variables) {
+  $variables['attributes']['data-skuid'] = $variables['sku_entity']->id();
+}
+
+/**
+ * Implements template_preprocess_page_title().
+ */
+function alshaya_white_label_preprocess_page_title(&$variables) {
+  if ($node = \Drupal::routeMatch()->getParameter('node')) {
+    if (is_object($node) && $node->bundle() === 'acq_promotion') {
+      $variables['title'] = $node->get('field_acq_promotion_label')->getString();
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_paragraph().
+ */
+function alshaya_white_label_preprocess_paragraph(&$variables) {
+  $nodeType = '';
+  if (\Drupal::routeMatch()->getRouteName() === 'entity.node.canonical') {
+    $nodeType = \Drupal::request()->attributes->get('node')->bundle();
+  }
+  $paragraphType = $variables['elements']['#paragraph']->getType();
+
+  if ($variables['elements']['#paragraph']->getType() == 'promo_block') {
+    // Get the promo block display config for twig file.
+    $para_config = \Drupal::config('alshaya_paragraphs.paragraphs_custom_config');
+    $variables['promo_link'] = $para_config->get('promo_block_display');
+    if ($variables['promo_link'] == 1) {
+      // Set variable to make whole promo block clickable.
+      if ($variables['elements']['field_promo_block_button'][0]['#paragraph']) {
+        $button_link = $variables['elements']['field_promo_block_button'][0]['#paragraph']->get('field_button_link')->getValue();
+        $variables['button_link'] = Url::fromUri($button_link[0]['uri'])->toString();
+      }
+    }
+    // Get the desktop and mobile images for promo blocks if available.
+    $mobile_image = !empty($variables['elements']['field_promotion_image_mobile']['#items']) ? $variables['elements']['field_promotion_image_mobile']['#items'] : '';
+    $desktop_image = !empty($variables['elements']['field_banner']['#items']) ? $variables['elements']['field_banner']['#items'] : '';
+    $default_image = !empty($desktop_image) ? $desktop_image : $mobile_image;
+
+    // Inline style to override margins for banners.
+    $mobile_margin = !empty($variables['elements']['field_margin_mobile']['#items']) ? $variables['elements']['field_margin_mobile']['#items'] : '';
+    $desktop_tablet_margin = !empty($variables['elements']['field_margin_d_t']['#items']) ? $variables['elements']['field_margin_d_t']['#items'] : '';
+
+    $style_data = _alshaya_white_label_get_banner_margin_override($mobile_margin, $desktop_tablet_margin);
+
+    if (!empty($style_data)) {
+      $variables['style_tag'] = $style_data['style_tag'];
+      $variables['selector_class'] = $style_data['selector_class'];
+    }
+
+    if (!empty($default_image) && (!empty($desktop_image) || !empty($mobile_image))) {
+      $variables['promo_block_picture'] = [
+        '#theme' => 'alshaya_white_label_picture',
+        '#desktop_image' => !empty($desktop_image) ? _alshaya_white_label_get_image_url($desktop_image) : _alshaya_white_label_get_image_url($mobile_image),
+        '#mobile_image' => !empty($mobile_image) ? _alshaya_white_label_get_image_url($mobile_image) : _alshaya_white_label_get_image_url($desktop_image),
+        '#default_image' => _alshaya_white_label_get_image_url($default_image),
+      ];
+    }
+  }
+  // Form the accodian content for egift.
+  if ($paragraphType == 'accordion_paragraph') {
+    foreach ($variables['elements']['field_title_and_content'] as $key => $value) {
+      if (is_int($key)) {
+        $variables['title_content'][$key] = $value;
+      }
+    }
+    if ($nodeType === 'advanced_page') {
+      $variables['#attached']['library'][] = 'alshaya_white_label/advanced-page-paragraph-accordion';
+    }
+  }
+
+  // Only for the banner paragraph.
+  if ($variables['elements']['#paragraph']->getType() == 'banner') {
+    // Get the desktop and mobile images for Slider banner if available.
+    $mobile_banner_image = !empty($variables['elements']['field_mobile_banner_image']['#items']) ? $variables['elements']['field_mobile_banner_image']['#items'] : '';
+    $desktop_banner_image = !empty($variables['elements']['field_banner']['#items']) ? $variables['elements']['field_banner']['#items'] : '';
+    $banner_default_image = !empty($desktop_banner_image) ? $desktop_banner_image : $mobile_banner_image;
+
+    if (!empty($banner_default_image) && (!empty($desktop_banner_image) || !empty($mobile_banner_image))) {
+      $variables['promo_block_picture'] = [
+        '#theme' => 'alshaya_white_label_picture',
+        '#desktop_image' => !empty($desktop_banner_image) ? _alshaya_white_label_get_image_url($desktop_banner_image) : _alshaya_white_label_get_image_url($mobile_banner_image),
+        '#mobile_image' => !empty($mobile_banner_image) ? _alshaya_white_label_get_image_url($mobile_banner_image) : _alshaya_white_label_get_image_url($desktop_banner_image),
+        '#default_image' => _alshaya_white_label_get_image_url($banner_default_image),
+      ];
+    }
+  }
+  elseif ($variables['elements']['#paragraph']->getType() == 'promo_block_button') {
+    // Get the promo block display config for twig file.
+    $para_config = \Drupal::config('alshaya_paragraphs.paragraphs_custom_config');
+    $variables['promo_link'] = $para_config->get('promo_block_display');
+    if ($variables['promo_link'] == 1) {
+      // Get button text and set as markup.
+      $variables['button_text']['#markup'] = $variables['elements']['field_button_link'][0]['#title'];
+    }
+  }
+  elseif ($variables['elements']['#paragraph']->getType() == 'product_carousel_category') {
+    /** @var \Drupal\paragraphs\Entity\Paragraph $paragraph */
+    $paragraph = $variables['elements']['#paragraph'];
+    if ($paragraph) {
+      // If category value is filled.
+      if (!empty($paragraph->get('field_category_carousel'))) {
+        $carousel = \Drupal::service('alshaya_acm_product_category.carousel_helper')->getCarousel($paragraph);
+        $variables = array_merge($variables, $carousel);
+      }
+    }
+  }
+  elseif ($variables['elements']['#paragraph']->getType() == 'delivery_usp_block') {
+    /** @var \Drupal\paragraphs\Entity\Paragraph $paragraph */
+    $paragraph = $variables['paragraph'];
+    $timer_value = [];
+    $timer_value[$paragraph->id()] = $paragraph->get('field_usp_timer')->getString();
+    // Passing value so that can be used in slider JS.
+    $variables['#attached']['drupalSettings']['usp_text_timer'] = $timer_value;
+  }
+  elseif ($variables['elements']['#paragraph']->getType() == 'slug_banner') {
+
+    /** @var \Drupal\paragraphs\Entity\Paragraph $paragraph */
+    $advanced_page_slug_banner = $variables['paragraph'];
+    if (!empty($advanced_page_slug_banner)) {
+      $variables['#attached']['library'][] = 'alshaya_white_label/slug-banner';
+    }
+
+    // Get the desktop and mobile slug background color if available.
+    $desktop_slug_bkg_color = $advanced_page_slug_banner->get('field_default_slug_bkg_color')->value ?? NULL;
+    $mobile_slug_bkg_color = $advanced_page_slug_banner->get('field_mobile_slug_bkg_color')->value ?? $desktop_slug_bkg_color;
+
+    // Get the desktop and mobile slug font color if available.
+    $desktop_slug_font_color = $advanced_page_slug_banner->get('field_default_slug_font_color')->value ?? NULL;
+    $mobile_slug_font_color = $advanced_page_slug_banner->get('field_mobile_slug_font_color')->value ?? $desktop_slug_font_color;
+
+    if (!empty($desktop_slug_bkg_color) || !empty($mobile_slug_bkg_color)) {
+      $variables['desktop_slug_bkg_color'] = $desktop_slug_bkg_color;
+      $variables['mobile_slug_bkg_color'] = $mobile_slug_bkg_color;
+    }
+
+    if (!empty($desktop_slug_font_color) || !empty($mobile_slug_font_color)) {
+      $variables['desktop_slug_font_color'] = $desktop_slug_font_color;
+      $variables['mobile_slug_font_color'] = $mobile_slug_font_color;
+    }
+  }
+  // Adds new gtm-title html attribute to paragraph items in
+  // Today's Offers block.
+  elseif ($variables['elements']['#paragraph']->getType() == 'offers_bordered') {
+    $defaultLangcode = \Drupal::languageManager()->getDefaultLanguage()->getId();
+    if (!empty($variables['elements']['#paragraph']->getTranslation($defaultLangcode)->get('field_title')->getValue())) {
+      $gtmLabel = $variables['elements']['#paragraph']->getTranslation($defaultLangcode)->get('field_title')->getValue()[0]['value'];
+    }
+    $variables['content']['field_title']['#attributes']['gtm-title'] = $gtmLabel ?? NULL;
+  }
+  elseif ($paragraphType === 'image_title_subtitle_link' && $nodeType === 'advanced_page') {
+    $variables['#attached']['library'][] = 'alshaya_white_label/advanced-page-paragraph-banner';
+  }
+}
+
+/**
+ * Helper function to calculate image url from image file object.
+ *
+ * @param \Drupal\file\Plugin\Field\FieldType\FileFieldItemList $file_item_list
+ *   Field field item list.
+ *
+ * @return string
+ *   Url to the image file.
+ */
+function _alshaya_white_label_get_image_url(FileFieldItemList $file_item_list) {
+  if ((!empty($file_item_list)) &&
+    (!empty($images = $file_item_list->referencedEntities()))) {
+    foreach ($images as $image) {
+      return $image->getFileUri();
+    }
+  }
+}
+
+/**
+ * Helper function to return margin value from FieldItemList object.
+ *
+ * @param \Drupal\Core\Field\FieldItemList $item_list
+ *   The FieldItemList object.
+ *
+ * @return string
+ *   The margin shorthand value.
+ */
+function _alshaya_white_label_get_margin_value(FieldItemList $item_list) {
+  if (!empty($item_list)) {
+    if (!empty($items = $item_list->getValue())) {
+      return $items[0]['value'];
+    }
+  }
+}
+
+/**
+ * Helper function to generate style tag for overriding margin for banner.
+ *
+ * @param object $mobile_margin
+ *   FieldItemList for mobile margin field.
+ * @param object $desktop_tablet_margin
+ *   FieldItemList for desktop margin field.
+ *
+ * @return array
+ *   Array containing unique selector and style tag.
+ */
+function _alshaya_white_label_get_banner_margin_override($mobile_margin, $desktop_tablet_margin) {
+  // Generate a random string to be used as a selector.
+  $unique_class = uniqid('c-');
+
+  if (!empty($mobile_margin)) {
+    $mobile_margin_value = '@media ' . _alshaya_white_label_get_media_query('alshaya_white_label.palm') . '{';
+    $mobile_margin_value .= ' .' . $unique_class . '{';
+    $mobile_margin_value .= 'margin: ' . _alshaya_white_label_get_margin_value($mobile_margin) . ';';
+    $mobile_margin_value .= '}}';
+  }
+
+  if (!empty($desktop_tablet_margin)) {
+    $desktop_tablet_margin_value = '@media ' . _alshaya_white_label_get_media_query('alshaya_white_label.lap');
+    $desktop_tablet_margin_value .= ',' . _alshaya_white_label_get_media_query('alshaya_white_label.desk') . '{';
+    $desktop_tablet_margin_value .= ' .' . $unique_class . '{';
+    $desktop_tablet_margin_value .= 'margin: ' . _alshaya_white_label_get_margin_value($desktop_tablet_margin) . ';';
+    $desktop_tablet_margin_value .= '}}';
+  }
+
+  if (isset($desktop_tablet_margin_value) || isset($mobile_margin_value)) {
+    $selector_override = 'c-promo__item__override';
+    $style_tag = '';
+    $style_tag .= $mobile_margin_value ?? NULL;
+    $style_tag .= $desktop_tablet_margin_value ?? NULL;
+    return [
+      'style_tag' => $style_tag,
+      'selector_class' => [
+        'unique_class' => $unique_class,
+        'override_class' => $selector_override,
+      ],
+    ];
+  }
+}
+
+/**
+ * Helper function to get media query from alshaya_white_label.breakpoints.yml.
+ *
+ * @param string $resolution
+ *   The plugin id as per breakpoints.yml.
+ *
+ * @return string
+ *   The media query string without @media or NULL if invalid input.
+ */
+function _alshaya_white_label_get_media_query($resolution) {
+  $accepted_resolutions = [
+    'alshaya_white_label.palm',
+    'alshaya_white_label.lap',
+    'alshaya_white_label.desk',
+  ];
+
+  if (!in_array($resolution, $accepted_resolutions, TRUE)) {
+    return NULL;
+  }
+
+  $breakpoints = \Drupal::service('breakpoint.manager')->getBreakpointsByGroup('alshaya_white_label');
+  foreach ($breakpoints as $breakpoint_id => $breakpoint) {
+    if ($resolution == $breakpoint_id) {
+      $media_query = $breakpoint->getMediaQuery();
+      return $media_query;
+    }
+  }
+}
+
+/**
+ * Helper function to get video attributes.
+ *
+ * @param string $video_url
+ *   The url of the video.
+ *
+ * @return array
+ *   The array containing video attributes
+ */
+function _alshaya_white_label_get_video_attributes($video_url) {
+  $provider_host = parse_url($video_url)['host'] ?? NULL;
+  $type = 'mp4';
+
+  if (str_contains($provider_host, 'vimeo')) {
+    $type = 'vimeo';
+  }
+  elseif (str_contains($provider_host, 'youtube') || str_contains($provider_host, 'youtu')) {
+    $type = 'youtube';
+  }
+  $videoAttributes = [
+    'src' => $video_url,
+    'type' => $type,
+  ];
+
+  return $videoAttributes;
+}
+
+/**
+ * Implements hook_preprocess_HOOK().
+ */
+function alshaya_white_label_preprocess_checkout_selected_address(&$variables) {
+  $variables['delivery_address'] = \Drupal::service('alshaya_addressbook.manager')->decorateAddressDispaly($variables['delivery_address']);
+
+  if (isset($variables['delivery_address']['telephone'])) {
+    $variables['delivery_address']['mobile_number'] = str_replace(' ', '', $variables['delivery_address']['telephone']);
+    unset($variables['delivery_address']['telephone']);
+  }
+
+  if (isset($variables['delivery_address']['country'])) {
+    $variables['delivery_address']['country_code'] = $variables['delivery_address']['country'];
+    unset($variables['delivery_address']['country']);
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK().
+ */
+function alshaya_white_label_preprocess_alshaya_address(&$variables) {
+  $variables['address'] = \Drupal::service('alshaya_addressbook.manager')->decorateAddressDispaly($variables['address']);
+
+  if (isset($variables['address']['telephone'])) {
+    $variables['address']['mobile_number'] = str_replace(' ', '', $variables['address']['telephone']);
+    unset($variables['address']['telephone']);
+  }
+
+  if (isset($variables['address']['country'])) {
+    $variables['address']['country_code'] = $variables['address']['country'];
+    unset($variables['address']['country']);
+  }
+}
+
+/**
+ * Implements hook_preprocess_breadcrumb().
+ */
+function alshaya_white_label_preprocess_breadcrumb(&$variables) {
+  $variables['breadcrumb'] = [];
+  /** @var \Drupal\Core\Link $link */
+  foreach ($variables['links'] as $key => $link) {
+    $class = 'brdcrb-nav';
+    if (!empty($attributes = $link->getUrl()->getOption('attributes'))
+      && !empty($attributes['class'])) {
+      $class .= ' ' . implode(' ', $attributes['class']);
+    }
+
+    $variables['breadcrumb'][$key] = [
+      'text' => $link->getText(),
+      'url' => $link->getUrl()->toString(),
+      'class' => $class,
+    ];
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK().
+ */
+function alshaya_white_label_preprocess_facets_item_list(&$variables) {
+  if (empty($variables['attributes']['data-drupal-facet-id'])) {
+    return;
+  }
+
+  // Flag to determine if category facet has active item.
+  $category_active_facet = FALSE;
+
+  // Flag to determine if child of a category facet item is active.
+  $active_children = FALSE;
+
+  // Category facet array.
+  $category_facets = [
+    'category_facet_plp',
+    'category_facet_search',
+    'category_facet_promo',
+  ];
+  // If category facet.
+  $is_category_facet = in_array($variables['attributes']['data-drupal-facet-id'], $category_facets);
+  foreach ($variables['items'] as $key => $item) {
+    if (isset($item['value']['#attributes']['class'])
+      && in_array('is-active', $item['value']['#attributes']['class'])) {
+      if ($variables['items'][$key]['attributes'] instanceof Attribute) {
+        $variables['items'][$key]['attributes']->addClass('is-active');
+        // Update flag as there is active category facet.
+        if ($is_category_facet) {
+          $category_active_facet = TRUE;
+        }
+      }
+    }
+    // Checking if there are any L2 items.
+    if (isset($item['value']['children']['#items'])) {
+      foreach ($item['value']['children']['#items'] as $key1 => $children) {
+        if ($children['#title']['#is_active'] == TRUE) {
+          // Setting 'is-active' class for L2 items.
+          $variables['items'][$key]['value']['children']['#items'][$key1]['#wrapper_attributes']['class'][] = 'is-active';
+          // Setting $active_children to TRUE.
+          $active_children = TRUE;
+        }
+      }
+    }
+  }
+
+  // If its category facet and it has no active item, then mark `All` active.
+  if ($is_category_facet && !$category_active_facet && !empty($variables['items'][0]) && !$active_children) {
+    $variables['items'][0]['attributes']->addClass('is-active');
+  }
+
+  if ($is_category_facet) {
+    if (!empty($variables['items'][0]['attributes'])) {
+      $variables['items'][0]['attributes']->addClass('category-all', 'facet-item');
+    }
+  }
+}
+
+/**
+ * Implements template_preprocess_image().
+ */
+function alshaya_white_label_preprocess_image(&$variables) {
+  $variables['attributes']['loading'] = 'lazy';
+}
+
+/**
+ * Implements template_preprocess_image_style().
+ */
+function alshaya_white_label_preprocess_image_style(&$variables) {
+  if (empty($variables['image']['#access'])) {
+    // Ensure we use relative urls everywhere.
+    $variables['image']['#uri'] = file_url_transform_relative($variables['image']['#uri']);
+  }
+
+  if (isset($variables['skip_lazy_loading'])) {
+    $variables['image']['#skip_lazy_loading'] = $variables['skip_lazy_loading'];
+  }
+}
+
+/**
+ * Implements hook_theme_registry_alter().
+ */
+function alshaya_white_label_theme_registry_alter(array &$theme_registry) {
+  $theme_registry['image']['variables']['skip_lazy_loading'] = NULL;
+  $theme_registry['image_style']['variables']['skip_lazy_loading'] = NULL;
+}

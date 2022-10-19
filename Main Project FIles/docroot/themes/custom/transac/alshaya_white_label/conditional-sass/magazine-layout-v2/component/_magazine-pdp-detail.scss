@@ -1,0 +1,189 @@
+.magv2 {
+  &-detail-wrapper {
+    .magv2 {
+      &-pdp {
+        &-title-wrapper {
+          display: block;
+          padding-top: 1.875rem;
+
+          @include breakpoint($only-mobile) {
+            padding-top: 1.25rem;
+          }
+        }
+
+        &-title {
+          display: inline-block;
+          font-size: 1.125rem;
+          line-height: normal;
+          color: $magv2-pdp-title;
+          padding: 0 0 0.625rem;
+        }
+
+        &-brand-logo {
+          float: $right;
+          margin-#{$left}: 2.5rem;
+
+          img {
+            max-height: 2.938rem;
+            width: auto;
+          }
+        }
+
+        &-price-wrapper {
+          font-size: 1.375rem;
+          line-height: normal;
+          color: $magv2-price;
+          font-family: $alshaya-bold;
+        }
+
+        &-price-amount,
+        &-final-price-amount {
+          padding-#{$left}: 0.1875rem;
+          direction: ltr;
+        }
+
+        &-price-container {
+          margin-bottom: 0.9375rem;
+
+          &.has-special-price {
+            .magv2-pdp {
+              &-final-price-wrapper {
+                font-family: $alshaya-bold;
+                font-size: 1.375rem;
+                line-height: normal;
+                color: $magv2-special-price;
+                margin-bottom: 0.1875rem;
+                display: flex;
+                align-items: center;
+
+                .magv2-pdp-discount-percentage {
+                  border-radius: 0.125rem;
+                  border: solid 0.063rem $magv2-discount-percentage;
+                  background-color: $magv2-discount-background;
+                  font-size: 0.875rem;
+                  margin-#{$left}: 0.3125rem;
+                  padding: 0.125rem 0.375rem;
+                  font-family: $alshaya-thin;
+                  line-height: 1;
+                }
+              }
+
+              &-price-wrapper {
+                color: $magv2-price-strike;
+                display: inline-block;
+                padding-#{$right}: 0.3125rem;
+                text-decoration: line-through;
+                font-size: 1.125rem;
+                font-family: $alshaya-thin;
+              }
+
+              &-vat-text {
+                display: inline-block;
+                font-size: 0.875rem;
+                line-height: normal;
+                color: $vat;
+
+                @include breakpoint($only-mobile) {
+                  font-size: 0.75rem;
+                }
+              }
+            }
+          }
+
+          .magv2-meta-data-wrapper {
+            display: flex;
+            align-items: center;
+
+            .magv2-pdp-vat-text {
+              font-size: 0.875rem;
+              color: $magv2-vat-text;
+              padding-#{$left}: 0.3125rem;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  &-header {
+    .magv2 {
+      &-detail-wrapper {
+        .magv2-pdp-title-wrapper {
+          padding-top: 0;
+        }
+      }
+    }
+  }
+}
+
+.magv2-sidebar,
+.magv2-crossell-popup-content-wrapper {
+  .magv2-detail-wrapper {
+    .magv2-pdp {
+      &-title {
+        &.has-brand-logo {
+          display: inline-block;
+          width: calc(100% - 5.625rem);
+        }
+
+        &-wrapper {
+          display: block;
+        }
+      }
+
+      &-brand-logo {
+        float: $right;
+      }
+    }
+  }
+}
+
+.magv2-sidebar {
+  .addtobag-button-wrapper {
+    .pdp-cart-form {
+      .size-guide-on-pdp {
+        margin-bottom: 0.65rem;
+
+        @include breakpoint($only-mobile) {
+          margin-bottom: 0.25rem;
+        }
+
+        .size-guide {
+          @include breakpoint($tablet) {
+            text-align: $right;
+          }
+
+          .size-guide-link {
+            top: 0;
+            color: $magv2-size-guide-link;
+            font-size: 0.75rem;
+            padding-top: 0.625rem;
+            padding-bottom: 1rem;
+            padding-#{$left}: 1.8rem;
+
+            &::before {
+              content: '';
+              background: url('#{$base_theme_img_directory_path}/icons/new-pdp-size-guide-icon.svg') center center no-repeat;
+              width: 1.5625rem;
+              height: 1.5625rem;
+              display: inline-block;
+              position: absolute;
+              #{$left}: 0;
+              top: 0.1875rem;
+            }
+
+            @include breakpoint($tablet) {
+              font-size: 1rem;
+
+              &::before {
+                background: none;
+                width: auto;
+                height: auto;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

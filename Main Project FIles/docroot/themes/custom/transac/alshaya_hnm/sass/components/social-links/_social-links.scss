@@ -1,0 +1,82 @@
+.c-social-links {
+  text-align: center;
+  padding-top: 0.25rem;
+  padding-bottom: 1.125rem;
+
+  li {
+    vertical-align: middle;
+
+    &:not(:last-child) {
+      margin-#{$right}: 1.5rem;
+    }
+  }
+
+  [class^="c-social-links--"] {
+    &::before {
+      color: $social_links;
+      font-size: 1.25rem;
+    }
+
+    &:hover {
+      &::before {
+        opacity: 0.85;
+        background: none;
+        color: $social_links;
+      }
+    }
+  }
+
+  .c-social-links--google-plus {
+    @include icon(googleplus) {
+      font-size: 1.875rem;
+      padding-#{$left}: 0.4375rem;
+    }
+  }
+
+  @include breakpoint($tablet) {
+    padding-top: 0.625rem;
+    padding-bottom: 1.1875rem;
+  }
+
+  @include breakpoint($desktop) {
+    padding-bottom: 1.125rem;
+  }
+}
+
+//specific to H&M brand
+
+.alshaya-social {
+  .auth-link {
+    background-color: $default_background_color;
+    border-color: $hnm-black-three;
+
+    &:hover {
+      background-color: unset;
+    }
+
+    .social-network-text {
+      font-size: 0.8125rem;
+      color: $hnm-black-three;
+
+      &::first-letter {
+        text-transform: uppercase;
+      }
+    }
+  }
+}
+
+.c-user-register {
+  .block-alshaya-social-login {
+    padding-top: rem(32);
+  }
+
+  &.user-page {
+    main {
+      .block-system-main-block {
+        @include breakpoint($tablet) {
+          margin-top: rem(32);
+        }
+      }
+    }
+  }
+}

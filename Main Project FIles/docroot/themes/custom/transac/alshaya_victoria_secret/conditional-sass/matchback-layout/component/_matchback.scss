@@ -1,0 +1,18 @@
+#machbackSlider {
+  ul.slick-dots {
+    li {
+      &.slick-active {
+        background-color: $hp_slider_dots !important;
+      }
+    }
+  }
+}
+
+.cross-sell-product-components {
+  .cross-sell-product-component-center {
+    .matchback-prod-collection-label {
+      font-size: rem(12);
+      font-family: $vs-bentonsans-medium;
+    }
+  }
+}

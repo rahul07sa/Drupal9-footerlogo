@@ -1,0 +1,64 @@
+.contact-form {
+  .form-submit {
+    @include breakpoint($only-mobile) {
+      width: 100%;
+      margin-bottom: 0;
+    }
+
+    text-transform: uppercase;
+    font-family: $vs-bold;
+    padding: 0.725rem;
+  }
+}
+
+.alias--contact {
+  .webform-submission-alshaya-contact-form legend {
+    float: none;
+    margin-#{$left}: 0;
+  }
+}
+
+.webform-submission-alshaya-contact-add-form {
+  .form-item {
+    &.form-type-textfield,
+    &.form-type-textarea,
+    &.form-type-email {
+      label {
+        &:last-of-type {
+          text-transform: unset;
+        }
+      }
+    }
+  }
+
+  .mobile-number-field {
+    label {
+      text-transform: unset;
+    }
+  }
+}
+
+.webform-submission-alshaya-contact-form {
+  legend {
+    font-family: $vs-bold;
+    font-weight: normal;
+  }
+
+  .mobile-number-field .mobile-input--wrapper .prefix,
+  .form-type-textarea textarea,
+  .form-item.form-type-email label:last-of-type,
+  .form-item.form-type-textarea label:last-of-type {
+    font-size: 0.875rem;
+  }
+
+  input[type="tel"] {
+    line-height: 1.5;
+    height: auto;
+  }
+
+  .mobile-input--wrapper {
+    #edit-mobile-number-mobile-error {
+      margin-top: -1.25rem;
+    }
+  }
+}

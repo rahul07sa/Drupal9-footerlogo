@@ -1,0 +1,105 @@
+<?php
+
+/**
+ * @file
+ * Module file for alshaya_country.
+ */
+
+use Drupal\Core\Locale\CountryManager;
+
+/**
+ * Helper function to set default regional information.
+ *
+ * This function set the default country, timezone for the site and currency
+ * code based on the country selected at installation time.
+ *
+ * @param string $country_code
+ *   The country code.
+ */
+function alshaya_country_set_default_regional_info($country_code) {
+  // Set default country for site.
+  \Drupal::configFactory()->getEditable('system.date')
+    ->set('country.default', $country_code)
+    ->save();
+
+  // Try to get timezone from country code.
+  $timezones = \DateTimeZone::listIdentifiers(\DateTimeZone::PER_COUNTRY, $country_code);
+
+  // Use given timezone by default, use first one from the result if found.
+  $timezone = reset($timezones);
+
+  // Set default timezone from settings.
+  \Drupal::configFactory()->getEditable('system.date')
+    ->set('timezone.default', $timezone)
+    ->save();
+
+  // Re-save store finder view to ensure country code is updated.
+  \Drupal::configFactory()->getEditable('views.view.stores_finder')->save();
+
+  // Update the currency code to one required for the transac site.
+  if (\Drupal::moduleHandler()->moduleExists('acq_commerce')) {
+    $currency_code = \Drupal::service('alshaya_custom.alshaya_country_manager')->getCurrencyCode($country_code, 'en');
+    $config = \Drupal::configFactory()->getEditable('acq_commerce.currency');
+    $config->set('currency_code', $currency_code);
+    $config->save();
+  }
+}
+
+/**
+ * Utility function to get the country name.
+ *
+ * @return string
+ *   Country name.
+ */
+function _alshaya_country_get_site_level_country_name() {
+  $default_site_country = _alshaya_custom_get_site_level_country_code();
+  $countries = CountryManager::getStandardList();
+  if (isset($countries[$default_site_country])) {
+    $default_site_country = $countries[$default_site_country]->getUntranslatedString();
+  }
+  return $default_site_country;
+}
+
+/**
+ * Utility function to set the store search placeholder country specific.
+ *
+ * @param string $store_search_placeholder
+ *   The placeholder value.
+ * @param string $store_search_placeholder_ar
+ *   The placeholder value for arabic.
+ */
+function alshaya_country_set_default_store_search_placeholder($store_search_placeholder, $store_search_placeholder_ar) {
+  // Set Country specific placeholder for store finder search.
+  \Drupal::configFactory()->getEditable('alshaya_stores_finder.settings')
+    ->set('store_search_placeholder', $store_search_placeholder)
+    ->save();
+
+  // Make configuration value translatable.
+  \Drupal::languageManager()->getLanguageConfigOverride('ar', 'alshaya_stores_finder.settings')
+    ->set('store_search_placeholder', $store_search_placeholder_ar)
+    ->save();
+}
+
+/**
+ * Install config for spc click n collect.
+ *
+ * Set default lat and long for click n collect api requests.
+ *
+ * @param float $lat
+ *   The default country latitude.
+ * @param float $lng
+ *   The default country longitude.
+ * @param int $zoom
+ *   The zoom level. default set to 7.
+ */
+function alshaya_country_set_default_spc_config(float $lat, float $lng, $zoom = 7) {
+  if (\Drupal::service("module_handler")->moduleExists("alshaya_spc")
+      && $config = \Drupal::configFactory()->getEditable('alshaya_spc.click_n_collect')
+  ) {
+    $config->set('country_center', [
+      'latitude' => $lat,
+      'longitude' => $lng,
+      'zoom' => $zoom,
+    ])->save();
+  }
+}

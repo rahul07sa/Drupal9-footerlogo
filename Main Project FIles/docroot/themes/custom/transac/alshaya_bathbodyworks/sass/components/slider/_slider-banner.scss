@@ -1,0 +1,11 @@
+.owl-prev,
+.owl-next,
+.slick-prev,
+.slick-next {
+  &::before {
+    height: 2.125rem;
+    width: 2.125rem;
+    color: $pdp_carousel_arrows_blue;
+    font-size: 3rem;
+  }
+}

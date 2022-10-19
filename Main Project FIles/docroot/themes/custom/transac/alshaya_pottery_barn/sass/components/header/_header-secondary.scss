@@ -1,0 +1,48 @@
+.c-menu-secondary {
+  text-transform: none;
+
+  li {
+    @include breakpoint($desktop) {
+      border-#{$left}: 1px solid $header_secondary_menu_link_border;
+    }
+
+    &::after {
+      @include breakpoint($upto-desktop) {
+        &::after {
+          #{$right}: -0.1875rem;
+        }
+      }
+    }
+  }
+
+  .block-alshaya-stores-finder a {
+    @include breakpoint($desktop) {
+      border-#{$left}: 1px solid $header_secondary_menu_link_border;
+    }
+  }
+
+  a {
+    @include breakpoint($upto-desktop) {
+      text-transform: uppercase;
+    }
+  }
+
+  [role="navigation"] {
+    @include breakpoint($desktop) {
+      display: inline-block;
+      height: 1.5rem;
+
+      ul.menu li {
+        a.design-services {
+          @include icon(deliveryservice);
+        }
+      }
+    }
+  }
+}
+
+.header--wrapper.navbar-fixed-top {
+  @include breakpoint($desktop) {
+    display: none;
+  }
+}

@@ -1,0 +1,40 @@
+name: Bouchon Bakery
+description: Theme for Bouchon Bakery - Non transac site.
+type: theme
+core: 8.x
+core_version_requirement: ^8 || ^9
+base theme: whitelabel
+alshaya_theme_type: non_transac
+
+regions:
+  admin_content: 'Admin Content'
+  header_secondary: 'Header Secondary'
+  header: Header
+  header_primary: 'Header Primary'
+  content: Content
+  sidebar: Sidebar
+  footer: Footer
+  footer_primary: 'Footer Primary'
+  footer_secondary: 'Footer Secondary'
+
+libraries:
+  - whitelabel/global
+  - bouchon_bakery/global
+  - bouchon_bakery/fonts
+
+libraries-extend:
+  whitelabel/menu-logo-navigation:
+    - bouchon_bakery/menu-logo-navigation
+
+components:
+  namespaces:
+    atoms:
+      - components/_patterns/00-atoms
+    molecules:
+      - components/_patterns/01-molecules
+    organisms:
+      - components/_patterns/02-organisms
+    templates:
+      - components/_patterns/03-templates
+    pages:
+      - components/_patterns/04-pages

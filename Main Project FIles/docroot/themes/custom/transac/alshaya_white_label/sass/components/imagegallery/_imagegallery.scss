@@ -1,0 +1,91 @@
+.nodetype--acq_product .ui-dialog.dialog-product-image-gallery-container {
+  height: 100vh !important;
+  width: 100vw !important;
+  background: $gallery_bg;
+
+  @include breakpoint($mobile) {
+    padding: 0;
+  }
+
+  .ui-dialog-titlebar {
+    padding: 0;
+
+    @include breakpoint($only-tablet) {
+      margin: 0 auto;
+    }
+  }
+}
+
+.ui-dialog .ui-dialog-titlebar-close {
+  @include icon(close) {
+    font-size: 1.875rem;
+  }
+
+  position: absolute;
+  #{$right}: 0;
+  #{$left}: auto;
+  top: 50%;
+  width: 1.875rem;
+  margin: 0;
+  height: 1.875rem;
+  border: none;
+  z-index: 9;
+  font-size: 0;
+  color: $modal_close_icon;
+  background-color: $modal_close_bg;
+  border-radius: 0;
+  outline: solid transparent;
+  text-indent: inherit;
+
+  &::before {
+    position: absolute;
+    #{$right}: 0;
+    top: 0;
+  }
+
+  @include breakpoint($only-tablet) {
+    #{$right}: -1.4rem;
+  }
+}
+
+#lightSlider {
+  @include breakpoint($only-tablet) {
+    padding-#{$left}: 3rem;
+    padding-#{$right}: 3rem;
+  }
+}
+
+.mobilegallery {
+  #product-image-gallery-mobile {
+    padding: 0;
+    margin: 0;
+
+    .slick-track,
+    li.slick-slide {
+      min-height: 50vh;
+    }
+
+    li.slick-slide {
+      width: 100%;
+      height: auto;
+      position: relative;
+
+      img {
+        height: auto;
+        width: 100%;
+      }
+    }
+
+    ul.slick-dots {
+      position: absolute;
+      width: 100%;
+      #{$left}: 0;
+      text-align: center;
+      bottom: 0;
+    }
+
+    button.slick-arrow {
+      top: 40% !important;
+    }
+  }
+}

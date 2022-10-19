@@ -1,0 +1,32 @@
+alshaya_acm_product.display_settings:
+  type: config_object
+  label: 'Alshaya ACM Product display settings'
+  mapping:
+    image_thumb_gallery:
+      type: boolean
+      label: 'Display image thumb gallery on product node'
+    color_swatches:
+      type: boolean
+      label: 'Display color swatches on product node'
+    plp_slider:
+      type: mapping
+      label: 'Configuration for plp slider'
+      mapping:
+        items:
+          type: integer
+          label: 'Number of items to display in slider'
+        margin:
+          type: integer
+          label: 'Margin between images in slider'
+    short_desc_characters:
+      type: integer
+      label: 'No. of characters that should be displayed as short decription on PDP page.'
+    short_desc_text_summary:
+      type: boolean
+      label: 'Use text_summary to generate short description.'
+    show_color_images_on_filter:
+      type: integer
+      label: 'Flag to show images from specific color on filter.'
+    show_brand_name_plp:
+      type: boolean
+      label: 'Flag to show brand name on plp/srp teaser view.'

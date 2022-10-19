@@ -1,0 +1,12 @@
+// Theming of mobile image gallery popup on PDP.
+.nodetype--acq_product .dialog-product-image-gallery-container-mobile {
+  padding: 0 !important;
+}
+
+.mob-imagegallery__thumbnails__image {
+  overflow: auto;
+
+  .expand {
+    max-width: initial;
+  }
+}

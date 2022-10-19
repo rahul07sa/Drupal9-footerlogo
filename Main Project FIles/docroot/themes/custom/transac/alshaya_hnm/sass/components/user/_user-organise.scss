@@ -1,0 +1,30 @@
+#details-privilege-card-wrapper {
+  .privilege-card-wrapper {
+    .privilege-card-wrapper-title {
+      font-family: $hnm-demibold;
+      font-weight: normal;
+      color: $privilege_card_title;
+      padding-bottom: 0.375rem;
+
+      &.ui-state-active {
+        border-bottom: 1px solid $white;
+      }
+    }
+  }
+}
+
+.c-user-register {
+  main {
+    .user-register-form {
+      @include breakpoint($desktop) {
+        max-width: 24.625rem;
+      }
+
+      .privilege-card-wrapper-title {
+        font-family: $hnm-demibold;
+        font-size: 0.8125rem;
+        color: $privilege_card_title;
+      }
+    }
+  }
+}

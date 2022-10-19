@@ -1,0 +1,14 @@
+name: 'Alshaya HnM'
+type: module
+description: 'The dedicated module for HnM brand.'
+package: Alshaya
+core: 8.x
+core_version_requirement: ^8 || ^9
+themes:
+  - alshaya_hnm
+
+dependencies:
+  - alshaya_hm:alshaya_hm_images
+  - alshaya_hm:alshaya_hm_redirect
+  - alshaya_hm:alshaya_mobile_app
+  - alshaya_color_split:alshaya_color_split

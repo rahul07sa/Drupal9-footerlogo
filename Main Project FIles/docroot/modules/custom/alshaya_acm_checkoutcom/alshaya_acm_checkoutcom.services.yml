@@ -1,0 +1,22 @@
+services:
+  alshaya_acm_checkoutcom.route_subscriber:
+    class: Drupal\alshaya_acm_checkoutcom\Routing\RouteSubscriber
+    tags:
+      - { name: event_subscriber }
+
+  cache.checkout_com:
+    class: Drupal\Core\Cache\CacheBackendInterface
+    tags:
+      - { name: cache.bin }
+    factory: cache_factory:get
+    arguments: [checkout_com]
+
+  alshaya_acm_checkoutcom.api_helper:
+    class: Drupal\alshaya_acm_checkoutcom\Helper\AlshayaAcmCheckoutComAPIHelper
+    arguments:
+      - '@config.factory'
+      - '@entity_type.manager'
+      - '@current_user'
+      - '@alshaya_api.api'
+      - '@cache.checkout_com'
+      - '@alshaya_api.mdc_helper'

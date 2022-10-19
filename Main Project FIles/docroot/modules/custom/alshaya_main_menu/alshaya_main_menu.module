@@ -1,0 +1,273 @@
+<?php
+
+/**
+ * @file
+ * Module file.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\alshaya_main_menu\Form\AlshayaMainMenuConfigForm;
+use Drupal\taxonomy\Entity\Term;
+
+/**
+ * Implements hook_theme().
+ */
+function alshaya_main_menu_theme($existing, $type, $theme, $path) {
+  return [
+    'alshaya_main_menu_level1' => [
+      'template' => 'alshaya-main-menu-level1',
+      'variables' => [
+        'term_tree' => NULL,
+        'column_tree' => NULL,
+        'menu_type' => NULL,
+        'settings' => [],
+      ],
+    ],
+    'alshaya_main_menu_level2' => [
+      'template' => 'alshaya-main-menu-level2',
+      'variables' => [
+        'data' => NULL,
+      ],
+    ],
+    'alshaya_main_menu_level3' => [
+      'template' => 'alshaya-main-menu-level3',
+      'variables' => [
+        'data' => NULL,
+      ],
+    ],
+    'alshaya_main_menu_level4' => [
+      'template' => 'alshaya-main-menu-level4',
+      'variables' => [
+        'data' => NULL,
+      ],
+    ],
+    'alshaya_main_menu_category_image' => [
+      'template' => 'alshaya-main-menu-category-image',
+      'variables' => [
+        'data' => NULL,
+      ],
+    ],
+    'alshaya_main_menu_highlights' => [
+      'template' => 'alshaya-main-menu-highlights',
+      'variables' => [
+        'data' => NULL,
+      ],
+    ],
+    'alshaya_main_menu_text_links' => [
+      'template' => 'alshaya-main-menu-text-links',
+      'variables' => [
+        'data' => NULL,
+      ],
+    ],
+  ];
+}
+
+/**
+ * Prepares variables for menu items.
+ *
+ * @param array $variables
+ *   An associative array containing menu items.
+ */
+function template_preprocess_alshaya_main_menu_level1(array &$variables) {
+  if ($variables['menu_type'] == 'default' || $variables['menu_type'] == 'menu_dynamic_display') {
+    _alshaya_main_menu_process_tag_attributes($variables['column_tree']);
+  }
+  else {
+    _alshaya_main_menu_process_tag_attributes($variables['term_tree']);
+  }
+}
+
+/**
+ * Implements hook_alshaya_main_menu_links_alter().
+ *
+ * We are rendering the same menu items for mobile view, Add 'max-depth'
+ * class to restrict number of levels to display in mobile view.
+ */
+function alshaya_main_menu_alshaya_main_menu_links_alter(array &$term_tree, $parent_id, array $context) {
+  $max_depth = \Drupal::config('alshaya_main_menu.settings')->get('mobile_main_menu_max_depth');
+  if ($max_depth > 0) {
+    // When super category status is enabled, We render the main menu items
+    // from second level terms. Add depth_offset to max_depth to adjust
+    // max_depth accordingly.
+    $max_depth += $context['depth_offset'] ?? 0;
+    _alshaya_main_menu_process_max_depth($term_tree, $max_depth);
+  }
+}
+
+/**
+ * Loop through each element recursively and add class for max_depth.
+ *
+ * @param array $data
+ *   The array to main menu tree.
+ * @param int $max_depth
+ *   The maximum depth to add class.
+ */
+function _alshaya_main_menu_process_max_depth(array &$data, int $max_depth) {
+  foreach ($data as &$item) {
+    if (isset($item['l1_object'])) {
+      if ($item['l1_object']['depth'] == $max_depth) {
+        $item['l1_object']['class'][] = 'max-depth';
+      }
+      if (!empty($item['l1_object']['child'])) {
+        foreach ($item['columns'] as $key => $column) {
+          foreach ($column as $key1 => $value) {
+            if ($value['depth'] == $max_depth) {
+              $item['columns'][$key][$key1]['class'][] = 'max-depth';
+            }
+            if (!empty($value['child'])) {
+              _alshaya_main_menu_process_max_depth($item['columns'][$key][$key1]['child'], $max_depth);
+            }
+          }
+        }
+      }
+    }
+    else {
+      if ($item['depth'] == $max_depth) {
+        $item['class'][] = 'max-depth';
+      }
+      if (!empty($item['child'])) {
+        _alshaya_main_menu_process_max_depth($item['child'], $max_depth);
+      }
+    }
+  }
+}
+
+/**
+ * Prepares href for anchor tag for given term data.
+ */
+function _alshaya_main_menu_process_tag_attributes(array &$data) {
+  foreach ($data as &$record) {
+    if (isset($record['l1_object'])) {
+      $record['l1_object']['tag'] = 'div';
+      $record['l1_object']['tag_attr'] = '';
+      if (isset($record['l1_object']['clickable']) && $record['l1_object']['clickable']) {
+        $record['l1_object']['tag'] = 'a';
+        $record['l1_object']['tag_attr'] = "href={$record['l1_object']['path']}";
+      }
+
+      if (!empty($record['columns'])) {
+        foreach ($record['columns'] as $key => $value) {
+          foreach ($value as $key1 => $l2) {
+            $record['columns'][$key][$key1]['tag'] = 'div';
+            $record['columns'][$key][$key1]['tag_attr'] = '';
+            if (isset($l2['clickable']) && $l2['clickable']) {
+              $record['columns'][$key][$key1]['tag'] = 'a';
+              $record['columns'][$key][$key1]['tag_attr'] = "href={$l2['path']}";
+            }
+            if (!empty($l2['child'])) {
+              _alshaya_main_menu_process_tag_attributes_columns($record['columns'][$key][$key1]['child']);
+            }
+          }
+        }
+      }
+    }
+    else {
+      $record['tag'] = 'div';
+      $record['tag_attr'] = '';
+      if (isset($record['clickable']) && $record['clickable']) {
+        $record['tag'] = 'a';
+        $record['tag_attr'] = "href={$record['path']}";
+      }
+
+      if (!empty($record['child'])) {
+        _alshaya_main_menu_process_tag_attributes($record['child']);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function alshaya_main_menu_form_taxonomy_term_acq_product_category_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  // Only for the term edit page.
+  if (isset($form['tid']) && !empty($form['tid']['#value'])) {
+    if ($term = Term::load($form['tid']['#value'])) {
+      // Hide highlight field If term is greater than L1 level.
+      if ($term->get('depth_level')->getString() > 1) {
+        $form['field_main_menu_highlight']['#access'] = FALSE;
+      }
+    }
+  }
+
+  $main_menu_config = \Drupal::config('alshaya_main_menu.settings')->get('desktop_main_menu_layout');
+  // Hide the `move to right` checkbox if default layout is set in BE.
+  if (!$main_menu_config || $main_menu_config == AlshayaMainMenuConfigForm::MAIN_MENU_DEFAULT_LAYOUT) {
+    $form['field_move_to_right']['#access'] = FALSE;
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK().
+ */
+function alshaya_main_menu_preprocess_alshaya_main_menu_highlights(&$variables) {
+  $variables['title_class'] = '';
+  foreach ($variables['data']['highlight_paragraph'] as $highlight_paragraph) {
+    if (($highlight_paragraph['paragraph_type'] == 'main_menu_highlight')
+      && ($highlight_paragraph['highlight_type'] == 'promo_block' || $highlight_paragraph['highlight_type'] == 'title_subtitle')) {
+      // Adding the class only if promo block or combination of
+      // image + title + subtitle is added.
+      $variables['title_class'] = 'empty-highlight-title';
+    }
+    else {
+      // Breaking condition if highlight paragraph is added.
+      $variables['title_class'] = '';
+      break;
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK().
+ */
+function alshaya_main_menu_preprocess_alshaya_main_menu_level2(&$variables) {
+  $variables['menu_type'] = \Drupal::config('alshaya_main_menu.settings')->get('desktop_main_menu_layout');
+  if ($variables['menu_type'] == 'default' || $variables['menu_type'] == 'menu_dynamic_display') {
+    $highlight_paragraph = $variables['data']['l1_object']['highlight_paragraph'];
+  }
+  else {
+    $highlight_paragraph = $variables['data']['highlight_paragraph'];
+  }
+  foreach ($highlight_paragraph as $highlight_para) {
+    // If there is at least one paragraph of type 'text_links'.
+    if ($highlight_para['paragraph_type'] == 'text_links') {
+      $highlight_paragraph['text_links_paragraph'] = TRUE;
+      break;
+    }
+  }
+}
+
+/**
+ * Prepares href for anchor tag for given term data in columns.
+ */
+function _alshaya_main_menu_process_tag_attributes_columns(array &$data) {
+  foreach ($data as $key => $value) {
+    $data[$key]['tag'] = 'div';
+    $data[$key]['tag_attr'] = '';
+    if (isset($value['clickable']) && $value['clickable']) {
+      $data[$key]['tag'] = 'a';
+      $data[$key]['tag_attr'] = "href={$value['path']}";
+    }
+
+    if (isset($value['child'])) {
+      _alshaya_main_menu_process_tag_attributes_columns($value['child']);
+    }
+  }
+}
+
+/**
+ * Implements hook_alshaya_acm_product_category_tree_data_alter().
+ */
+function alshaya_main_menu_alshaya_acm_product_category_tree_data_alter(&$data, $term) {
+  $display_view_all = NULL;
+  /** @var \Drupal\taxonomy\TermInterface $termObj **/
+  $termObj = \Drupal::service('entity_type.manager')->getStorage('taxonomy_term')->load($term->tid);
+  if ($termObj->hasField('field_display_view_all')) {
+    $display_view_all = $termObj->get('field_display_view_all')->getString();
+  }
+  // Add display view all flag to product category tree data.
+  $data[$term->tid]['display_view_all'] = (bool) $display_view_all;
+  $aliasManager = \Drupal::service('path_alias.manager');
+  $alias = $aliasManager->getAliasByPath('/taxonomy/term/' . $term->tid);
+  $data[$term->tid]['display_view_all_link'] = $alias . '/view-all';
+}

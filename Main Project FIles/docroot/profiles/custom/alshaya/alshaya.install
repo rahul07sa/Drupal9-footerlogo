@@ -1,0 +1,367 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall hooks for the Lightning Extender subprofile.
+ */
+
+use Drupal\Core\File\FileSystemInterface;
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enables mysql module if not enabled already.
+ */
+function alshaya_update_9400() {
+  if (!(\Drupal::moduleHandler()->moduleExists('mysql'))) {
+    \Drupal::service('module_installer')->install(['mysql']);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Uninstalls lightning and related modules.
+ */
+function alshaya_update_8017() {
+  \Drupal::service('module_installer')->uninstall([
+    'lightning_install',
+    'lightning',
+    'profile_switcher',
+  ]);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Installs jquery_ui and jquery_ui_datepicker modules.
+ */
+function alshaya_update_8016() {
+  if (!(\Drupal::moduleHandler()->moduleExists('jquery_ui'))) {
+    \Drupal::service('module_installer')->install(['jquery_ui']);
+  }
+  if (!(\Drupal::moduleHandler()->moduleExists('jquery_ui_datepicker'))) {
+    \Drupal::service('module_installer')->install(['jquery_ui_datepicker']);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Uninstalls track_js and alshaya_track_js modules.
+ */
+function alshaya_update_8015() {
+  if ((\Drupal::moduleHandler()->moduleExists('track_js'))) {
+    \Drupal::service('module_installer')->uninstall(['track_js']);
+  }
+  if ((\Drupal::moduleHandler()->moduleExists('alshaya_track_js'))) {
+    \Drupal::service('module_installer')->uninstall(['alshaya_track_js']);
+  }
+  if ((\Drupal::moduleHandler()->moduleExists('google_page_speed'))) {
+    \Drupal::service('module_installer')->uninstall(['google_page_speed']);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Disable search api server default server.
+ */
+function alshaya_update_8014() {
+  $index = \Drupal::configFactory()->getEditable('search_api.server.acquia_search_server');
+  if ($index->get('status')) {
+    $index->set('status', FALSE)->save();
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Uninstall `scheduled_updates` module.
+ */
+function alshaya_update_8013() {
+  if (\Drupal::moduleHandler()->moduleExists('scheduled_updates')) {
+    \Drupal::service('module_installer')->uninstall(['scheduled_updates']);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Install memory_limit_policy module and path plugin.
+ */
+function alshaya_update_8012() {
+  \Drupal::service('module_installer')->install(['memory_limit_policy']);
+  \Drupal::service('module_installer')->install(['memory_limit_policy_path']);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Uninstall lightning_scheduler module.
+ */
+function alshaya_update_8011() {
+  if (\Drupal::moduleHandler()->moduleExists('lightning_media_audio')) {
+    \Drupal::service('module_installer')->uninstall(['lightning_media_audio']);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Migrate paragraphs content from asymmetric to symmetric translations.
+ */
+function alshaya_update_8010() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+
+  // First make normal fields inside paragraphs translatable.
+  $configs = [
+    'field.field.paragraph.product_carousel_category.field_category_carousel_title',
+    'field.field.paragraph.product_carousel_category.field_view_all_text',
+  ];
+
+  $manager->updateConfigs($configs, 'alshaya_paragraphs_transac', 'optional');
+
+  $configs = [
+    'field.field.paragraph.delivery_usp_block.field_usp_text',
+    'field.field.paragraph.delivery_usp_block.field_usp_text_background',
+    'field.field.paragraph.promo_block.field_margin_d_t',
+    'field.field.paragraph.promo_block.field_margin_mobile',
+    'field.field.paragraph.promo_block.field_promo_block_seo_text',
+    'field.field.paragraph.promo_block.field_promo_block_seo_title',
+    'field.field.paragraph.promo_block.field_promotion_image_mobile',
+    'field.field.paragraph.section_divider.field_section_divider_text',
+    'field.field.paragraph.offers_bordered.field_banner',
+    'field.field.paragraph.image_title_subtitle.field_banner',
+  ];
+
+  $manager->updateConfigs($configs, 'alshaya_paragraphs');
+
+  // Do migration now.
+  /** @var \Drupal\alshaya_paragraphs\Helper\MigrateSymmetricToAsymmetric $migrateUtility */
+  $migrateUtility = \Drupal::service('alshaya_paragraphs.migrate_utility');
+
+  $nodes = \Drupal::entityTypeManager()->getStorage('node')->loadByProperties([
+    'type' => 'advanced_page',
+  ]);
+
+  foreach ($nodes as $node) {
+    $migrateUtility->migrateEntity($node);
+
+    // Some contents are missed or improperly updated on first go. We do it
+    // again to ensure everything is proper after migration.
+    $migrateUtility->migrateEntity($node);
+  }
+
+  $block_ids = \Drupal::database()->query('SELECT distinct(entity_id) FROM block_content__field_paragraph_content')->fetchAll();
+  foreach ($block_ids as $block_id) {
+    $block = \Drupal::entityTypeManager()->getStorage('block_content')->load($block_id->entity_id);
+    $migrateUtility->migrateEntity($block);
+  }
+
+  // Make paragraph fields non-translatable now.
+  $configs = [
+    'alshaya_acm_product_category' => [
+      'field.field.taxonomy_term.acq_product_category.field_main_menu_highlight',
+    ],
+    'alshaya_paragraph_block' => [
+      'field.field.block_content.paragraph_block.field_paragraph_content',
+    ],
+    'alshaya_advanced_page' => [
+      'field.field.node.advanced_page.field_banner',
+      'field.field.node.advanced_page.field_delivery_banner',
+      'field.field.node.advanced_page.field_promo_banner_full_width',
+      'field.field.node.advanced_page.field_promo_blocks',
+      'field.field.node.advanced_page.field_related_info',
+      'field.field.node.advanced_page.field_slider',
+    ],
+    'alshaya_paragraphs' => [
+      'field.field.paragraph.1_row_1_col.field_promo_block',
+      'field.field.paragraph.1_row_1_col_dept.field_promo_block',
+      'field.field.paragraph.1_row_1st_col_2_row_2nd_col.field_1st_col_promo_block',
+      'field.field.paragraph.1_row_1st_col_2_row_2nd_col.field_2nd_col_promo_block',
+      'field.field.paragraph.1_row_2_col.field_1_row_2_col',
+      'field.field.paragraph.1_row_2_col_1_2_dept.field_1_row_2_col_1',
+      'field.field.paragraph.1_row_2_col_1_2_dept.field_1_row_2_col_2',
+      'field.field.paragraph.1_row_2_col_2_1_dept.field_1_row_2_col_1',
+      'field.field.paragraph.1_row_2_col_2_1_dept.field_1_row_2_col_2',
+      'field.field.paragraph.1_row_2_col_dept.field_1_row_2_col',
+      'field.field.paragraph.1_row_3_col.field_1_row_promo_block',
+      'field.field.paragraph.1_row_3_col_dept.field_1_row_promo_block',
+      'field.field.paragraph.1_row_3_col_text.field_promo_block',
+      'field.field.paragraph.banner.field_promo_block_button',
+      'field.field.paragraph.promo_block.field_promo_block_button',
+    ],
+  ];
+
+  foreach ($configs as $module => $fields) {
+    $manager->updateConfigs($fields, $module);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Uninstall features_ui and features module.
+ */
+function alshaya_update_8009() {
+  if (\Drupal::moduleHandler()->moduleExists('features_ui')) {
+    \Drupal::service('module_installer')->uninstall(['features_ui']);
+  }
+
+  if (\Drupal::moduleHandler()->moduleExists('features')) {
+    \Drupal::service('module_installer')->uninstall(['features']);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Uninstall lightning_scheduler module.
+ */
+function alshaya_update_8008() {
+  if (\Drupal::moduleHandler()->moduleExists('lightning_scheduler')) {
+    \Drupal::service('module_installer')->uninstall(['lightning_scheduler']);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Install alshaya_paragraph_block module.
+ */
+function alshaya_update_8007() {
+  \Drupal::service('module_installer')->install(['alshaya_paragraph_block']);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update header for 'restrict_login_by_ip' module.
+ */
+function alshaya_update_8006() {
+  alshaya_config_install_configs(['restrict_role_login_by_ip.settings'], 'alshaya', 'optional');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable 'restrict_login_by_ip' module.
+ * Enable 'alshay_image_sitemap' module.
+ */
+function alshaya_update_8005() {
+  \Drupal::service('module_installer')->install(['restrict_role_login_by_ip']);
+  alshaya_config_install_configs(['restrict_role_login_by_ip.settings'], 'alshaya', 'optional');
+
+  // Install Alshaya Image Sitemap.
+  \Drupal::service('module_installer')->install(['alshaya_image_sitemap']);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable 'alshaya_amp' module.
+ */
+function alshaya_update_8004() {
+  \Drupal::service('module_installer')->install(['alshaya_amp']);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Disable admin modules.
+ */
+function alshaya_update_8003() {
+  \Drupal::service('module_installer')->uninstall(['field_ui']);
+  \Drupal::service('module_installer')->uninstall(['quickedit']);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable alshaya_performance on all sites on all environments.
+ */
+function alshaya_update_8002() {
+  \Drupal::service('module_installer')->install(['alshaya_performance']);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable acquia_purge on ACSF environments.
+ */
+function alshaya_update_8001() {
+  if (isset($_ENV['AH_SITE_ENVIRONMENT'])) {
+    \Drupal::service('module_installer')->install(['acquia_purge']);
+
+    // Enable acquia_purge purger.
+    /** @var \Drupal\purge\Plugin\Purge\Purger\PurgersServiceInterface $purge_purgers */
+    $purge_purgers = \Drupal::service('purge.purgers');
+    $purgers_enabled = $purge_purgers->getPluginsEnabled();
+    $purgers_enabled[$purge_purgers->createId()] = 'acquia_purge';
+    $purge_purgers->setPluginsEnabled($purgers_enabled);
+  }
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_install() {
+  // Prerequisite for google_tag module.
+  $uri = "public://google_tag";
+  \Drupal::service('file_system')->prepareDirectory($uri, FileSystemInterface::CREATE_DIRECTORY);
+
+  // Remove all roles created by Lightning.
+  $coreRoles = [
+    'anonymous',
+    'authenticated',
+    'administrator',
+  ];
+  foreach (user_roles() as $role) {
+    if (!in_array($role->id(), $coreRoles)) {
+      $role->delete();
+    }
+  }
+
+  // Stop lightning from creating user roles in future.
+  \Drupal::configFactory()->getEditable('lightning_roles.settings')->setData([
+    'content_roles' => [
+      'creator' => [
+        'enabled' => FALSE,
+      ],
+      'reviewer' => [
+        'enabled' => FALSE,
+      ],
+    ],
+  ])->save();
+
+  // Set the page cache for 30 minutes.
+  \Drupal::configFactory()->getEditable('system.performance')
+    ->set('cache', [
+      'page' => [
+        'max_age' => 1800,
+      ],
+    ])
+    ->save();
+
+  // @todo List the modules common for transac and non-transac profiles.
+  $modules = [
+    'alshaya_paragraph_block',
+  ];
+
+  global $_alshaya_modules_installed;
+  $_alshaya_modules_installed = [];
+
+  foreach ($modules as $module) {
+    \Drupal::service('module_installer')->install([$module]);
+    $_alshaya_modules_installed[] = $module;
+  }
+
+  \Drupal::moduleHandler()->invokeAll('alshaya_profile_installed', [
+    'alshaya',
+    $modules,
+  ]);
+  \Drupal::service('module_installer')->uninstall(['field_ui']);
+  \Drupal::service('module_installer')->uninstall(['quickedit']);
+}

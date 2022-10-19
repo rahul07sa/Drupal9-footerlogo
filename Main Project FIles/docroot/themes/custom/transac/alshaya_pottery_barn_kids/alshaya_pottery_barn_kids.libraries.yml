@@ -1,0 +1,14 @@
+ltr_styles:
+  css:
+    theme:
+      css/ltr.css: {}
+
+rtl_styles:
+  css:
+    theme:
+      css/rtl.css: {}
+
+font-face:
+  css:
+    theme:
+      css/conditional-sass/font-face/font-face.ltr.css: { }

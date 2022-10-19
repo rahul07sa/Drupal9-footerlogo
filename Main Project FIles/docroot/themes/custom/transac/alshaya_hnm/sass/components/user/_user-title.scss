@@ -1,0 +1,127 @@
+.c-user--node {
+  .c-page-title {
+    @include breakpoint($desktop) {
+      font-size: 1.25rem;
+    }
+  }
+
+  .subtitle {
+    font-family: $hnm-demibold;
+    border-bottom: 1px solid $content_pagetitle_border;
+  }
+}
+
+.c-user-password,
+.c-user-register,
+.c-user-login,
+.c-contact,
+.c-address-book {
+  &.user-page {
+    border-top: 1px solid $content_pagetitle_border;
+  }
+
+  h1 {
+    font-family: $hnm-demibold;
+    color: $hnm-black-three;
+    letter-spacing: normal;
+  }
+}
+
+.c-user-edit,
+.c-change-password {
+  h1 {
+    font-family: $hnm-demibold;
+    color: $hnm-black-three;
+    letter-spacing: normal;
+  }
+}
+
+.c-user-password {
+  h1 {
+    top: -3.875rem;
+    font-size: 1.75rem;
+
+    @include breakpoint($only-mobile) {
+      top: -3.5rem;
+    }
+  }
+
+  .password--message {
+    font-size: 0.8125rem;
+    color: $hnm-black-three;
+  }
+}
+
+.order-detail .block-page-title-block {
+  padding: 0.45rem 0 0.3rem;
+
+  @include breakpoint($only-mobile) {
+    .back-link {
+      h1.c-page-title {
+        display: block;
+      }
+
+      &::before {
+        content: none;
+      }
+    }
+  }
+}
+
+.c-change-password .block-page-title-block,
+.c-communication-preferences .block-page-title-block,
+.c-user-edit .block-page-title-block,
+.c-order-list .block-page-title-block,
+.c-user--node .block-page-title-block,
+.c-address-book .block-page-title-block,
+.order-detail .block-page-title-block,
+.c-payment-cards .block-page-title-block,
+.c-my-egift .block-page-title-block {
+  border-bottom: 1px solid $content_pagetitle_border;
+
+  .back-link {
+    @include breakpoint($only-mobile) {
+      font-size: 0;
+
+      @include icon(arrow-left, before) {
+        margin-#{$left}: -0.75rem;
+        line-height: 0.875;
+        font-weight: normal;
+        #{$left}: 0.75rem;
+        font-size: 1.15rem;
+        top: 50%;
+        transform: translateY(-50%);
+
+        html[lang=ar] & {
+          transform: rotate(180deg);
+          top: 30%;
+        }
+      }
+
+      h1.c-page-title {
+        @include arabic-letter-spacing;
+
+        font-size: 0.8125rem;
+        letter-spacing: 0.8px;
+        line-height: 1.5rem;
+      }
+    }
+  }
+}
+
+.c-communication-preferences,
+.c-order-list,
+.c-user-edit,
+.c-address-book {
+  .block-page-title-block {
+    padding: 0.45rem 0 0.3rem;
+
+    @include breakpoint($tablet) {
+      padding: 1.5rem 0 0.75rem;
+    }
+
+    @include breakpoint($desktop) {
+      padding: 0 0 1.125rem;
+    }
+  }
+}

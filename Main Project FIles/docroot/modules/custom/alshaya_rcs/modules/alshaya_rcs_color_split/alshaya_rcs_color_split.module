@@ -1,0 +1,171 @@
+<?php
+
+/**
+ * @file
+ * Module file.
+ */
+
+use Drupal\alshaya_color_split\AlshayaColorSplitConfig;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Cache\Cache;
+
+/**
+ * Attach required information around color split.
+ *
+ * @param array $attachments
+ *   An array containing attachment information.
+ */
+function _alshaya_rcs_color_split_attach_info(array &$attachments) {
+  $attachments['#attached']['library'][] = 'alshaya_rcs_color_split/rcs_grouped_products';
+  $product_display_settings = \Drupal::config('alshaya_acm_product.display_settings');
+  $attachments['#attached']['drupalSettings']['alshayaRcs']['colorAttributeConfig'] = $product_display_settings->get('color_attribute_config');
+
+  // Expose list of configurable field replacements.
+  $fields = \Drupal::service('acq_sku.fields_manager')->getFieldAdditions();
+  // Limit keys to avoid exposing everything.
+  $field_replacements = [];
+  foreach ($fields as $name => $props) {
+    // Filter out fields that do not contain the replacement information.
+    if (array_key_exists('display_configurable_for', $props)) {
+      $field_replacements[$name] = [];
+      foreach ($props as $prop => $value) {
+        // Key fields that are allowed to be exposed.
+        if (in_array($prop, ['label', 'display_configurable_for'])) {
+          $field_replacements[$name][$prop] = $value;
+        }
+      }
+    }
+  }
+  $attachments['#attached']['drupalSettings']['alshayaRcs']['configurableFieldReplacements'] = array_filter($field_replacements);
+
+  $attachments['#attached']['drupalSettings']['alshayaColorSplit']['colorAttribute'] = AlshayaColorSplitConfig::get('attribute_code_color_id');
+  $attachments['#attached']['drupalSettings']['alshayaColorSplit']['colorLabel'] = AlshayaColorSplitConfig::get('color_label_cart_form');
+  // Add the cache tags for the color split config.
+  $color_split_config = \Drupal::config('alshaya_color_split.settings');
+  $attachments['#cache'] = empty($attachments['#cache']) ? ['tags' => []] : $attachments['#cache'];
+  $tags = Cache::mergeTags($attachments['#cache']['tags'] ?? [], $color_split_config->getCacheTags());
+  $tags = Cache::mergeTags($tags, $product_display_settings->getCacheTags());
+  $attachments['#cache']['tags'] = $tags;
+}
+
+/**
+ * Implements hook_alshaya_rcs_product_order_build_alter().
+ */
+function alshaya_rcs_color_split_alshaya_rcs_product_order_build_alter(array &$build) {
+  _alshaya_rcs_color_split_attach_info($build);
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function alshaya_rcs_color_split_page_attachments(array &$attachments) {
+  // Ignore admin paths.
+  if (\Drupal::service('router.admin_context')->isAdminRoute()) {
+    return;
+  }
+
+  _alshaya_rcs_color_split_attach_info($attachments);
+}
+
+/**
+ * Implements hook_rcs_placeholders_graphql_query_alter().
+ */
+function alshaya_rcs_color_split_rcs_placeholders_graphql_query_alter(&$queries) {
+  /** @var \Drupal\alshaya_rcs_product\Services\AlshayaRcsProductHelper $rcs_product_helper */
+  $rcs_product_helper = \Drupal::service('alshaya_rcs_product.helper');
+  $product_query_body = $rcs_product_helper->getProductQueryFields();
+  $url_key = $rcs_product_helper->getProductUrlKey();
+
+  $queries['styled_products'] = [
+    'query' => [
+      'query($styleCode: String)' => [
+        'products(filter: {style_code: {eq: $styleCode}})' => $product_query_body,
+      ],
+    ],
+    'variables' => [
+      'styleCode' => NULL,
+    ],
+  ];
+
+  $color_split_product_query_fields = [
+    'total_count',
+    'items' => [
+      'style_code',
+      'sku',
+    ],
+  ];
+
+  // Alter this query.
+  $queries['single_product_by_sku'] = [
+    'query' => [
+      'query($sku: String)' => [
+        'products(filter: {sku: {eq: $sku}})' => $color_split_product_query_fields,
+      ],
+    ],
+    'variables' => [
+      'sku' => NULL,
+    ],
+  ];
+
+  // Alter this query.
+  $queries['multiple_products_by_sku'] = [
+    'query' => [
+      'query($skus: [String])' => [
+        'products(filter: {sku: {in: $skus}})' => $color_split_product_query_fields,
+      ],
+    ],
+    'variables' => [
+      'skus' => NULL,
+    ],
+  ];
+}
+
+/**
+ * Implements hook_alshaya_rcs_product_query_fields_alter().
+ */
+function alshaya_rcs_color_split_alshaya_rcs_product_query_fields_alter(array &$fields) {
+  $display_settings = \Drupal::config('alshaya_acm_product.display_settings');
+  $color_attribute_config = $display_settings->get('color_attribute_config');
+  if (!$color_attribute_config['support_multiple_attributes']) {
+    return;
+  }
+  // Get hex value of color.
+  $color_code_attribute = $color_attribute_config['configurable_color_code_attribute'];
+  // Remove the "attr_" prefix.
+  $color_code_attribute = str_replace('attr_', '', $color_code_attribute);
+
+  array_push($fields['items'], 'style_code');
+
+  array_push(
+    $fields['items']['... on ConfigurableProduct']['variants']['product'],
+    AlshayaColorSplitConfig::get('attribute_code_color_id'),
+    $color_code_attribute,
+  );
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_view().
+ */
+function alshaya_rcs_color_split_node_view(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, $view_mode) {
+  if (($entity->bundle() !== 'rcs_product')) {
+    return;
+  }
+  // Attach both the libraries as we do not know the type of the product
+  // in backend.
+  $build['#attached']['library'][] = 'alshaya_color_split/grouped_simple';
+  $build['#attached']['library'][] = 'alshaya_color_split/grouped_configurable';
+}
+
+/**
+ * Implements hook_alshaya_rcs_product_product_options_to_query().
+ */
+function alshaya_rcs_color_split_alshaya_rcs_product_product_options_to_query() {
+  $color_attribute_config = \Drupal::config('alshaya_acm_product.display_settings')
+    ->get('color_attribute_config');
+  if (!$color_attribute_config['support_multiple_attributes']) {
+    return;
+  }
+  $color_attribute = $color_attribute_config['configurable_color_attribute'];
+  return [$color_attribute];
+}

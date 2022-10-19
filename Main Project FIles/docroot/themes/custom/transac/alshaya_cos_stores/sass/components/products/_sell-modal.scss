@@ -1,0 +1,19 @@
+// Theming modal window for the cross-sell and up sell
+.acq-content-product-modal {
+  .field--name-field-skus {
+    .sku-base-form {
+      button[type="submit"] {
+        margin-#{$left}: 0;
+        text-transform: uppercase;
+      }
+    }
+  }
+
+  .content {
+    &__main {
+      @include breakpoint($desktop) {
+        min-height: 31.25rem;
+      }
+    }
+  }
+}

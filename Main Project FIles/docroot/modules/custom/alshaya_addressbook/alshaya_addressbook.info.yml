@@ -1,0 +1,20 @@
+name: 'Alshaya Addressbook'
+type: module
+description: 'Manages user address details'
+core: 8.x
+core_version_requirement: ^8 || ^9
+dependencies:
+  - address:address
+  - alshaya_api:alshaya_api
+  - alshaya_acm:alshaya_acm
+  - alshaya_config:alshaya_config
+  - drupal:block
+  - drupal:content_translation
+  - drupal:field
+  - drupal:language
+  - mobile_number:mobile_number
+  - profile:profile
+  - drupal:system
+  - drupal:taxonomy
+  - telephone:telephone
+  - drupal:views

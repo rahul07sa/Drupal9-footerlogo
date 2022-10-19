@@ -1,0 +1,31 @@
+.region-footer-primary__wrapper {
+  background: $footer_primary_bg;
+  position: relative;
+
+  .region-footer-primary {
+    max-width: 64rem;
+    margin: 0 auto;
+  }
+
+  .region__wrapper {
+    display: flex;
+
+    @include breakpoint($upto-lap) {
+      flex-flow: wrap;
+      padding: 0 1rem;
+      justify-content: center;
+    }
+
+    @include breakpoint($upto-palm) {
+      padding: 0 1.25rem;
+    }
+  }
+
+  .device__mobile {
+    .region-secondary-header {
+      .block-language-switcher--desktop {
+        display: none !important;
+      }
+    }
+  }
+}

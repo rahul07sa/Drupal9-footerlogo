@@ -1,0 +1,13 @@
+diff --git a/.htaccess b/.htaccess
+index c2b6d95..1dad3c1 100644
+--- a/.htaccess
++++ b/.htaccess
+@@ -75,6 +75,8 @@ AddEncoding gzip svgz
+   RewriteRule ^ - [E=protossl]
+   RewriteCond %{HTTPS} on
+   RewriteRule ^ - [E=protossl:s]
++  RewriteCond %{HTTP:X-Forwarded-Proto} https [novary]
++  RewriteRule ^ - [E=protossl:s]
+
+   # Remove trailing slash from all URLs (except home which is practically not possible).
+   # We also don't remove it from /forwarded/* URLs as these are redirects from

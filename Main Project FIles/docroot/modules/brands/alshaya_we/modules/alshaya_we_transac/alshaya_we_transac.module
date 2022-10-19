@@ -1,0 +1,25 @@
+<?php
+
+/**
+ * @file
+ * Alshaya West Elm brand module file.
+ */
+
+/**
+ * Implements hook_alshaya_performance_preload_alter().
+ */
+function alshaya_we_transac_alshaya_performance_preload_alter(array &$preload) {
+  $preload[] = [
+    'as' => 'font',
+    'href' => '/themes/custom/transac/alshaya_westelm/fonts/GTEestiDisplay-Light.woff2',
+    'crossorigin' => 'crossorigin',
+    'type' => 'font/woff2',
+  ];
+  // WestElm's icon font comes from whitelabel.
+  $preload[] = [
+    'as' => 'font',
+    'href' => '/themes/custom/transac/alshaya_white_label/fonts/alshaya-icons.woff2?D7b5if',
+    'crossorigin' => 'crossorigin',
+    'type' => 'font/woff2',
+  ];
+}

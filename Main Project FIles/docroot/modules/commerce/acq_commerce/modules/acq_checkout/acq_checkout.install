@@ -1,0 +1,21 @@
+<?php
+
+/**
+ * @file
+ * Contains install hooks for acq_checkout.
+ */
+
+use Drupal\user\Entity\Role;
+
+/**
+ * Implements hook_install().
+ */
+function acq_checkout_install() {
+  $role = Role::load('anonymous');
+  $role->grantPermission('access checkout');
+  $role->save();
+
+  $role = Role::load('authenticated');
+  $role->grantPermission('access checkout');
+  $role->save();
+}

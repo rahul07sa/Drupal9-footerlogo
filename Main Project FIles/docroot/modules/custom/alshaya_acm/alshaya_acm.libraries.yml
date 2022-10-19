@@ -1,0 +1,14 @@
+alshaya.acm.js:
+  version: 1.x
+  js:
+    js/alshaya_acm_custom.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/jquery.once
+
+alshaya_acm.sync_form:
+  version: 1.x
+  css:
+    theme:
+      css/alshaya_acm.sync_form.css: {}

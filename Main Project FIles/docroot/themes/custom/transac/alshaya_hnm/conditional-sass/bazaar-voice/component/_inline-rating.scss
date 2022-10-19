@@ -1,0 +1,70 @@
+.aggregate-rating {
+  @include breakpoint($only-mobile) {
+    padding: 0 0.5rem 0.25rem;
+    padding-#{$left}: 0;
+    margin-top: 0.25rem;
+  }
+
+  > span {
+    a {
+      font-family: $hnm-regular;
+    }
+  }
+}
+
+.star-ratings-wrapper {
+  .inline-star {
+    top: 0.125rem;
+
+    .icon-ic_ratingfull {
+      @include icon(ratingfull) {
+        font-size: 1.5rem;
+      }
+    }
+
+    .icon-ic_rating {
+      @include icon(rating) {
+        font-size: 1.5rem;
+      }
+    }
+
+    .star-ratings-front,
+    .star-ratings-back {
+      span {
+        padding: 0;
+      }
+    }
+  }
+}
+
+.review-detail-right {
+  .inline-star {
+    .star-ratings-front,
+    .star-ratings-back {
+      .icon-ic_ratingfull,
+      .icon-ic_rating {
+        &::before {
+          font-size: 2rem;
+        }
+      }
+    }
+  }
+}
+
+#reviews-rating {
+  .rating-wrapper {
+    .button-wrapper {
+      @include breakpoint($only-mobile) {
+        padding-#{$left}: 0;
+      }
+    }
+
+    .inline-rating {
+      + .button-wrapper {
+        @include breakpoint($only-mobile) {
+          padding: 0 0.5rem 0.125rem;
+        }
+      }
+    }
+  }
+}

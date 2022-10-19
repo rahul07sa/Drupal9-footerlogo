@@ -1,0 +1,250 @@
+<?php
+
+/**
+ * @file
+ * Install file for alshaya_store_finder.
+ */
+
+use Drupal\alshaya_config\AlshayaConfigManager;
+use Drupal\Core\Site\Settings;
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update MDC API url for Store Finder page.
+ */
+function alshaya_stores_finder_update_9000() {
+  // Set MDC path.
+  $store_config = \Drupal::service('config.factory')->getEditable('alshaya_stores_finder.settings');
+  $store_config->set('filter_path', 'storeLocator/search?searchCriteria[filter_groups][0][filters][0][field]=status&searchCriteria[filter_groups][0][filters][0][value]=1&searchCriteria[filter_groups][1][filters][0][field]=pudo_service&searchCriteria[filter_groups][1][filters][0][value]=0');
+  $store_config->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Removes unnecessary view attachment from store finder glossary view.
+ */
+function alshaya_stores_finder_update_8112() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['views.view.stores_finder'],
+    'alshaya_stores_finder',
+    'install',
+    AlshayaConfigManager::MODE_REPLACE,
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add store type field in store content type and update store finder view.
+ */
+function alshaya_stores_finder_update_8111() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs([
+    'field.storage.node.field_store_type',
+    'field.field.node.store.field_store_type',
+  ],
+    'alshaya_stores_finder',
+    'install'
+  );
+
+  // Add filter in store finder view to display only stores.
+  $manager->updateConfigs(
+    ['views.view.stores_finder'],
+    'alshaya_stores_finder',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING_RECURSIVE
+  );
+}
+
+/**
+ * Implements hook_update().
+ *
+ * [5.13.0]Re-saves configs related to store finder.
+ */
+function alshaya_stores_finder_update_8110() {
+  // Add the newly added key to the config.
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_stores_finder.settings'],
+    'alshaya_stores_finder',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING,
+  );
+
+  $manager->updateConfigs(['views.view.stores_finder'], 'alshaya_stores_finder');
+}
+
+/**
+ * Implements hook_update().
+ *
+ * Update the store finder config to store country center and zoom settings.
+ */
+function alshaya_stores_finder_update_8109() {
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_stores_finder.settings'],
+    'alshaya_stores_finder',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING_RECURSIVE
+  );
+
+  // Set new marker icons to be used for click & collect delivery.
+  $brand = \Drupal::config('alshaya.installed_brand')->get('module');
+  alshaya_stores_finder_set_markers($brand);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add the new field for store email.
+ */
+function alshaya_stores_finder_update_8108() {
+  $configs = [
+    'field.storage.node.field_store_email',
+    'field.field.node.store.field_store_email',
+    'core.entity_view_display.node.store.default',
+    'core.entity_form_display.node.store.default',
+  ];
+
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs($configs, 'alshaya_stores_finder', 'install');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Save single_x and single_y in default config.
+ */
+function alshaya_stores_finder_update_8107() {
+  // Not having single_x and single_y in default english config also
+  // removes the keys from from arabic config on config save from admin, to
+  // avoid happening that, add single_x and single_y keys in default config.
+  alshaya_stores_finder_update_8104();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding alias pattern for 'store' content type for English and Arabic.
+ */
+function alshaya_stores_finder_update_8106() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    [
+      'pathauto.pattern.store_arabic',
+      'pathauto.pattern.store_english',
+    ],
+    'alshaya_stores_finder',
+    'install',
+    AlshayaConfigManager::MODE_MERGE
+  );
+}
+
+/**
+ * Implements hook_update().
+ *
+ * Update the store finder config to install label position settings.
+ */
+function alshaya_stores_finder_update_8105() {
+  \Drupal::languageManager()->getLanguageConfigOverride('ar', 'alshaya_stores_finder.settings')
+    ->set('marker.label_position', alshaya_stores_finder_marker_label_position_ar())
+    ->save();
+}
+
+/**
+ * Implements hook_update().
+ *
+ * Update the store finder config to install label position settings.
+ */
+function alshaya_stores_finder_update_8104() {
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_stores_finder.settings'],
+    'alshaya_stores_finder',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING_RECURSIVE
+  );
+
+  \Drupal::languageManager()->getLanguageConfigOverride('ar', 'alshaya_stores_finder.settings')
+    ->set('marker.label_position', alshaya_stores_finder_marker_label_position_ar())
+    ->save();
+}
+
+/**
+ * Implements hook_update().
+ *
+ * Refactor store detail page link for store finder glossary view.
+ */
+function alshaya_stores_finder_update_8103() {
+  $configs = [
+    'views.view.stores_finder',
+  ];
+  alshaya_config_install_configs($configs, 'alshaya_stores_finder');
+}
+
+/**
+ * Implements hook_update().
+ *
+ * Update the Google Map API Key.
+ */
+function alshaya_stores_finder_update_8102() {
+  $config = \Drupal::service('config.factory')->getEditable('geolocation_google_maps.settings');
+  $config->set('google_map_api_key', 'AIzaSyDVuag7oeJChLcMHCmAz8D6Bl8dLvPzpo0');
+  $config->save();
+}
+
+/**
+ * Implements hook_update().
+ *
+ * Set default marker icon.
+ */
+function alshaya_stores_finder_update_8101() {
+  alshaya_stores_finder_set_default_marker_icon();
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function alshaya_stores_finder_update_8003() {
+  // Revert the view to use relative path in links.
+  $reverter = \Drupal::service('config_update.config_update');
+  $reverter->revert('view', 'stores_finder');
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_stores_finder_install() {
+  // Set default google map api key.
+  $config = \Drupal::service('config.factory')->getEditable('geolocation_google_maps.settings');
+  $geolocation_settings = Settings::get('geolocation_google_maps.settings');
+
+  foreach ($geolocation_settings as $key => $value) {
+    $config->set($key, $value);
+  }
+
+  $config->save();
+
+  // Set default marker icon settings.
+  alshaya_stores_finder_set_default_marker_icon();
+
+  // Array of language translation strings.
+  $strings = [
+    'Low stock' => [
+      'ar' => 'الكمية محدودة',
+    ],
+  ];
+  alshaya_i18n_save_translations($strings);
+
+  \Drupal::languageManager()->getLanguageConfigOverride('ar', 'alshaya_stores_finder.settings')
+    ->set('marker.label_position', alshaya_stores_finder_marker_label_position_ar())
+    ->save();
+}

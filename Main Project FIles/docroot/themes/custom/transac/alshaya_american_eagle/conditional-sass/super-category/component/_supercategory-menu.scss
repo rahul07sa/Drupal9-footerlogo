@@ -1,0 +1,36 @@
+.super-category-enabled {
+  .c-menu-secondary {
+    .region__menu-secondary {
+      @include breakpoint($desktop) {
+        height: 100%;
+        display: inline-flex;
+        align-items: center;
+      }
+    }
+
+    .menu--account,
+    .block-alshaya-stores-finder,
+    .block-language-blocklanguage-interface {
+      @include breakpoint($desktop) {
+        padding-top: rem(2);
+      }
+    }
+  }
+
+  &:not(.frontpage) {
+    .branding__menu {
+      #block-alshayareactcartminicartblock {
+        @include breakpoint($upto-desktop) {
+          top: rem(65);
+        }
+      }
+    }
+  }
+
+  #mini-cart-wrapper,
+  .static-minicart-wrapper {
+    @include breakpoint($only-tablet) {
+      margin-top: rem(10);
+    }
+  }
+}

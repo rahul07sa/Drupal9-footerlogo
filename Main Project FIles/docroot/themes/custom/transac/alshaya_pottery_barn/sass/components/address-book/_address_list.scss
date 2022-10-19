@@ -1,0 +1,21 @@
+.path--user .ui-dialog {
+  .ui-dialog-titlebar-close {
+    color: transparent;
+
+    @include icon(close, after) {
+      font-size: 2.19rem;
+      color: $address_pp_delete_closebtn_icon;
+      padding: 0;
+    }
+  }
+
+  .ui-button {
+    text-transform: none;
+    font-weight: 600;
+
+    &.dialog-cancel {
+      text-transform: capitalize;
+      font-size: 0.75rem;
+    }
+  }
+}

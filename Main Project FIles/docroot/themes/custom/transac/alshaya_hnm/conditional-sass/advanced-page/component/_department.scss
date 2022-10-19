@@ -1,0 +1,130 @@
+.c-department {
+  margin-top: 1.875rem;
+
+  .c-page-title {
+    @include arabic-letter-spacing;
+
+    border-bottom: 1px solid $content_pagetitle_border;
+    margin-bottom: 1.438rem;
+    padding-bottom: 0.875rem;
+    font-family: $hnm-demibold;
+    text-transform: capitalize;
+    letter-spacing: 0.8px;
+    color: $content_pagetitle;
+    font-size: 2.5rem;
+
+    @include breakpoint($only-tablet) {
+      font-size: 1.75rem;
+    }
+
+    @include breakpoint($only-mobile) {
+      font-size: 1.0625rem;
+      font-family: $hnm-demibold !important;
+      text-align: center;
+    }
+  }
+
+  .c-sidebar-first .block:first-child {
+    margin-top: 0;
+  }
+
+  .c-promo-block-seo-title {
+    font-family: $hnm-demibold;
+    text-transform: uppercase;
+    color: $title;
+  }
+
+  .c-page-title__description {
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-family: $hnm-demibold;
+      text-transform: capitalize;
+    }
+
+    p {
+      font-size: 0.75rem;
+      line-height: 1.25rem;
+
+      a {
+        color: $department_category_content_link;
+        text-decoration: underline;
+
+        &:hover {
+          &:active {
+            text-decoration: none;
+            color: $department_category_content_link_active;
+          }
+        }
+      }
+    }
+  }
+
+  .c-category-list {
+    &__item {
+      a {
+        &.active {
+          color: $lhn_link_hover_active;
+          font-family: $hnm-regular;
+        }
+      }
+    }
+  }
+}
+
+.nodetype--department_page {
+  @include breakpoint($only-mobile) {
+    .field--name-field-1-row-2-col {
+      .c-promo-1-1--eq__item {
+        width: 100%;
+
+        &:first-child {
+          margin-bottom: 0.75rem;
+        }
+      }
+    }
+  }
+}
+
+@include breakpoint($only-mobile) {
+  .paragraph--type--product-carousel-category {
+    .c-accordion__title {
+      padding: 1.21875rem 0;
+
+      &::after {
+        font-size: 2.25rem;
+      }
+    }
+
+    .c-accordion_content {
+      ul {
+        li {
+          a {
+            padding: 1.21875rem 0;
+
+            &::after {
+              top: 0.625rem;
+              width: 1.75rem;
+              font-size: 2.25rem;
+
+              html[lang="ar"] & {
+                top: 0.625rem;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .nodetype--advanced_page {
+    .page-standard {
+      .c-page-title {
+        border-bottom: none;
+      }
+    }
+  }
+}

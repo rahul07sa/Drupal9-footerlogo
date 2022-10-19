@@ -1,0 +1,98 @@
+.slug-banner-processed {
+  &:not(.header--fixed) {
+    #c-menu-primary__region {
+      @include breakpoint($upto-desktop) {
+        position: relative;
+      }
+
+      .block-alshaya-super-category-menu {
+        @include breakpoint($upto-desktop) {
+          position: relative;
+        }
+      }
+
+      .menu--mobile-navigation {
+        @include breakpoint($upto-desktop) {
+          position: absolute;
+        }
+
+        @include breakpoint($only-tablet) {
+          top: 2.8125rem;
+        }
+      }
+    }
+
+    .c-header__region {
+      .block-cart-mini-block,
+      .block-alshaya-react-mini-cart {
+        @include breakpoint($upto-desktop) {
+          position: absolute !important;
+          top: 0;
+        }
+
+        @include breakpoint($only-mobile) {
+          .cart-link {
+            height: 2.5625rem;
+          }
+        }
+      }
+    }
+
+    &.mobile--overlay {
+      .branding__menu {
+        @include breakpoint($upto-desktop) {
+          z-index: auto;
+        }
+      }
+    }
+  }
+
+  @include breakpoint($upto-desktop) {
+    &:not(.header--fixed) {
+      .c-header {
+        .block-views-exposed-filter-blocksearch-page {
+          top: 2.625rem;
+          position: absolute;
+        }
+      }
+    }
+  }
+
+  &.header--fixed {
+    @include breakpoint($only-tablet) {
+      margin-top: 5.25rem !important;
+    }
+
+    @include breakpoint($only-mobile) {
+      margin-top: 2.875rem !important;
+    }
+  }
+
+  .branding__menu.navbar-fixed-top {
+    @include breakpoint($upto-desktop) {
+      position: static;
+    }
+  }
+
+  #block-sizefacetblock {
+    @include breakpoint($only-mobile) {
+      margin-top: 2.75rem;
+    }
+  }
+
+  .page-standard {
+    @include breakpoint($only-tablet) {
+      margin-top: 2.625rem;
+    }
+
+    @include breakpoint($only-mobile) {
+      margin-top: 2.6875rem;
+    }
+
+    &.user-page {
+      @include breakpoint($only-mobile) {
+        margin-top: 5rem;
+      }
+    }
+  }
+}

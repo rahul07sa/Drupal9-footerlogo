@@ -1,0 +1,26 @@
+// Theming of mobile image gallery popup on PDP.
+.mob-imagegallery {
+  &.ui-dialog-content {
+    padding: 0;
+    height: 100% !important;
+    width: 100% !important;
+    background: $gallery_bg;
+  }
+}
+
+.mob-imagegallery__thumbnails {
+  margin: 0;
+  padding: 0;
+
+  .slick-dots {
+    text-align: center;
+  }
+}
+
+#product-image-gallery-container-mobile {
+  .slick-slider {
+    @include breakpoint($only-mobile) {
+      touch-action: pan-y pinch-zoom;
+    }
+  }
+}

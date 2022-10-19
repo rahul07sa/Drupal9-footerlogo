@@ -1,0 +1,12 @@
+fields:
+  gender:
+    label: 'Gender'
+    type: 'attribute'
+    cardinality: -1
+    index: 1
+    facet: 1
+  alshaya_product_type:
+    label: 'Product Type'
+    type: 'attribute'
+    index: 1
+    facet: 1

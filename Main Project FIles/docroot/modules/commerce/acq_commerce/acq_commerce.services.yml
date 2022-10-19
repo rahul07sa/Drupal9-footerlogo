@@ -1,0 +1,36 @@
+services:
+  acq_commerce.client_factory:
+    class: Drupal\acq_commerce\Conductor\ClientFactory
+    arguments: ['@http_client_factory', '@config.factory', '@acq_commerce.i18n_helper']
+
+  acq_commerce.api_wrapper_factory:
+    class: Drupal\acq_commerce\Conductor\APIWrapperFactory
+    arguments: ['@service_container']
+
+  acq_commerce.api:
+    class: Drupal\acq_commerce\Conductor\APIWrapperInterface
+    factory: acq_commerce.api_wrapper_factory:get
+    arguments: ['@service_container']
+
+  acq_commerce.api_helper:
+    class: Drupal\acq_commerce\APIHelper
+
+  acq_commerce.agent_api:
+    class: Drupal\acq_commerce\Conductor\APIWrapper
+    arguments:
+      - '@acq_commerce.client_factory'
+      - '@config.factory'
+      - '@logger.factory'
+      - '@acq_commerce.i18n_helper'
+      - '@acq_commerce.api_helper'
+      - '@event_dispatcher'
+      - '@lock'
+      - '@module_handler'
+
+  acq_commerce.ingest_api:
+    class: Drupal\acq_commerce\Conductor\IngestAPIWrapper
+    arguments: ['@acq_commerce.client_factory', '@config.factory', '@logger.factory']
+
+  acq_commerce.i18n_helper:
+    class: Drupal\acq_commerce\I18nHelper
+    arguments: ['@config.factory', '@language_manager']

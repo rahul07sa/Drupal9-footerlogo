@@ -1,0 +1,51 @@
+.c-social-links {
+  li:not(:last-child) {
+    margin-#{$right}: 0.875rem;
+
+    @include breakpoint($tablet) {
+      margin-#{$right}: 0.87rem;
+    }
+  }
+
+  [class^="c-social-links--"]::before {
+    @include breakpoint($tablet) {
+      font-size: 2rem;
+    }
+  }
+
+  .c-social-links--facebook {
+    &:hover::before {
+      background: url("../imgs/icons/ic-facebookselect.svg") no-repeat center;
+    }
+  }
+
+  .c-social-links--instagram {
+    &:hover::before {
+      background: url("../imgs/icons/ic-instagramselect.svg") no-repeat center;
+    }
+  }
+
+  .c-social-links--youtube {
+    &:hover::before {
+      background: url("../imgs/icons/ic-youtubeselect.svg") no-repeat center;
+    }
+  }
+
+  .c-social-links--twitter {
+    &:hover::before {
+      background: url("../imgs/icons/ic-twitterselect.svg") no-repeat center;
+    }
+  }
+
+  .c-social-links--pinterest {
+    &:hover::before {
+      background: url("../imgs/icons/ic-pinterestselect.svg") no-repeat center;
+    }
+  }
+
+  .c-social-links--google-plus {
+    &:hover::before {
+      background: url("../imgs/icons/ic-googleselect.svg") no-repeat center;
+    }
+  }
+}

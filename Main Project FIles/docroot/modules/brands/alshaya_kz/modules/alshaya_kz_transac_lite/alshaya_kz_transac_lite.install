@@ -1,0 +1,161 @@
+<?php
+
+/**
+ * @file
+ * Install, uninstall and update for alshaya_kz_transac_lite.
+ */
+
+use Drupal\block_content\Entity\BlockContent;
+use Drupal\Core\Field\BaseFieldDefinition;
+
+/**
+ * Implements hook_update_N().
+ *
+ * Remove order_total field was created as integer.
+ * Recreate order_total as type string.
+ * Migrate existing date into new field.
+ */
+function alshaya_kz_transac_lite_update_8004() {
+  // Fetch and store existing order total data in temporary variable.
+  $source_column = 'order_total';
+  $connection = \Drupal::database();
+  $query = $connection->select('ticket', 'tkt');
+  $query->fields('tkt', [
+    'id', 'langcode', $source_column,
+  ]);
+  $query->isNotNull('tkt.' . $source_column);
+  $result = $query->execute()->fetchAll();
+
+  // Remove order total field created as integer type.
+  $update_manager = Drupal::service('entity.definition_update_manager');
+  $definition = $update_manager->getFieldStorageDefinition('order_total', 'ticket');
+  $update_manager->uninstallFieldStorageDefinition($definition);
+
+  // Added order total field as varchar type.
+  $storage_definition = BaseFieldDefinition::create('string')
+    ->setLabel(t('Order Total'))
+    ->setDescription(t('The order total of the ticket entity.'))
+    ->setRequired(FALSE);
+  \Drupal::entityDefinitionUpdateManager()
+    ->installFieldStorageDefinition('order_total', 'ticket', 'ticket', $storage_definition);
+
+  // If data is available in temporary variable,
+  // then re-store it in new column.
+  if (!empty($result)) {
+    $destination_table = 'ticket';
+    $destination_column = 'order_total';
+
+    // Update data for new field.
+    foreach ($result as $rs) {
+      // Update data in new destination attribute.
+      $query = $connection->update($destination_table)->fields([
+        $destination_column => $rs->{$source_column},
+      ])
+        ->condition('id', $rs->id, '=')
+        ->condition('langcode', $rs->langcode, '=');
+      $query->execute();
+    }
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Arabic translation.
+ */
+function alshaya_kz_transac_lite_update_8003() {
+  $strings = [
+    'Yes' => [
+      'ar' => 'نعم',
+    ],
+  ];
+
+  // Save the translation.
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Arabic translation.
+ */
+function alshaya_kz_transac_lite_update_8002() {
+  $strings = [
+    'Infant' => [
+      'ar' => 'الصغار',
+    ],
+    'Please wait a moment' => [
+      'ar' => 'يرجى الانتظار للحظات',
+    ],
+    'Let us Know who is coming to visit' => [
+      'ar' => 'أخبرونا من سيزورنا ',
+    ],
+    'Gender' => [
+      'ar' => 'الجنس',
+    ],
+    'Age' => [
+      'ar' => 'العمر',
+    ],
+    'Visitor Name' => [
+      'ar' => 'اسم الزائر',
+    ],
+    'Continue to payment' => [
+      'ar' => 'المتابعة للدفع',
+    ],
+    'Accept our Terms and Conditions' => [
+      'ar' => 'قبول الشروط والأحكام',
+    ],
+    'Please note we are in the process of adding Credit Card payment option' => [
+      'ar' => 'يرجى العلم أننا سنضيف خيار الدفع بواسطة بطاقة الائتمان قريباً',
+    ],
+    'Proceed to pay' => [
+      'ar' => 'الاستمرار للدفع',
+    ],
+    'Payment Info' => [
+      'ar' => 'معلومات الدفع',
+    ],
+    'Note: Children (age 2-3), should be accompanied by an Adult.' => [
+      'ar' => 'ملاحظة: الأطفال من عمر 2 إلى 3 سنوات يجب أن يكونوا برفقة شخص بالغ',
+    ],
+    'Website is not supported for this version of the browser. Please use any other latest browser.' => [
+      'ar' => 'الموقع لا يعمل بهذا الإصدار من برنامج  التصفح. يرجى استخدام أيّ متصفح آخر.',
+    ],
+  ];
+
+  // Save the translation.
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Disable lazy loading option for kidzania.
+ */
+function alshaya_kz_transac_lite_update_8001() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['filter.format.mail_text'],
+    'alshaya_master'
+  );
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_kz_transac_lite_install() {
+  // Enable and set kidzania as default theme and set the site logo,
+  // favicon icon and email logo path.
+  _alshaya_master_initialize_brand_theme('kidzania');
+
+  // Create stickycart block.
+  $block_content = BlockContent::create([
+    // Place this block in footer region during installation.
+    'uuid' => '74ccd0d9-b219-486a-aa9c-600001ddc10a',
+    'info' => 'Stickycart',
+    'machine_name' => 'stickycart',
+    'type' => 'basic',
+    'langcode' => 'en',
+  ]);
+  $block_content->save();
+}

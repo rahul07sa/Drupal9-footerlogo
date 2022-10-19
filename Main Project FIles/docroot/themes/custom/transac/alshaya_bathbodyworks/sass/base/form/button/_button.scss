@@ -1,0 +1,36 @@
+.button-wide {
+  @extend %button-wide;
+}
+
+.button {
+  &.status-pending,
+  &.status-delivered,
+  &.status-complete,
+  &.status-processing,
+  &.status-returned {
+    text-transform: uppercase;
+    padding-top: 0.125rem;
+    display: flex;
+    align-items: center;
+    line-height: normal;
+    justify-content: center;
+
+    @include breakpoint($tablet) {
+      padding-top: 0.1875rem;
+    }
+
+    @include breakpoint($desktop) {
+      padding: 0.5rem 0;
+    }
+
+    html[lang=ar] & {
+      line-height: normal;
+      height: auto;
+      min-height: 2.1875rem;
+      padding: 0 !important;
+      display: flex;
+      align-items: center;
+      white-space: normal;
+    }
+  }
+}

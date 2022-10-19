@@ -1,0 +1,158 @@
+<?php
+
+/**
+ * @file
+ * Install, uninstall, update function for alshaya_bbw.
+ */
+
+/**
+ * Implements hook_update_N().
+ *
+ * Change the options list page settings data structure for attribute details.
+ */
+function alshaya_bbw_update_8106() {
+  $config = \Drupal::configFactory()->getEditable('alshaya_options_list.settings');
+  if ($attribute_options = $config->get('alshaya_options_pages')) {
+    foreach ($attribute_options as $key => $attribute_option) {
+      foreach ($attribute_option['attribute_details'] as $attribute_name => $attribute_details) {
+        unset($attribute_options[$key]['attribute_details'][$attribute_name]);
+        $attribute_options[$key]['attribute_details'][$attribute_name][] = $attribute_details;
+      }
+    }
+    $config->set('alshaya_options_pages', $attribute_options);
+    $config->save();
+  }
+  // We are just creating arabic settings for 'alshaya_options_list.settings'
+  // because it was creating issue due to changes in schema.
+  // Rest values we will update using drush command cset.
+  $config_ar = \Drupal::languageManager()->getLanguageConfigOverride('ar', 'alshaya_options_list.settings');
+  if ($attribute_options_ar = $config_ar->get('alshaya_options_pages')) {
+    $config_ar->set('alshaya_options_pages', $attribute_options_ar);
+    $config_ar->save();
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new string translations.
+ */
+function alshaya_bbw_update_8105() {
+  $strings = [
+    'Discover' => [
+      'ar' => ' تعرفي إلينا ',
+    ],
+    'Customer care' => [
+      'ar' => ' خدمة الزبائن ',
+    ],
+    'Connect with us' => [
+      'ar' => ' تواصلي معنا ',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update default items from cross sell/up sell carausel.
+ */
+function alshaya_bbw_update_8104() {
+  // Set default items from cross sell/up sell carausel for mobile.
+  \Drupal::configFactory()->getEditable('alshaya_acm_product.settings')
+    ->set('cross_up_sell_items_settings.pdp_carousel_items_size_0', 2)
+    ->save();
+
+  // Set default items from cross sell/up sell carausel for tablet.
+  \Drupal::configFactory()->getEditable('alshaya_acm_product.settings')
+    ->set('cross_up_sell_items_settings.pdp_carousel_items_size_768', 2)
+    ->save();
+
+  // Set default items from cross sell/up sell carausel for desktop.
+  \Drupal::configFactory()->getEditable('alshaya_acm_product.settings')
+    ->set('cross_up_sell_items_settings.pdp_carousel_items_size_1025', 4)
+    ->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable transac/non-transac specific brand module.
+ */
+function alshaya_bbw_update_8103() {
+  // Get the current installed profile.
+  $profile = str_replace('alshaya_', '_', \Drupal::service('config.storage')->read('core.extension')['profile']);
+
+  // Current brand module.
+  $brand_module = 'alshaya_bbw';
+
+  // Try to look for transac and non transac specific module for brand before
+  // brand installing brand module. i.e. alshaya_bbw_transac.
+  if (module_load_install($brand_module . $profile)) {
+    $brand_module = $brand_module . $profile;
+
+    // Install the module.
+    \Drupal::service('module_installer')->install([$brand_module]);
+
+    // Update config with installed brand and module names.
+    \Drupal::configFactory()->getEditable('alshaya.installed_brand')
+      ->set('module', $brand_module)
+      ->save();
+  }
+
+  $blocks = \Drupal::entityTypeManager()->getStorage('block_content')
+    ->loadByProperties(['uuid' => '54b4369d-fb82-4f9f-9034-fc869dda1007']);
+  // Get the first block returned from the database.
+  $block_content = reset($blocks);
+  $block_content = $block_content->getTranslation('ar');
+  $block_content->__set('body', "<p>للحصول على العروض الحصرية و المنتجات الجديدة و أخر أخبار محلات الشرق الأوسط</p>\r\n<p><a href=\"/ar/email-sign-up\" class=\"use-ajax\" data-dialog-type=\"modal\">تسجيل مستخدم جديد</a></p>");
+  $block_content->save();
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_bbw_install() {
+  \Drupal::moduleHandler()->loadInclude('alshaya_bbw', 'inc', 'alshaya_bbw.content');
+
+  // Change region for main navigation block.
+  alshaya_block_move_blocks(['main_navigation' => 'header_primary']);
+
+  // Create default content for the site.
+  alshaya_bbw_create_default_content();
+
+  // Set initial translation string for en language.
+  // Array of language translation strings.
+  $strings = [
+    'find your nearest store' => [
+      'ar' => 'اختر محلاً للتعرف على التفاصيل',
+    ],
+    'Discover' => [
+      'ar' => ' تعرفي إلينا ',
+    ],
+    'Customer care' => [
+      'ar' => ' خدمة الزبائن ',
+    ],
+    'Connect with us' => [
+      'ar' => ' تواصلي معنا ',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_dependencies().
+ *
+ *  Install alshaya_amp module before saving configuration related to amp theme.
+ */
+function alshaya_bbw_update_dependencies() {
+  return [
+    'alshaya_bbw' => [
+      '8102' => [
+        'alshaya' => '8004',
+      ],
+    ],
+  ];
+}

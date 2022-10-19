@@ -1,0 +1,165 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall hooks for the alshaya_non_transac subprofile.
+ */
+
+use Acquia\Blt\Robo\Common\EnvironmentDetector;
+use Drupal\user\UserInterface;
+
+/**
+ * Implements hook_update_N().
+ *
+ * Installs jquery_ui_accordion module if it is not enabled.
+ */
+function alshaya_non_transac_update_8107() {
+  if (!(\Drupal::moduleHandler()->moduleExists('jquery_ui_accordion'))) {
+    \Drupal::service('module_installer')->install(['jquery_ui_accordion']);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Delete view display configs for paragraphs whose view mode have been deleted.
+ */
+function alshaya_non_transac_update_8106() {
+  $obsolete_configs_to_delete = [
+    'core.entity_view_display.paragraph.banner.w1920',
+    'core.entity_view_display.paragraph.banner.w1026',
+  ];
+
+  foreach ($obsolete_configs_to_delete as $config) {
+    \Drupal::configFactory()->getEditable($config)->delete();
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Uninstall alshaya_image_sitemap module.
+ */
+function alshaya_non_transac_update_8105() {
+  if (\Drupal::moduleHandler()->moduleExists('alshaya_image_sitemap')) {
+    \Drupal::service('module_installer')->uninstall(['alshaya_image_sitemap']);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Disable whitelabel_non_transac theme.
+ */
+function alshaya_non_transac_update_8104() {
+  if (\Drupal::service('theme_handler')->themeExists('whitelabel_non_transac')) {
+    \Drupal::service('theme_installer')->uninstall(['whitelabel_non_transac'], TRUE);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update the simple auth public/private key file path.
+ */
+function alshaya_non_transac_update_8103() {
+  $config = \Drupal::configFactory()->getEditable('simple_oauth.settings');
+  $config->set('private_key', '');
+  $config->set('public_key', '');
+  $config->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Hook update to disable user registration for visitors.
+ */
+function alshaya_non_transac_update_8102() {
+  // Set registration to administrator only.
+  $config = \Drupal::configFactory()->getEditable('user.settings');
+  $config->set('register', USER_REGISTER_ADMINISTRATORS_ONLY)->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Hook update to enable module.
+ */
+function alshaya_non_transac_update_8101() {
+  \Drupal::service('module_installer')->install(['alshaya_seo'], TRUE);
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_non_transac_install() {
+  \Drupal::moduleHandler()->loadInclude('alshaya_non_transac', 'inc', 'alshaya_non_transac.content');
+
+  $modules = [
+    // Custom modules.
+    'alshaya_arabic',
+    'alshaya_custom',
+    'alshaya_advanced_page',
+    'alshaya_admin',
+    'alshaya_block',
+    'alshaya_captcha',
+    'alshaya_config',
+    'alshaya_contact',
+    'alshaya_default_content',
+    'alshaya_email_signup',
+    'alshaya_i18n',
+    'alshaya_master',
+    'alshaya_menus',
+    'alshaya_non_transac_product',
+    'alshaya_password_policy',
+    'alshaya_permissions',
+    'alshaya_seo',
+    'alshaya_stores_finder',
+    'alshaya_user',
+    'alshaya_static_html',
+  ];
+
+  global $_alshaya_modules_installed;
+
+  foreach ($modules as $module) {
+    \Drupal::service('module_installer')->install([$module]);
+    $_alshaya_modules_installed[] = $module;
+  }
+
+  // Invoke a hook to let other modules know that profile installation is done.
+  \Drupal::moduleHandler()->invokeAll('alshaya_profile_installed', [
+    'alshaya_non_transac',
+    $modules,
+  ]);
+
+  $strings = [
+    'find a store' => [
+      'ar' => 'البحث عن محل',
+    ],
+  ];
+  alshaya_i18n_save_translations($strings);
+
+  // Create default content for non transac site.
+  alshaya_non_transac_create_default_content();
+
+  // We probably don't have any module depending on acquia_connector which is
+  // required on ACSF environments.
+  if (EnvironmentDetector::isAcsfEnv()) {
+    \Drupal::service('module_installer')->install(['acquia_connector']);
+  }
+  // Set whitelabel as the default theme.
+  \Drupal::configFactory()->getEditable('system.theme')->set('default', 'whitelabel')->save();
+
+  // Set registration to administrator only.
+  $config = \Drupal::configFactory()->getEditable('user.settings');
+  $config->set('register', UserInterface::REGISTER_ADMINISTRATORS_ONLY)->save();
+
+  // Un-setting simple auth keys as we don't need them.
+  \Drupal::configFactory()->getEditable('simple_oauth.settings')
+    ->set('private_key', '')
+    ->set('public_key', '')
+    ->save();
+
+  // Invoke the function in profile to inform sub profile is installed.
+  alshaya_sub_profile_installed('alshaya_non_transac');
+}

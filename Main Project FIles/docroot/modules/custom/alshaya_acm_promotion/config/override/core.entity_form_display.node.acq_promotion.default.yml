@@ -1,0 +1,43 @@
+dependencies:
+  config:
+    - field.field.node.acq_promotion.field_alshaya_promotion_subtype
+    - field.field.node.acq_promotion.field_coupon_code
+    - field.field.node.acq_promotion.field_free_gift_skus
+    - field.field.node.acq_promotion.field_acq_promotion_full_catalog
+    - field.field.node.acq_promotion.field_acq_promotion_context
+content:
+  field_alshaya_promotion_subtype:
+    type: options_select
+    weight: 17
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_coupon_code:
+    type: string_textfield
+    weight: 18
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  field_free_gift_skus:
+    weight: 19
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+    region: content
+  field_acq_promotion_full_catalog:
+    weight: 122
+    settings:
+      display_label: true
+    third_party_settings: {  }
+    type: boolean_checkbox
+    region: content
+  field_acq_promotion_context:
+    weight: 124
+    settings: {  }
+    third_party_settings: {  }
+    type: options_select
+    region: content

@@ -1,0 +1,278 @@
+{%
+set classes = [
+  'node',
+  'node--type-' ~ node.bundle|clean_class,
+  view_mode ? 'node--view-mode-' ~ view_mode|clean_class,
+]
+%}
+
+  <article{{ attributes }} {{ gtm_attributes }}>
+  <div class="acq-content-product">
+    {% block mainContent %}
+      <div class="content__main {{ image_slider_position_pdp }}">
+        {% if content.gallery is not empty %}
+          {{ content.gallery }}
+        {% else %}
+          <div class="gallery-wrapper empty-gallery">
+            <div id="product-zoom-container">
+              <div class="cloudzoom"></div>
+              <div class="mobilegallery"></div>
+              <div id="product-full-screen-gallery-container" style="display: none;"></div>
+            </div>
+          </div>
+        {% endif %}
+        {% if content.wishlist_enabled %}
+          {{ content.wishlist_enabled }}
+        {% endif %}
+        {% if quantity_limit_enabled == true %}
+          <div class="order-quantity-limit-message mobile-only"></div>
+        {% endif %}
+
+        {% if show_crosssell_as_matchback == false %}
+          {% include directory ~ '/../alshaya_white_label/templates/partial/product-related.html.twig' %}
+        {% endif %}
+      </div>
+    {% endblock %}
+
+    {% block contentSidebar %}
+      {% block titleBlock %}
+        <div class="content__title_wrapper">
+          {% if content.brand_logo %}
+            <div class="brand-logo-wrapper">
+              {{ content.brand_logo }}
+            </div>
+          {% endif %}
+
+          {% block productBrand %}
+          {% endblock %}
+
+          <h1>{{ label }}</h1>
+
+          {% block pricePrefix %}
+          {% endblock %}
+
+          <div class="price-block {{ content.price_block_identifier }}">
+            {{ content.price_block }}
+          </div>
+
+          {% if content.postpay %}
+            {{ attach_library('alshaya_white_label/postpay-pdp') }}
+            <div class="postpay {{ content.postpay_mode_class }}"> {{ content.postpay }} </div>
+          {% endif %}
+
+          {% if content.tabby %}
+            <div class="tabby"> {{ content.tabby }} </div>
+          {% endif %}
+
+          <div class="promotions promotions-full-view-mode">{% if content.promotions %}{{ content.promotions }}{% endif %}</div>
+
+          {% if vat_text %}
+            <div class="vat-text">
+              {{ vat_text }}
+            </div>
+          {% endif %}
+
+          {% block itemCode %}
+            <div class="content--item-code">
+              <span class="field__label">{{ 'Item Code'|t }}:</span>
+              <span class="field__value">{{ content.item_code }}</span>
+            </div>
+          {% endblock %}
+
+          {% if content.delivery_link is not empty %}
+            <div class="delivery">
+              {{ content.delivery_link }}
+            </div>
+          {% endif %}
+
+          <div class="free-gift-promotions free-gift-promotions-full-view-mode">{% if content.free_gift_promotions %}{{ content.free_gift_promotions }}{% endif %}</div>
+
+          {# Delivery options will load if express delivery enabled. #}
+          {% if content.delivery_options %}
+            <div id="sdd-ed-labels"></div>
+          {% elseif content.same_day_delivery_text and content.delivery_options is empty %}
+            <div class="same-day-delivery">
+              <div class="same-day-content">
+                <p>{{ content.same_day_delivery_text }}</p>
+                <p>{{ content.same_day_delivery_sub_text }}</p>
+              </div>
+            </div>
+          {% elseif content.delivery_in_only_city_text %}
+            <div class="delivery-in-only-city">
+              <p>{{ content.delivery_in_only_city_text }}</p>
+            </div>
+          {% endif %}
+
+        </div>
+      {% endblock %}
+
+      {% block pdpSidebar %}
+        <div class="content__sidebar">
+          {% if content.reviews_rating %}
+            {{content.reviews_rating}}
+          {% endif %}
+          {% block sizeVolume %}
+          {% endblock %}
+
+          <div class="mobile-content-wrapper">
+            <div class="basic-details-wrapper">
+              {{ content.field_skus }}
+              {% if quantity_limit_enabled == true %}
+                <div class="order-quantity-limit-message"></div>
+              {% endif %}
+            </div>
+
+            {% if aura_enabled is defined and aura_enabled %}
+              {{ attach_library('alshaya_white_label/aura-loyalty-pdp') }}
+              <div id="aura-pdp"></div>
+            {% endif %}
+
+            {% block shortDescBlock %}
+              <div class="short-description-wrapper">
+                <div class="content--short-description">
+                  <h2 class="field__label">{{ 'Product Description'|t }}</h2>
+                  <div class="field__content-wrapper">
+                    <div class="field__content">
+                      <div class="desc-wrapper">
+                        {% if content.short_desc.label|render %}
+                          <div class="desc-label">
+                            {{ content.short_desc.label }}
+                          </div>
+                        {% endif %}
+                        {% if content.short_desc.value|render %}
+                          <div class="desc-value">
+                            {{ content.short_desc.value }}
+                          </div>
+                        {% endif %}
+                      </div>
+                      {% for desc in content.description %}
+                        {% if desc.value|render %}
+                          <div class="desc-wrapper">
+                            {% if desc.label|render %}
+                              <div class="desc-label">
+                                {{ desc.label }}
+                              </div>
+                            {% endif %}
+
+                            <div class="desc-value">
+                              {{ desc.value }}
+                            </div>
+                          </div>
+                        {% endif %}
+                      {% endfor %}
+                      {{ content.legal_notice }}
+                    </div>
+                    {% if content.description %}
+                      {% if content.read_more_style.value|render %}
+                        <span class="read-more-description-link" style="{{ content.read_more_style.value }}">{{ 'Read more'|t }}</span>
+                        <span class="read-more-description-link-mobile" style="{{ content.read_more_style.value }}">{{ 'Read more'|t }}</span>
+                      {% else %}
+                        <span class="read-more-description-link">{{ 'Read more'|t }}</span>
+                        <span class="read-more-description-link-mobile">{{ 'Read more'|t }}</span>
+                      {% endif %}
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            {% endblock %}
+
+            {% if online_returns_status is defined and online_returns_status %}
+              <div id="online-returns-pdp-desktop" class="desktop-only"></div>
+            {% endif %}
+
+            {% if online_returns_status is defined and online_returns_status %}
+              <div id="online-returns-pdp-mobile" class="mobile-only"></div>
+            {% endif %}
+
+            {% block descBlock %}
+              <div class="description-wrapper">
+                <div class="content--description">
+                  <span class="close"></span>
+                  <h2 class="field__label">{{ 'Product Description'|t }}</h2>
+                  <div class="field__content">
+                    {% for desc in content.description  %}
+                      {% if desc.value|render %}
+                        <div class="desc-wrapper">
+                          {% if desc.label|render %}
+                            <div class="desc-label">
+                              {{ desc.label }}
+                            </div>
+                          {% endif %}
+
+                          <div class="desc-value">
+                            {{ desc.value }}
+                          </div>
+                        </div>
+                      {% endif %}
+                    {% endfor %}
+                    {{ content.legal_notice }}
+                  </div>
+                </div>
+                <div class="gradient-holder"></div>
+              </div>
+            {% endblock %}
+
+            {{ content.non_refundable }}
+
+            {% block afterDescription %}
+            {% endblock %}
+
+            {% if content.express_delivery %}
+              {{content.express_delivery}}
+            {% endif %}
+
+            {% if content.home_delivery or content.click_and_collect %}
+              <div class="delivery-options-wrapper">
+                <div class="product-out-of-stock-layer"></div>
+                {% if not content.express_delivery %}
+                  <h2 class="field__label">{{ 'Delivery Options'|t }}</h2>
+                {% endif %}
+                <div class="field__content">
+                  {{ content.home_delivery }}
+
+                  {% if content.click_and_collect %}
+                    {{ content.click_and_collect }}
+                  {% endif %}
+                </div>
+              </div>
+            {% endif %}
+
+            {{ content.sharethis }}
+
+          </div>
+
+          {% block productPostContentMobile %}
+          {% endblock %}
+
+          {% include directory ~ '/../alshaya_white_label/templates/partial/mobile-product-related.html.twig' %}
+
+        </div>
+      {% endblock %}
+    {% endblock %}
+
+    {% block desktopCS %}
+    {% endblock %}
+
+    {% if show_crosssell_as_matchback == true %}
+      {% include directory ~ '/../alshaya_white_label/templates/partial/product-related.html.twig' %}
+    {% endif %}
+
+  </div>
+
+  {% block productPostContent %}
+  {% endblock %}
+
+</article>
+<div id="dy-recommendation"></div>
+{% if dynamicYieldPdpDivs is defined and dynamicYieldPdpDivs %}
+  {% for i in range(1, dynamicYieldPdpDivs) %}
+    <div id="dy-recommendation-pdp-{{ i }}"></div>
+  {% endfor %}
+{% endif %}
+
+{% if content.reviews_section %}
+  {% if bazaarvoice_strings %}
+    {{ bazaarvoice_strings }}
+  {% endif %}
+  {{ content.reviews_section }}
+{% endif %}

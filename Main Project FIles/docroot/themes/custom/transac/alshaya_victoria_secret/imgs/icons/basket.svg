@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="20px" height="20px" viewBox="0 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Icons/Base/shopping-bag</title>
+    <defs>
+        <rect id="path-1" x="0" y="0" width="20" height="20"></rect>
+    </defs>
+    <g id="Symbols" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Components/Cards/Site-Header/Mobile/English-375" transform="translate(-317.000000, -99.000000)">
+            <g id="Group-2" transform="translate(20.000000, 99.000000)">
+                <g id="Icons/Base/shopping-bag" transform="translate(297.000000, 0.000000)">
+                    <mask id="mask-2" fill="white">
+                        <use xlink:href="#path-1"></use>
+                    </mask>
+                    <use id="Icons/Base/shopping-bag-(Background/Mask)" fill-opacity="0" fill="#FFFFFF" xlink:href="#path-1"></use>
+                    <g id="Group-178" mask="url(#mask-2)" stroke="#221D1D" stroke-dasharray="0,0" stroke-width="1.20000005">
+                        <g transform="translate(1.526004, 1.388457)">
+                            <path d="M16.8788295,5.24558454 L16.1613759,16.2879183 C16.1271998,16.813923 15.6905937,17.223082 15.16348,17.223082 L1.78455779,17.223082 C1.25744405,17.223082 0.820837981,16.813923 0.786661878,16.2879183 L0.0692082644,5.24558454 C0.0334001665,4.69446185 0.451145186,4.21866043 1.00226788,4.18285233 C1.02385154,4.18144998 1.04547501,4.18074825 1.06710418,4.18074825 L15.8809336,4.18074825 C16.4332184,4.18074825 16.8809336,4.6284635 16.8809336,5.18074825 C16.8809336,5.20237741 16.8802319,5.22400089 16.8788295,5.24558454 Z" id="Rectangle-115" stroke-linejoin="round" fill-rule="nonzero"></path>
+                            <path d="M4.5720052,-1.40299579e-06 L4.5720052,3.90012501 C4.57200304,3.90221141 4.5720056,3.90429781 4.57200613,3.90638423 C4.57327571,6.87649584 5.87395246,8.36155164 8.4740364,8.36155164 C11.0753912,8.36155164 12.3760687,6.87506375 12.3760687,3.90208797 L12.3760687,-1.40299579e-06" id="Vector" stroke-linecap="round" transform="translate(8.474037, 4.180775) rotate(-179.999995) translate(-8.474037, -4.180775) "></path>
+                        </g>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

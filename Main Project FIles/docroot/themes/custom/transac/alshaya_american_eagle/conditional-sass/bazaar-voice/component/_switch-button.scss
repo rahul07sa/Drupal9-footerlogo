@@ -1,0 +1,10 @@
+.switch-button {
+  .switchOff,
+  .switchOn {
+    padding: 0.75rem 2.25rem 0.375rem;
+
+    html[lang=ar] & {
+      padding: 0.75rem 2.25rem;
+    }
+  }
+}

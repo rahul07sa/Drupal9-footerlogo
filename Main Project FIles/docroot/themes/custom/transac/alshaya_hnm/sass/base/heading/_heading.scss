@@ -1,0 +1,24 @@
+%page-title {
+  @include arabic-letter-spacing;
+
+  font-family: $hnm-demibold;
+  font-weight: normal;
+  color: $title;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+
+  @include breakpoint($mobile) {
+    font-size: 1rem;
+  }
+
+  @include breakpoint($tablet) {
+    font-size: 1.25rem;
+  }
+}
+
+.subtitle {
+  @include arabic-letter-spacing;
+
+  font-family: $hnm-regular;
+  text-transform: uppercase;
+}

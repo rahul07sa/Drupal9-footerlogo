@@ -1,0 +1,35 @@
+.paragraph_banner_block {
+  .paragraph_banner_buttons {
+    .field--name-field-links {
+      .field--name-field-links {
+        a {
+          @include btn;
+
+          @include breakpoint($only-tablet) {
+            padding: rem(10) rem(4) rem(6);
+          }
+        }
+
+        &:last-child {
+          a {
+            @include button-brand;
+
+            @include breakpoint($only-tablet) {
+              padding: rem(10) rem(4) rem(6);
+            }
+
+            &:hover {
+              border: 0;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .paragraph_banner_title_subtitle {
+    .field--name-field-title {
+      font-family: $dh-Juana-bold;
+    }
+  }
+}

@@ -1,0 +1,35 @@
+.alias--checkout,
+.alias--checkout-confirmation {
+  .site-brand-home {
+    height: 3rem;
+
+    @include breakpoint($tablet) {
+      height: 7rem;
+    }
+
+    a {
+      @include breakpoint($tablet) {
+        text-align: center;
+        width: 6rem;
+      }
+
+      @include breakpoint($only-mobile) {
+        margin: 0 auto;
+        margin-top: 0.1875rem;
+
+        html[lang=ar] & {
+          height: 1.875rem;
+        }
+      }
+
+      img {
+        @include breakpoint($only-mobile) {
+          html[lang=ar] & {
+            max-height: 100%;
+            width: 100%;
+          }
+        }
+      }
+    }
+  }
+}

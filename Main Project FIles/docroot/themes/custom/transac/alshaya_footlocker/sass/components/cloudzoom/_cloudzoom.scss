@@ -1,0 +1,36 @@
+#lightSlider {
+  @include breakpoint($only-tablet) {
+    padding-#{$left}: 2rem;
+    padding-#{$right}: 2rem;
+  }
+}
+
+.cloudzoom {
+  #cloud-zoom-big {
+    width: 19.875rem !important;
+  }
+
+  &__image {
+    .img-wrap {
+      @include breakpoint($tablet) {
+        height: auto;
+        overflow: auto;
+        min-height: 20rem;
+      }
+
+      @include breakpoint($desktop) {
+        min-height: 31.5rem;
+      }
+    }
+  }
+}
+
+#cloud-zoom-big {
+  @include if-rtl {
+    right: 126.1% !important;
+  }
+
+  @include if-ltr {
+    left: 126.1% !important;
+  }
+}

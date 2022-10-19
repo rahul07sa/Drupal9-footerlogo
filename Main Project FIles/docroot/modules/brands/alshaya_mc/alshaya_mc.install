@@ -1,0 +1,572 @@
+<?php
+
+/**
+ * @file
+ * Install, uninstall and update for alshaya_mc.
+ */
+
+use Drupal\Core\Site\Settings;
+use Drupal\alshaya_config\AlshayaConfigManager;
+use Drupal\block\Entity\Block;
+use Drupal\block\BlockInterface;
+
+/**
+ * Installing new product type facet.
+ */
+function alshaya_mc_update_8322() {
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.sku_base_fields'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_RESAVE
+  );
+  \Drupal::service('acq_sku.fields_manager')->addFields();
+
+  // Adding fields in search_api index.
+  $manager->updateConfigs(
+    ['search_api.index.product'],
+    'alshaya_product',
+    'install',
+    AlshayaConfigManager::MODE_RESAVE
+  );
+  $manager->updateConfigs(
+    ['search_api.index.acquia_search_index'],
+    'alshaya_search',
+    'optional',
+    AlshayaConfigManager::MODE_RESAVE
+  );
+
+  $blocks = [
+    'alshayaproducttype' => 'gender',
+    'promoalshayaproducttype' => 'promogender',
+    'plpalshayaproducttype' => 'plpgender',
+  ];
+  foreach ($blocks as $facet_block_id => $price_filter_block_id) {
+    // Place product type block after gender block.
+    $facet_block = Block::load($facet_block_id);
+    $price_filter_block = Block::load($price_filter_block_id);
+    if (($facet_block instanceof BlockInterface) && ($price_filter_block instanceof BlockInterface)) {
+      $facet_block->setWeight(($price_filter_block->getWeight()) + 1);
+      $facet_block->save();
+    }
+
+    // Add string translation for the block label.
+    \Drupal::languageManager()->getLanguageConfigOverride('ar', 'block.block.' . $facet_block_id)
+      ->set('settings.label', 'نوع المنتج')
+      ->save();
+  }
+}
+
+/**
+ * Installing new gender filter.
+ */
+function alshaya_mc_update_8321() {
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.sku_base_fields'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_MERGE
+  );
+  \Drupal::service('acq_sku.fields_manager')->addFields();
+
+  // Adding fields in search_api index.
+  $manager->updateConfigs(
+    ['search_api.index.product'],
+    'alshaya_product',
+    'install',
+    AlshayaConfigManager::MODE_RESAVE
+  );
+  $manager->updateConfigs(
+    ['search_api.index.acquia_search_index'],
+    'alshaya_search',
+    'optional',
+    AlshayaConfigManager::MODE_RESAVE
+  );
+
+  // Re-indexing all the products.
+  \Drupal::service('alshaya_acm_product.product_queue_utility')->queueAllProducts();
+
+  // Adjust Block Facets weight for attr_gender so this
+  // appears after the price facet filter.
+  $blocks = [
+    'gender' => 'finalprice',
+    'promogender' => 'promofinalprice',
+    'plpgender' => 'plpfinalprice',
+  ];
+  foreach ($blocks as $facet_block_id => $price_filter_block_id) {
+    $facet_block = Block::load($facet_block_id);
+    $price_filter_block = Block::load($price_filter_block_id);
+    if (($facet_block instanceof BlockInterface) && ($price_filter_block instanceof BlockInterface)) {
+      $facet_block->setWeight(($price_filter_block->getWeight()) + 1);
+      $facet_block->save();
+    }
+
+    // Add string translation for the block label.
+    \Drupal::languageManager()->getLanguageConfigOverride('ar', 'block.block.' . $facet_block_id)
+      ->set('settings.label', 'العروض')
+      ->save();
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update EN, AR paths for brand's email logo.
+ */
+function alshaya_mc_update_8320() {
+  // Get current active theme.
+  $active_theme = \Drupal::theme()->getActiveTheme();
+  // Get current theme name.
+  $current_theme = $active_theme->getName();
+  // Default site logo path with default name.
+  $site_logo = $active_theme->getPath() . '/site-logo';
+
+  // Save default logo for email.
+  \Drupal::configFactory()->getEditable('alshaya_master.theme.' . $current_theme . '.en')
+    ->set('email_logo_path', $site_logo . '.png')
+    ->save();
+
+  // Save arabic logo for email.
+  \Drupal::configFactory()->getEditable('alshaya_master.theme.' . $current_theme . '.ar')
+    ->set('email_logo_path', $site_logo . '-ar.png')
+    ->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update config for enable_lhn_tree_search
+ * for sidebar visibility in search page.
+ * Queue items for alshaya_algolia_index.
+ */
+function alshaya_mc_update_8319() {
+  $config = \Drupal::configFactory()->getEditable('alshaya_acm_product_category.settings');
+  $config->set('enable_lhn_tree_search', 1);
+  $config->save();
+  $index = \Drupal::entityTypeManager()->getStorage('search_api_index')->load('alshaya_algolia_index');
+  $index->reindex();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update meta variables.
+ */
+function alshaya_mc_update_8318() {
+  _alshaya_mc_get_metatag_translations();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable alshaya_mobile_app module.
+ */
+function alshaya_mc_update_8317() {
+  \Drupal::service('module_installer')->install(['alshaya_mobile_app']);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable the alshaya facets pretty paths module.
+ */
+function alshaya_mc_update_8316() {
+  \Drupal::service('module_installer')->install(['alshaya_facets_pretty_paths']);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Set config values for meta variables.
+ */
+function alshaya_mc_update_8315() {
+  $configFactory = \Drupal::configFactory()->getEditable('alshaya_seo_transac.meta_variables.yml');
+
+  // Set minimum free shipping amount for hmkw.
+  if (\Drupal::moduleHandler()->moduleExists('alshaya_kw')) {
+    $configFactory->set('min_shipping_amount', 20);
+  }
+  else {
+    $configFactory->set('min_shipping_amount', 250);
+  }
+
+  // Save the changes.
+  $configFactory->save();
+
+  $strings = [
+    'seo_brand_name' => [
+      'en' => 'Mothercare',
+      'ar' => 'مذركير',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add config translation for placeholder text.
+ */
+function alshaya_mc_update_8314() {
+  \Drupal::languageManager()->getLanguageConfigOverride('ar', 'alshaya_search.settings')
+    ->set('search_field_placeholder', 'البحث (كلمة مفتاحية، رمز المنتج)')
+    ->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Re-create all facets and facet blocks.
+ */
+function alshaya_mc_update_8313() {
+  _alshaya_search_api_refactor_sku_base_fields();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Remove 'alshaya_white_label_main_menu' and 'alshaya_white_label_powered'
+ * block from DB.
+ */
+function alshaya_mc_update_8312() {
+  if ($config = \Drupal::configFactory()->getEditable('block.block.alshaya_white_label_main_menu')) {
+    $config->delete();
+  }
+
+  if ($config = \Drupal::configFactory()->getEditable('block.block.alshaya_white_label_powered')) {
+    $config->delete();
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Re-order the PLP sort config by re-saving config.
+ */
+function alshaya_mc_update_8311() {
+  \Drupal::configFactory()->getEditable('alshaya_acm_product_position.settings')
+    ->setData([
+      'sort_options' => [
+        'nid' => 'nid',
+        'name_1' => 'name_1',
+        'final_price' => 'final_price',
+        'created' => 0,
+      ],
+    ])
+    ->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable brand AMP theme and set logo and favicon.
+ */
+function alshaya_mc_update_8310() {
+  // Enable alshaya_amp module, AMP theme and set AMP page logo and favicon.
+  _alshaya_master_initialize_amp('alshaya_amp_mothercare');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update EN, AR paths for site log and email logo.
+ */
+function alshaya_mc_update_8309() {
+  // Get current active theme.
+  $active_theme = \Drupal::theme()->getActiveTheme();
+  // Get current theme name.
+  $current_theme = $active_theme->getName();
+  // Default site logo path with default name.
+  $site_logo = $active_theme->getPath() . '/site-logo';
+  // Default site favicon path with default name.
+  $site_favicon = $active_theme->getPath() . '/favicon';
+
+  // Save default site logo.
+  \Drupal::configFactory()->getEditable($current_theme . '.settings')
+    ->setData([
+      'logo' => [
+        'path' => $site_logo . '.svg',
+      ],
+    ])
+    ->save();
+
+  // Save english site logo.
+  \Drupal::languageManager()
+    ->getLanguageConfigOverride('en', $current_theme . '.settings')
+    ->setData([
+      'logo' => [
+        'path' => $site_logo . '.svg',
+      ],
+    ])
+    ->save();
+
+  // Save arabic site logo.
+  \Drupal::languageManager()
+    ->getLanguageConfigOverride('ar', $current_theme . '.settings')
+    ->setData([
+      'logo' => [
+        'path' => $site_logo . '-ar.svg',
+      ],
+    ])
+    ->save();
+
+  // Save default site favicon.
+  \Drupal::configFactory()->getEditable($current_theme . '.settings')
+    ->set('favicon', ['path' => $site_favicon . '.ico'])
+    ->save();
+
+  // Save default logo for email.
+  \Drupal::configFactory()->getEditable('alshaya_master.theme.' . $current_theme . '.en')
+    ->set('email_logo_path', $site_logo . '.png')
+    ->save();
+
+  // Save arabic logo for email.
+  \Drupal::configFactory()->getEditable('alshaya_master.theme.' . $current_theme . '.ar')
+    ->set('email_logo_path', $site_logo . '-ar.png')
+    ->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Hook update to update brand specific favicon.
+ */
+function alshaya_mc_update_8307() {
+  // Get current active theme.
+  $active_theme = \Drupal::theme()->getActiveTheme();
+  // Default site favicon path with default name.
+  $site_favicon = $active_theme->getPath() . '/favicon';
+
+  // Save default site favicon.
+  \Drupal::configFactory()->getEditable('alshaya_mothercare.settings')
+    ->set('favicon', ['path' => $site_favicon . '.ico'])
+    ->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Hook update to enable alshaya mothercare theme.
+ */
+function alshaya_mc_update_8306() {
+  \Drupal::service('theme_handler')->install(['alshaya_mothercare'], TRUE);
+  \Drupal::service('theme_handler')->setDefault('alshaya_mothercare');
+
+  // Get current active theme.
+  $active_theme = \Drupal::theme()->getActiveTheme();
+  // Get current theme name.
+  $current_theme = $active_theme->getName();
+  // Default site logo path with default name.
+  $site_logo = $active_theme->getPath() . '/site-logo';
+
+  // Save default site logo.
+  \Drupal::configFactory()->getEditable('alshaya_mothercare.settings')
+    ->setData([
+      'logo' => [
+        'path' => $site_logo . '.svg',
+      ],
+    ])
+    ->save();
+  // Save arabic site logo.
+  \Drupal::languageManager()
+    ->getLanguageConfigOverride('ar', 'alshaya_mothercare.settings')
+    ->setData([
+      'logo' => [
+        'path' => $site_logo . '-ar.svg',
+      ],
+    ])
+    ->save();
+
+  // Save default logo for email.
+  \Drupal::configFactory()->getEditable('alshaya_master.theme.' . $current_theme . '.en')
+    ->set('email_logo_path', $site_logo . '.png')
+    ->save();
+  // Save arabic logo for email.
+  \Drupal::configFactory()->getEditable('alshaya_master.theme.' . $current_theme . '.ar')
+    ->set('email_logo_path', $site_logo . '-ar.png')
+    ->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Default config for all_products_buyable.
+ */
+function alshaya_mc_update_8305() {
+  // Setting all products buyable to be false by default.
+  \Drupal::configFactory()->getEditable('alshaya_acm_product.settings')
+    ->set('all_products_buyable', 0)
+    ->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Set the magento language prefix again.
+ */
+function alshaya_mc_update_8304() {
+  \Drupal::configFactory()->getEditable('alshaya_api.settings')
+    ->set('magento_lang_prefix', 'kwt_en')
+    ->save();
+
+  \Drupal::languageManager()->getLanguageConfigOverride('ar', 'alshaya_api.settings')
+    ->set('magento_lang_prefix', 'kwt_ar')
+    ->save();
+}
+
+/**
+ * Implements hook_update().
+ *
+ * Update config file for store configuration.
+ */
+function alshaya_mc_update_8303() {
+  // Set the default value.
+  $config = \Drupal::service('config.factory')->getEditable('alshaya_stores_finder.settings');
+  $config->set('store_list_label', 'List of all Mothercare Stores');
+  $config->save();
+}
+
+/**
+ * Implements hook_update().
+ *
+ * Rename block IDs to generic ones.
+ */
+function alshaya_mc_update_8301() {
+  $blocks = [
+    'alshaya_white_label_branding' => 'branding',
+    'alshaya_white_label_content' => 'content',
+    'alshaya_white_label_account_menu' => 'account_menu',
+    'alshaya_white_label_breadcrumbs' => 'breadcrumbs',
+    'alshaya_white_label_help' => 'help',
+    'alshaya_white_label_local_actions' => 'local_actions',
+    'alshaya_white_label_local_tasks' => 'local_tasks',
+    'alshaya_white_label_messages' => 'messages',
+    'alshaya_white_label_page_title' => 'page_title',
+  ];
+
+  foreach ($blocks as $old_block_id => $new_block_id) {
+    $old_block = \Drupal::entityTypeManager()->getStorage('block')->loadByProperties(['id' => $old_block_id]);
+
+    if (!empty($old_block)) {
+      $old_block = reset($old_block);
+      $new_block = $old_block->createDuplicateBlock($new_block_id);
+      $old_block->delete();
+      $new_block->save();
+    }
+  }
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_mc_install() {
+  \Drupal::moduleHandler()->loadInclude('alshaya_mc', 'inc', 'alshaya_mc.content');
+
+  // Enable and set alshaya_mothercare as default theme and set the site logo,
+  // favicon icon and email logo path.
+  _alshaya_master_initialize_brand_theme('alshaya_mothercare');
+
+  // Translate store finder block's link title.
+  \Drupal::languageManager()->getLanguageConfigOverride('ar', 'block.block.alshayastoresfinder')
+    ->set('settings', ['link_title' => 'البحث عن محلاتنا'])
+    ->save();
+
+  // Set store id - EN.
+  \Drupal::configFactory()->getEditable('acq_commerce.store')
+    ->set('store_id', Settings::get('store_id')['en'])
+    ->save();
+
+  // Translate store id in config.
+  \Drupal::languageManager()->getLanguageConfigOverride('ar', 'acq_commerce.store')
+    ->set('store_id', Settings::get('store_id')['ar'])
+    ->save();
+
+  \Drupal::configFactory()->getEditable('alshaya_api.settings')
+    ->set('magento_lang_prefix', 'kwt_en')
+    ->save();
+
+  \Drupal::languageManager()->getLanguageConfigOverride('ar', 'alshaya_api.settings')
+    ->set('magento_lang_prefix', 'kwt_ar')
+    ->save();
+
+  // Set the default value for back to store list link.
+  $config = \Drupal::service('config.factory')->getEditable('alshaya_stores_finder.settings');
+  $config->set('store_list_label', 'List of all Mothercare Stores');
+  $config->save();
+
+  // Setting all products buyable to be false by default.
+  \Drupal::configFactory()->getEditable('alshaya_acm_product.settings')
+    ->set('all_products_buyable', 0)
+    ->save();
+
+  // Create default content for mothercare.
+  alshaya_mc_create_default_content();
+
+  $strings = [
+    'seo_brand_name' => [
+      'en' => 'Mothercare',
+      'ar' => 'مذركير',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+
+  // Install metatag transalations.
+  _alshaya_mc_get_metatag_translations();
+}
+
+/**
+ * Implements hook_update_dependencies().
+ *
+ *  Install alshaya_amp module before saving configuration related to amp theme.
+ */
+function alshaya_mc_update_dependencies() {
+  $dependencies = [];
+  $dependencies['alshaya_mc'][8314] = [
+    'alshaya_search' => 8023,
+  ];
+  $dependencies['alshaya_mc'][8310] = [
+    'alshaya' => 8004,
+  ];
+  $dependencies['alshaya_mc'][8315] = [
+    'alshaya_seo_transac' => 8402,
+  ];
+  return $dependencies;
+}
+
+/**
+ * Get translations of metatag.
+ */
+function _alshaya_mc_get_metatag_translations() {
+  $strings = [
+    'alshaya_seo_sale_title_suffix' => [
+      'en' => '[current-date:html_year] Sale',
+      'ar' => 'عروض [current-date:html_year]',
+    ],
+    'alshaya_seo_sale_text_before_cod' => [
+      'en' => 'Explore [current-date:html_year] [term:name] collections and get the best prices in [alshaya_seo:country].',
+      'ar' => 'اكتشف مجموعات [term:name] واحصل على أفضل الأسعار في [alshaya_seo:country].',
+    ],
+    'alshaya_seo_sale_desc_start' => [
+      'en' => 'Buy mothercare - [term:name] - [current-date:html_year] sale and offers',
+      'ar' => 'عروض وخصومات الرعاية الأم - [term:name] - [current-date:html_year]',
+    ],
+    'alshaya_seo_desc_start' => [
+      'en' => 'Shop [alshaya_seo:brand_name] [term:name]',
+      'ar' => 'شراء [term:name] من [alshaya_seo:brand_name]',
+    ],
+    'alshaya_seo_sale_keywords' => [
+      'en' => '[term:name] sale, [term:name] promotions, [term:name], [term:name] sale in [alshaya_seo:country], [alshaya_seo:term_cities], [term:name] offers, [term:name] online offers, [term:name] online sale, [alshaya_seo:brand_name] [term:name] sale, [alshaya_seo:brand_name] [term:name] offers, [alshaya_seo:brand_name] [term:name] offers for , [alshaya_seo:brand_name] [term:name] sale[term:name] sale, [term:name] promotions, [term:name], [term:name] sale in [alshaya_seo:country], [alshaya_seo:term_cities], [term:name] offers, [term:name] online offers, [term:name] online sale, [alshaya_seo:brand_name] [term:name] sale, [alshaya_seo:brand_name] [term:name] offers, [alshaya_seo:brand_name] [term:name] offers, [alshaya_seo:brand_name] [term:name] sale, [alshaya_seo:brand_name] [term:name] sale [alshaya_seo:top_category]',
+      'ar' => '[term:name] sale, [term:name] promotions, [term:name], [term:name] sale in [alshaya_seo:country], [alshaya_seo:term_cities], [term:name] offers, [term:name] online offers, [term:name] online sale, [alshaya_seo:brand_name] [term:name] sale, [alshaya_seo:brand_name] [term:name] offers, [alshaya_seo:brand_name] [term:name] offers for , [alshaya_seo:brand_name] [term:name] sale[term:name] sale, [term:name] promotions, [term:name], [term:name] sale in [alshaya_seo:country], [alshaya_seo:term_cities], [term:name] offers, [term:name] online offers, [term:name] online sale, [alshaya_seo:brand_name] [term:name] sale, [alshaya_seo:brand_name] [term:name] offers, [alshaya_seo:brand_name] [term:name] offers, [alshaya_seo:brand_name] [term:name] sale, [alshaya_seo:brand_name] [term:name] sale [alshaya_seo:top_category]',
+    ],
+    'alshaya_seo_keywords' => [
+      'en' => 'Shop [term:name] Collection Online, Shop Newborn [term:name], Shop [term:name] for [term:parent:name], Shop [term:parent:name] [term:name], Shop [term:name] in [alshaya_seo:country], Buy [alshaya_seo:brand_name] [term:name] online, [alshaya_seo:term_cities]',
+      'ar' => 'تسوق تشكيلة [term:name] اون لاين, تسوق [term:name] [term:parent:name] من [alshaya_seo:brand_name], اشتري [term:name] من [alshaya_seo:brand_name], اشتري [term:name] [term:parent:name] من [alshaya_seo:brand_name], [alshaya_seo:term_cities], تسوق [term:name] اون لاين في [alshaya_seo:country]',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}

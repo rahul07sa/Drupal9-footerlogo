@@ -1,0 +1,12 @@
+name: 'Alshaya American Eagle Online (Transac)'
+type: module
+description: 'The dedicated module for transac American Eagle brand.'
+package: Alshaya
+core: 8.x
+core_version_requirement: ^8 || ^9
+dependencies:
+  - alshaya_aeo:alshaya_aeo
+  - alshaya_color_split:alshaya_color_split
+  - alshaya_mobile_app:alshaya_mobile_app
+themes:
+  - alshaya_american_eagle

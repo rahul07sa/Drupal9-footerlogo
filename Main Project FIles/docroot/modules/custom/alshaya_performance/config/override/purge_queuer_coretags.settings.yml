@@ -1,0 +1,6 @@
+blacklist:
+  - acq_sku_list
+  - cart
+  - profile_list
+  - webform_submission_list
+  - alshaya_product

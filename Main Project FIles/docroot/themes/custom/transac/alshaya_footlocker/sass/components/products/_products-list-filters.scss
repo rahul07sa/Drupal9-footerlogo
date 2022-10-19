@@ -1,0 +1,77 @@
+.c-plp .c-content__region {
+  .block-views-exposed-filter-blockalshaya-product-list-block-1,
+  .block-views-exposed-filter-blockalshaya-product-list-block-2,
+  .block-views-exposed-filter-blocksearch-page {
+    legend {
+      text-transform: uppercase;
+    }
+  }
+
+  .block-alshaya-plp-facets-block-all,
+  .block-alshaya-promo-facets-block-all,
+  .block-alshaya-search-facets-block-all {
+    .show-all-filters {
+      text-transform: uppercase;
+    }
+  }
+
+  .all-filters {
+    .filter__foot {
+      text-transform: uppercase;
+    }
+
+    .filter-sort-title {
+      text-transform: capitalize;
+    }
+  }
+
+  .all-filters-algolia {
+    .filter__foot {
+      text-transform: uppercase;
+    }
+
+    .filter__head {
+      .filter-sort-title {
+        text-transform: capitalize;
+      }
+    }
+  }
+
+  .all-filters,
+  .all-filters-algolia {
+    .filter__foot {
+      .facet-all-clear,
+      .facet-clear-all {
+        .block-facets-summary-blockfilter {
+          &-bar-promotions,
+          &-bar-plp,
+          &-bar-productlist,
+          &-bar {
+            ul {
+              li {
+                &.clear-all {
+                  a {
+                    padding: 0.625rem 0;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      .facet-clear-all {
+        &.has-link a {
+          &:hover {
+            background: $primary_btn_bg;
+            color: $primary_btn_text;
+          }
+        }
+      }
+    }
+  }
+}
+
+.show-all-filters {
+  text-transform: uppercase;
+}

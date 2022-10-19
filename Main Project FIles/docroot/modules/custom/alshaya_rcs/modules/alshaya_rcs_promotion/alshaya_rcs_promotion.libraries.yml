@@ -1,0 +1,12 @@
+renderer:
+  js:
+    dist/alshaya_rcs_promotion_renderer.bundle.js: {}
+  dependencies:
+    - core/jquery
+
+helpers:
+  version: 1.x
+  js:
+    js/alshaya_rcs_promotion_utility.js: { }
+  dependencies:
+    - rcs_placeholders/helpers

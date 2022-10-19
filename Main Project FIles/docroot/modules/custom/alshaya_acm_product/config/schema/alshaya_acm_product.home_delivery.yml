@@ -1,0 +1,19 @@
+alshaya_acm_product.home_delivery:
+  type: config_object
+  label: 'Alshaya ACM Product Home Delivery settings'
+  mapping:
+    title:
+      type: label
+      label: 'Title'
+    subtitle:
+      type: label
+      label: 'Subtitle'
+    options_standard_title:
+      type: label
+      label: 'Standard option title'
+    options_standard_subtitle:
+      type: label
+      label: 'Standard option subtitle'
+    langcode:
+      type: string
+      label: 'Language code'

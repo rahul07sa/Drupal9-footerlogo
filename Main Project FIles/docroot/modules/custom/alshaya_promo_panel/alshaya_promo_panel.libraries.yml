@@ -1,0 +1,8 @@
+promo-panel:
+  version: 1.x
+  js:
+    js/alshaya-promo-panel.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - alshaya_seo_transac/gtm

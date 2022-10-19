@@ -1,0 +1,13 @@
+.spc-order-confirmation-wrapper {
+  .spc-print-header {
+    .spc-checkout-confirmation-title {
+      font-family: $hnm-demibold;
+    }
+  }
+}
+
+@media print {
+  .spc-order-confirmation-wrapper {
+    background: $white-five;
+  }
+}

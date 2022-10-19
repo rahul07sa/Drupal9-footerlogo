@@ -1,0 +1,10 @@
+name: 'Alshaya Mobile App'
+type: module
+core: 8.x
+core_version_requirement: ^8 || ^9
+description: 'Mobile application related code.'
+dependencies:
+  - drupal:rest
+  - webform:webform_rest
+  - mobile_app_links:mobile_app_links
+package: Alshaya

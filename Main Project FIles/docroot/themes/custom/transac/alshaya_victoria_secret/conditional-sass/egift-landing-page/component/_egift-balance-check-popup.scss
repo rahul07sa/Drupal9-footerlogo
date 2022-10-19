@@ -1,0 +1,37 @@
+%chk-btn {
+  text-transform: uppercase;
+  border-radius: rem(3);
+  font-size: rem(14);
+}
+
+.egift-landing-page {
+  .popup-content.egift-balance-check-content {
+    .egift-balance-check-form {
+      .egift-button {
+        @extend %chk-btn;
+      }
+
+      html[lang="ar"] & {
+        @include breakpoint($tablet) {
+          .egift-code-wrapper {
+            font-size: 0.8rem;
+          }
+        }
+      }
+    }
+
+    .egift-balance-response {
+      .egift-topup-btn-wrapper {
+        button {
+          @extend %chk-btn;
+
+          &:last-child {
+            border-radius: rem(3);
+            color: $primary_btn_text;
+            border: rem(1) solid $btn_border;
+          }
+        }
+      }
+    }
+  }
+}

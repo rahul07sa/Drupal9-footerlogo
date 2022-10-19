@@ -1,0 +1,130 @@
+gtm:
+  version: 1.x
+  js:
+    js/alshaya_seo.gtm.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/jquery.once
+    - core/underscore
+    - alshaya_master/common_functions
+    - alshaya_master/jquery_is_in_viewport
+    - alshaya_master/local_storage_manager
+    - alshaya_white_label/slider_banner
+    - datalayer/datapush
+
+gtm_algolia:
+  version: 1.x
+  js:
+    js/alshaya_seo.gtm.algolia.js: {}
+  dependencies:
+    - alshaya_seo_transac/gtm
+    - core/drupal.debounce
+
+gtm_algolia_plp:
+  version: 1.x
+  js:
+    js/alshaya_seo.gtm.algolia_plp.js: {}
+  dependencies:
+    - alshaya_seo_transac/gtm
+    - core/drupal.debounce
+
+gtm_algolia_wishlist:
+  version: 1.x
+  js:
+    js/alshaya_seo.gtm.algolia_wishlist.js: {}
+  dependencies:
+    - alshaya_seo_transac/gtm
+    - core/drupal.debounce
+
+checkout_login:
+  version: 1.x
+  js:
+    js/alshaya_seo.gtm.checkout_login.js: {}
+  dependencies:
+    - alshaya_seo_transac/gtm_spc
+
+gtm_spc_cart:
+  js:
+    js/alshaya_seo.gtm.spc_cart.js: {}
+  dependencies:
+    - alshaya_seo_transac/gtm_spc
+    - core/drupal.debounce
+    - alshaya_master/jquery_is_in_viewport
+    - alshaya_master/local_storage_manager
+
+gtm_spc_checkout:
+  js:
+    js/alshaya_seo.gtm.spc_checkout.js: {}
+  dependencies:
+    - alshaya_seo_transac/gtm_spc
+
+gtm_spc:
+  js:
+    js/alshaya_seo.gtm.spc.js: {}
+  dependencies:
+    - core/jquery
+    - core/Drupal
+    - alshaya_spc/cart_utilities
+    - alshaya_master/local_storage_manager
+
+product_list:
+  version: 1.x
+  js:
+    js/alshaya_seo.gtm.product_list.js: {}
+  dependencies:
+    - alshaya_seo_transac/gtm
+    - alshaya_master/jquery_is_in_viewport
+    - core/drupal.debounce
+
+search_list:
+  version: 1.x
+  js:
+    js/alshaya_seo.gtm.search_list.js: {}
+  dependencies:
+    - alshaya_seo_transac/gtm
+    - alshaya_master/jquery_is_in_viewport
+    - core/drupal.debounce
+
+product_slider:
+  version: 1.x
+  js:
+    js/alshaya_seo.gtm.product_slider.js: {}
+  dependencies:
+    - alshaya_seo_transac/gtm
+    - alshaya_master/jquery_is_in_viewport
+    - core/drupal.debounce
+
+gtm_pdp_magazine_v2:
+  version: 1.x
+  js:
+    js/alshaya_seo.gtm.pdp_magazine_v2.js: {}
+  dependencies:
+    - alshaya_seo_transac/gtm
+    - core/drupal.debounce
+
+# This is for both classic and magazine layout since code is same.
+gtm_pdp_default:
+  version: 1.x
+  js:
+    js/alshaya_seo.gtm.pdp_default.js: {}
+  dependencies:
+    - alshaya_seo_transac/gtm
+    - core/drupal.debounce
+
+gtm_initial_data_push:
+  version: 1.x
+  js:
+    js/alshaya_seo.gtm.initial_data_push.js: { weight: -1 }
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - alshaya_master/local_storage_manager
+
+gtm_online_returns:
+  version: 1.x
+  js:
+    js/alshaya_seo.gtm.online_returns.js: {}
+  dependencies:
+    - alshaya_seo_transac/gtm
+    - core/drupal

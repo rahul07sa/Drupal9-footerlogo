@@ -1,0 +1,70 @@
+alshaya_acm_checkout.settings:
+  type: config_object
+  label: 'Checkout settings'
+  mapping:
+    checkout_guest_summary:
+      type: text_format
+      label: 'Checkout as guest summary'
+    checkout_guest_email_usage:
+      type: text_format
+      label: 'Guest email usage description'
+    checkout_guest_login:
+      type: text_format
+      label: 'Checkout login help'
+    checkout_terms_condition:
+      type: text_format
+      label: 'Checkout Terms and Conditions'
+    checkout_customer_service:
+      type: text_format
+      label: 'Checkout Customer Service'
+    click_collect_method_method_code:
+      type: string
+      label: 'Click and Collect delivery method - method code'
+    click_collect_method_carrier_code:
+      type: string
+      label: 'Click and Collect delivery method - carrier code'
+    checkout_display_magento_error:
+      type: integer
+      label: 'Display error message from magento'
+    checkout_show_tax_info:
+      type: boolean
+      label: 'Show tax'
+    cod_surcharge_status:
+      type: integer
+      label: 'COD Surcharge status'
+    cod_surcharge_label:
+      type: label
+      label: 'COD Surcharge Label'
+    cod_surcharge_short_description:
+      type: label
+      label: 'COD Surcharge Short Description'
+    cod_surcharge_description:
+      type: text
+      label: 'COD Surcharge Description'
+    cod_surcharge_tooltip:
+      type: label
+      label: 'COD Surcharge Tooltip'
+    exclude_payment_methods:
+      label: 'Exclude payment methods'
+      type: sequence
+      sequence:
+        type: string
+    cancel_reservation_enabled:
+      type: integer
+      label: 'Invoke Cancel Reservation API?'
+    refund_exclude_payment_methods:
+      label: 'Exclude refund text for selected payment methods'
+      type: sequence
+      sequence:
+        type: string
+    cnc_store_info_cache_time:
+      type: integer
+      label: 'Set the cache time for cnc store info'
+
+alshaya_acm_checkout.ab_testing:
+  type: config_object
+  label: 'Checkout AB Testing Settings'
+  mapping:
+    cashondelivery:
+      type: boolean
+      label: 'AB Testing Status for Cash on Delivery'

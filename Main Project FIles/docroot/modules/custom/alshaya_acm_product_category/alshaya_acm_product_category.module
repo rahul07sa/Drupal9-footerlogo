@@ -1,0 +1,800 @@
+<?php
+
+/**
+ * @file
+ * Module file.
+ */
+
+use Drupal\alshaya_acm_product\Plugin\Field\FieldFormatter\SkuGalleryFormatter;
+use Drupal\block\Entity\Block;
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Url;
+use Drupal\node\NodeInterface;
+use Drupal\taxonomy\Entity\Term;
+use Drupal\taxonomy\TermInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Access\AccessResult;
+use Drupal\alshaya_acm_product_category\ProductCategoryTree;
+use Drupal\alshaya_acm_product_category\Service\ProductCategoryManager;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\views\ViewExecutable;
+use Drupal\views\ResultRow;
+use Drupal\file\FileInterface;
+use Drupal\search_api\IndexInterface;
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function alshaya_acm_product_category_module_implements_alter(&$implementations, $hook) {
+  // To call the alshaya_acm_product_category_acq_sku_product_node_alter first.
+  // We want to categorise first before creating color nodes.
+  if ($hook == 'acq_sku_product_node_alter') {
+    $group = $implementations['alshaya_acm_product_category'];
+    unset($implementations['alshaya_acm_product_category']);
+    $implementations = ['alshaya_acm_product_category' => $group] + $implementations;
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function alshaya_acm_product_category_theme($existing, $type, $theme, $path) {
+  return [
+    'alshaya_shop_by' => [
+      'template' => 'alshaya-shop-by',
+      'variables' => [
+        'term_tree' => NULL,
+      ],
+    ],
+    'alshaya_lhn_tree' => [
+      'template' => 'alshaya-lhn',
+      'variables' => [
+        'lhn_cat_tree' => NULL,
+        'current_term' => NULL,
+        'depth_offset' => NULL,
+        'current_term_parent_id' => NULL,
+        'path' => NULL,
+      ],
+    ],
+    'alshaya_subcategory_block' => [
+      'template' => 'alshaya-subcategory-block',
+      'variables' => [
+        'subcategories' => NULL,
+      ],
+    ],
+    'alshaya_app_navigation_links' => [
+      'template' => 'alshaya-app-navigation-links',
+      'variables' => [
+        'data' => NULL,
+      ],
+    ],
+    'alshaya_group_by_sub_category_page_title' => [
+      'template' => 'alshaya-group-by-sub-category-page-title',
+      'variables' => [
+        'group_category_header' => NULL,
+      ],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_views_pre_view().
+ */
+function alshaya_acm_product_category_views_pre_view(ViewExecutable $view, $display_id, array &$args) {
+  $config = \Drupal::config('alshaya_acm_product_category.settings');
+  if (!$config->get('all_categories_department_page')) {
+    return;
+  }
+
+  if ($view->id() === 'product_category_level_3') {
+    // We want to allow creation creation of page upto 3 level.
+    $handler = [];
+    if ($display_id === 'entity_reference_1') {
+      $handler = $view->getHandler($display_id, 'filter', 'depth_level');
+      $handler['operator'] = '<=';
+      $handler['value']['value'] = 4;
+      $view->setHandler($display_id, 'filter', 'depth_level', $handler);
+    }
+    // Allow creation of page for the category even if 'include in menu'
+    // is not enabled.
+    elseif ($display_id === 'block_1') {
+      $view->removeHandler($display_id, 'filter', 'field_category_include_menu_value');
+      $handler['operator'] = '=';
+      $handler['value']['value'] = 1;
+      $view->addHandler($display_id, 'filter', 'taxonomy_term__field_show_in_lhn', 'field_show_in_lhn_value', $handler);
+    }
+  }
+  // Display categories in LHN comes under L1 any visiting category.
+  elseif ($view->id() === 'product_category_level_2_3' && $display_id === 'block_2') {
+    /** @var \Drupal\alshaya_acm_product_category\ProductCategoryTree $product_category_tree */
+    $product_category_tree = \Drupal::service('alshaya_acm_product_category.product_category_tree');
+    $tid = $product_category_tree->getDepartmentPageCategoryIdFromRoute();
+    // Get term storage.
+    $term_storage = \Drupal::service('entity_type.manager')->getStorage('taxonomy_term');
+    $term = $term_storage->load($tid);
+    if ($term instanceof TermInterface) {
+      // Get l1 category.
+      $l1_term = $product_category_tree->getL1Category($term);
+
+      $args = [$l1_term->id()];
+    }
+  }
+}
+
+/**
+ * Implements template_preprocess_hook().
+ */
+function template_preprocess_alshaya_shop_by(&$variables) {
+  // Split/Chunk the array into two parts.
+  if ($variables['term_tree']) {
+    $variables['term_tree'] = array_chunk($variables['term_tree'], ceil((is_countable($variables['term_tree']) ? count($variables['term_tree']) : 0) / 2));
+  }
+}
+
+/**
+ * Implements hook_preprocess_block().
+ */
+function alshaya_acm_product_category_preprocess_block(&$variables) {
+  if ($variables['plugin_id'] == 'views_block:plp_promotional_banner-block_1') {
+    // If plp promotional banner block.
+    $term = \Drupal::routeMatch()->getParameter('taxonomy_term');
+    $hide_for_mobile = $term ? _alshaya_acm_product_category_hide_plp_banner_for_mobile($term) : FALSE;
+    if ($hide_for_mobile) {
+      $variables['attributes']['class'][] = 'hide-on-mobile';
+    }
+  }
+  // Invalidate views block whenever acq_product_category term updated.
+  if ($variables['plugin_id'] == 'views_block:product_category_level_3-block_2') {
+    $variables['content']['#cache']['tags'][] = 'taxonomy_term_list:acq_product_category';
+  }
+
+}
+
+/**
+ * Hide or not PLP banner for mobile.
+ *
+ * @param \Drupal\taxonomy\Entity\Term $term
+ *   Term object.
+ *
+ * @return bool
+ *   PLP banner for mobile hide or not.
+ */
+function _alshaya_acm_product_category_hide_plp_banner_for_mobile(Term $term) {
+  if ($mobile_banner = $term->get('field_promo_banner_for_mobile')) {
+    return $mobile_banner->getValue() ? (bool) $mobile_banner->getValue()[0]['value'] : FALSE;
+  }
+
+  return FALSE;
+}
+
+/**
+ * Implements hook_acq_sku_commerce_category_alter().
+ */
+function alshaya_acm_product_category_acq_sku_commerce_category_alter(TermInterface $term, array $category, $parent) {
+  // We consider status of parent category too for a particular category.
+  // If parent term not available, no additional condition required.
+  if ($parent instanceof TermInterface) {
+    /** @var \Drupal\acq_commerce\I18nHelper $i18nHelper */
+    $i18nHelper = \Drupal::service('acq_commerce.i18n_helper');
+
+    $langcode = $i18nHelper->getLangcodeFromStoreId($category['store_id']);
+
+    // Get current language translation if available.
+    if ($parent->hasTranslation($langcode)) {
+      $parent = $parent->getTranslation($langcode);
+    }
+
+    // We set status to enabled only if both parent and child are enabled.
+    $status = $parent->get('field_commerce_status')->getstring() && (int) $category['is_active'];
+    $term->get('field_commerce_status')->setValue((int) $status);
+
+    // Set children as not included in menu if the parent is being set to be
+    // excluded from menu.
+    $parent_in_menu = (int) $parent->get('field_category_include_menu')->getString();
+    if (!($parent_in_menu) && $category['in_menu']) {
+      $term->get('field_category_include_menu')->setValue(0);
+    }
+  }
+  // Set field_show_in_lhn with same value as field_category_include_menu
+  // when creating a new taxonomy term.
+  if ($term->isNew()) {
+    $term->get('field_show_in_lhn')->setValue($term->get('field_category_include_menu')->getString());
+  }
+}
+
+/**
+ * Get all the children of given terms.
+ *
+ * @param int $tid
+ *   The term id.
+ */
+function alshaya_acm_product_category_child_terms($tid) {
+  $langcode = \Drupal::service('language_manager')->getCurrentLanguage()->getId();
+  $terms = \Drupal::service('alshaya_acm_product_category.product_category_tree')->allChildTerms($langcode, $tid, FALSE, TRUE);
+
+  $data = [];
+  foreach ($terms as $term) {
+    $data[$term->tid] = [
+      'label' => $term->name,
+      'description'  => [
+        '#markup' => $term->description__value,
+      ],
+      'id' => $term->tid,
+      'path' => Url::fromRoute('entity.taxonomy_term.canonical', ['taxonomy_term' => $term->tid])->toString(),
+      'active_class' => '',
+    ];
+  }
+  return $data;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function alshaya_acm_product_category_form_views_exposed_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  if (($form['#id'] === 'views-exposed-form-alshaya-product-list-block-1') ||
+    ($form['#id'] === 'views-exposed-form-alshaya-product-list-block-2')) {
+    // Hide sort options on campaign-plp-style-1.
+    $term = \Drupal::service('alshaya_acm_product_category.product_category_tree')->getCategoryTermFromRoute();
+    if ($term instanceof TermInterface && $term->bundle() === 'acq_product_category' && $term->get('field_plp_layout')->value == ProductCategoryTree::PLP_LAYOUT_1) {
+      $form['sort_bef_combine']['#type'] = 'hidden';
+    }
+  }
+}
+
+/**
+ * Implements hook_entity_field_access_alter().
+ */
+function alshaya_acm_product_category_entity_field_access_alter(array &$grants, array $context) {
+  if ($context['operation'] === 'view' && $context['field_definition']->getTargetEntityTypeId() === 'taxonomy_term' && $context['field_definition']->getname() === 'field_plp_menu') {
+    $term = \Drupal::service('alshaya_acm_product_category.product_category_tree')->getCategoryTermFromRoute();
+    if ($term instanceof TermInterface && $term->get('field_plp_layout')->value != ProductCategoryTree::PLP_LAYOUT_1) {
+      // Do not show this field on pages that are not campaign-plp-style-1.
+      $grants[':default'] = AccessResult::forbidden()->inheritCacheability($grants[':default'])->addCacheableDependency($context['items']->getEntity());
+    }
+  }
+}
+
+/**
+ * Implements hook_field_widget_WIDGET_TYPE_form_alter().
+ */
+function alshaya_acm_product_category_field_widget_link_default_form_alter(&$element, FormStateInterface $form_state, $context) {
+  if (($context['items']->getName() == 'field_plp_video_links')) {
+    $element['uri']['#description'] = t('Please enter the link of the video. It could be a youtube/vimeo video or a custom video that you have uploaded to the site. To upload a video, use the Upload Video field below and then add the link here.');
+  }
+}
+
+/**
+ * Implements allowed values callback for PLP layout.
+ */
+function alshaya_acm_product_category_plp_layout_values() {
+  $config = \Drupal::config('alshaya_master.plp_settings');
+  // Prepare PDP layout select options.
+  $plp_layout_options = [];
+  $plp_layout_options += $config->get('all_plp_layouts');
+  return $plp_layout_options;
+}
+
+/**
+ * Implements hook_link_attributes_plugin_alter().
+ */
+function alshaya_acm_product_category_link_attributes_plugin_alter(array &$definitions) {
+  $definitions['class']['description'] = t('Select how the link should be displayed.');
+  $definitions['class']['type'] = 'select';
+  $definitions['class']['options'] = [
+    '' => 'None',
+    'campaign-plp-style-1-modal-link use-ajax' => 'Campaign PLP Style 1 Modal',
+  ];
+  $definitions['class']['default_value'] = '';
+}
+
+/**
+ * Implements hook_acq_sku_product_node_alter().
+ */
+function alshaya_acm_product_category_acq_sku_product_node_alter(NodeInterface $node, $product) {
+  // Set the category from ACM field to our backup field.
+  $node->get('field_category_original')->setValue($node->get('field_category')->getValue());
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_insert().
+ */
+function alshaya_acm_product_category_taxonomy_term_insert(TermInterface $term) {
+  if ($term->bundle() == ProductCategoryTree::VOCABULARY_ID) {
+    $skuCategoryMapHelper = \Drupal::service('alshaya_acm_product_category.mapping_manager');
+    $skuCategoryMapHelper->mapSkuCategory($term);
+
+    _alshaya_acm_product_category_taxonomy_term_updated_operation($term);
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_update().
+ */
+function alshaya_acm_product_category_taxonomy_term_update(TermInterface $term) {
+  if ($term->bundle() == ProductCategoryTree::VOCABULARY_ID) {
+    _alshaya_acm_product_category_taxonomy_term_updated_operation($term);
+
+    $tid = $term->id();
+    $parent_tid = $term->parent->getString();
+    $langcode = $term->language()->getId();
+    $changed = FALSE;
+
+    // This will hold the term ids whose skus will be added to the queue.
+    // for processing.
+    $static = &drupal_static('category_sync_process_term_ids', []);
+
+    // We want to queue related SKUs even if translation is not available.
+    if (!$term->original->hasTranslation($langcode)) {
+      $changed = TRUE;
+    }
+    // Check if parent is marked as changed. If yes, the we also queue the
+    // child.
+    elseif (isset($static[$parent_tid])) {
+      $changed = TRUE;
+    }
+    // Check if parent has changed.
+    elseif ($parent_tid != $term->original->parent->getString()) {
+      $changed = TRUE;
+    }
+    // If translation is available, we check the fields.
+    else {
+      $old_term = $term->original->getTranslation($langcode);
+      $fields_to_check = [
+        'field_commerce_status',
+        'field_category_include_menu',
+        'name',
+        'field_show_in_lhn',
+      ];
+
+      foreach ($fields_to_check as $field) {
+        if ($term->get($field)->getString() != $old_term->get($field)->getString()) {
+          $changed = TRUE;
+          break;
+        }
+      }
+    }
+
+    // We shall only queue products if something has changed in the term.
+    if (!$changed) {
+      return;
+    }
+
+    // Mark this term as changed in the static variable so that this information
+    // can be used when checked for changed status for its child terms.
+    $static[$tid] = TRUE;
+
+    // Get the children.
+    $children = \Drupal::entityTypeManager()->getStorage('taxonomy_term')
+      ->loadTree(ProductCategoryTree::VOCABULARY_ID, $tid);
+
+    $child_tids = array_column($children, 'tid');
+
+    $tids = array_merge([$tid], $child_tids);
+
+    $skus_for_category = \Drupal::service('alshaya_acm_product_category.category_products_helper')
+      ->getSkusForCategory($tids);
+
+    // Queue the skus for reindexation.
+    if (!empty($skus_for_category)) {
+      \Drupal::logger('alshaya_acm_product_category')
+        ->info('Queueing products for updated category with Drupal ID: @tid, Commerce ID: @commerce_id, Langcode: @langcode, Child tids: @child_tids, Products: @skus.', [
+          '@tid' => $tid,
+          '@commerce_id' => $term->get('field_commerce_id')->getString(),
+          '@langcode' => $langcode,
+          '@child_tids' => !empty($child_tids) ? implode(',', $child_tids) : '-',
+          '@skus' => implode(',', $skus_for_category),
+        ]);
+      \Drupal::service('alshaya_acm_product.product_queue_utility')->queueAvailableProductsForSkus($skus_for_category);
+    }
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete().
+ */
+function alshaya_acm_product_category_taxonomy_term_delete(TermInterface $term) {
+  if ($term->bundle() == ProductCategoryTree::VOCABULARY_ID) {
+    _alshaya_acm_product_category_taxonomy_term_updated_operation($term);
+
+    $skus_for_category = \Drupal::service('alshaya_acm_product_category.category_products_helper')
+      ->getSkusForCategory([$term->id()]);
+
+    // Queue the skus for reindexation.
+    if (!empty($skus_for_category)) {
+      \Drupal::logger('alshaya_acm_product_category')
+        ->info('Queueing products for deleted category with Drupal ID: @tid, Commerce ID: @commerce_id, Langcode: @langcode, Products: @skus.', [
+          '@tid' => $term->id(),
+          '@commerce_id' => $term->get('field_commerce_id')->getString(),
+          '@langcode' => $term->language()->getId(),
+          '@skus' => implode(',', $skus_for_category),
+        ]);
+      \Drupal::service('alshaya_acm_product.product_queue_utility')->queueAvailableProductsForSkus($skus_for_category);
+    }
+  }
+}
+
+/**
+ * Act on insert/update/delete of category term.
+ *
+ * @param \Drupal\taxonomy\TermInterface $term
+ *   Category term.
+ */
+function _alshaya_acm_product_category_taxonomy_term_updated_operation(TermInterface $term) {
+  /** @var \Drupal\taxonomy\TermStorage $termStorage */
+  $termStorage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+  $parents = $termStorage->loadAllParents($term->id());
+  $term_ids = $parents ? array_keys($parents) : [$term->id()];
+
+  /** @var \Drupal\alshaya_acm_product_category\Service\ProductCategoryManager $manager */
+  $manager = \Drupal::service('alshaya_acm_product_category.sales_category_manager');
+  $sale_ids = $manager->getCategorizationIds()['sale'] ?? [];
+
+  // Invalidate cache if term or it's parent are part of sales category tree.
+  if (array_intersect($sale_ids, $term_ids)) {
+    Cache::invalidateTags([ProductCategoryManager::CATEGORIZATION_IDS_CACHE_TAG]);
+  }
+
+  // Get all selected subcategories to be displayed on PLP.
+  if ($selected_subcategories = $term->get('field_select_sub_categories_plp')->getValue()) {
+    $children = array_keys(alshaya_acm_product_category_term_subcategories(NULL, $term));
+    foreach ($selected_subcategories as $key => $subcategory) {
+      if (!in_array($subcategory['value'], $children)) {
+        unset($selected_subcategories[$key]);
+      }
+    }
+    try {
+      $term->get('field_select_sub_categories_plp')->setValue($selected_subcategories);
+    }
+    catch (Exception) {
+      // Do nothing.
+    }
+  }
+
+  // Check if the term is referenced as a subcategory for grouping.
+  $connection = \Drupal::service('database');
+  $query = $connection->select('taxonomy_term__field_select_sub_categories_plp', 'sc');
+  $query->fields('sc', ['entity_id', 'field_select_sub_categories_plp_value ']);
+  $result = $query->execute()->fetchAllAssoc('entity_id', \PDO::FETCH_ASSOC);
+
+  foreach ($result as $row) {
+    if ($term->id() == $row['field_select_sub_categories_plp_value'] && !array_key_exists($row['entity_id'], $parents)) {
+      $parent_term = Term::load($row['entity_id']);
+      $selected_subcategories = $parent_term->get('field_select_sub_categories_plp')->getValue();
+      foreach ($selected_subcategories as $key => $subcategory) {
+        if ($subcategory['value'] == $term->id()) {
+          unset($selected_subcategories[$key]);
+        }
+      }
+      try {
+        $term->get('field_select_sub_categories_plp')->setValue($selected_subcategories);
+      }
+      catch (Exception) {
+        // Do nothing.
+      }
+      $parent_term->save();
+    }
+  }
+}
+
+/**
+ * Implements allowed values callback.
+ *
+ * @param \Drupal\field\Entity\FieldStorageConfig $definition
+ *   The field for which this allowed values callback is called.
+ * @param \Drupal\taxonomy\Entity\Term $term
+ *   The term.
+ * @param bool $cacheable
+ *   Field is cacheable or not.
+ *
+ * @return array
+ *   The array of child terms.
+ *
+ * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+ * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+ */
+function alshaya_acm_product_category_term_subcategories(FieldStorageConfig $definition = NULL, Term $term = NULL, $cacheable = FALSE) {
+  $term_sub_categories = [];
+  if (empty($term)) {
+    $term = \Drupal::routeMatch()->getParameter('taxonomy_term');
+  }
+  if ($term instanceof TermInterface) {
+    $child_terms = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadChildren($term->id());
+    $current_language = \Drupal::languageManager()->getCurrentLanguage()->getId();
+    foreach ($child_terms as $child) {
+      // Get current language translation if available.
+      if ($child->hasTranslation($current_language)) {
+        $child = $child->getTranslation($current_language);
+      }
+      $term_sub_categories[$child->id()] = $child->label('en');
+    }
+  }
+  return $term_sub_categories;
+}
+
+/**
+ * Implements hook_views_pre_build().
+ */
+function alshaya_acm_product_category_views_pre_build(ViewExecutable $view) {
+  // Alter number of items per page for PLP / Search pages.
+  if (in_array($view->id(), ['search', 'alshaya_product_list'])) {
+    // Initialise pager.
+    $view->getPager();
+
+    $term = \Drupal::service('alshaya_acm_product_category.product_category_tree')->getCategoryTermFromRoute();
+
+    // If group by sub-category is selected, disable pager.
+    if ($term instanceof TermInterface && $term->bundle() === 'acq_product_category' && $term->get('field_group_by_sub_categories')->getString()) {
+      // Set the flag to release memory so we can have the page built in one go.
+      SkuGalleryFormatter::$releaseMemory = TRUE;
+
+      $view->getPager();
+      $view->setItemsPerPage(0);
+
+      // Remove show_on_load to avoid any extra processing.
+      // phpcs:ignore
+      unset($_GET['show_on_load']);
+      \Drupal::request()->query->remove('show_on_load');
+    }
+  }
+}
+
+/**
+ * Implements hook_views_pre_render().
+ */
+function alshaya_acm_product_category_views_pre_render(ViewExecutable $view) {
+  if ($view->id() == 'alshaya_product_list' && $view->current_display === 'block_1') {
+    $taxonomy_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+
+    /** @var \Drupal\alshaya_acm_product_category\ProductCategoryTree $product_category_tree */
+    $product_category_tree = \Drupal::service('alshaya_acm_product_category.product_category_tree');
+    $term = $product_category_tree->getCategoryTermFromRoute();
+
+    if ($term instanceof TermInterface && $term->bundle() === 'acq_product_category' && $term->get('field_group_by_sub_categories')->getString()) {
+      $result_row = [];
+      // Get all selected subcategories to be displayed on PLP.
+      $selected_subcategories = array_column($term->get('field_select_sub_categories_plp')->getValue(), 'value') ?? [];
+
+      foreach ($view->result as $row) {
+        $product_categories = array_column($row->_object->getValue()->get('field_category')->getValue(), 'target_id') ?? [];
+
+        foreach ($selected_subcategories as $selected_subcategory) {
+          foreach ($product_categories as $product_category) {
+            if ($product_category_tree->checkIfSubCategory($product_category, $selected_subcategory)) {
+              $result_row[$selected_subcategory][] = $row;
+              break;
+            }
+          }
+        }
+      }
+
+      // Sort based on weight of taxonomy terms.
+      $child_terms = array_flip(array_keys(\Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadChildren($term->id())));
+
+      try {
+        uksort($result_row, fn($a, $b) => $child_terms[$a] - $child_terms[$b] ?: $a - $b);
+      }
+      catch (Exception) {
+        // Do nothing.
+      }
+
+      // Empty view results to add new values.
+      $view->result = [];
+      $current_language = \Drupal::languageManager()->getCurrentLanguage()->getId();
+      foreach ($result_row as $tid => $grouped_row) {
+        $category_term = $taxonomy_storage->load($tid);
+        // Get current language translation if available.
+        if ($category_term->hasTranslation($current_language)) {
+          $category_term = $category_term->getTranslation($current_language);
+        }
+
+        if ($category_term instanceof TermInterface) {
+          $category_row['group_details'] = [
+            'tid' => $tid,
+            'label' => $category_term->get('field_plp_group_category_title')->value ?? $category_term->label(),
+            'desc' => $category_term->get('field_plp_group_category_desc')->getValue()[0]['value'] ?? '',
+          ];
+          if ($category_term->get('field_plp_group_category_img')->first()) {
+            $file_value = $category_term->get('field_plp_group_category_img')->first()->getValue();
+            $image = \Drupal::service('entity_type.manager')->getStorage('file')->load($file_value['target_id']);
+            if ($image instanceof FileInterface) {
+              $category_row['group_details']['image'] = file_url_transform_relative(file_create_url($image->getFileUri()));
+            }
+          }
+
+          $view->result[] = new ResultRow($category_row);
+          foreach ($grouped_row as $row) {
+            $view->result[] = $row;
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_pathauto_alias_alter().
+ */
+function alshaya_acm_product_category_pathauto_alias_alter(&$alias, array $context) {
+  if ($context['module'] != 'taxonomy' || $context['bundle'] != ProductCategoryTree::VOCABULARY_ID) {
+    return;
+  }
+
+  // Return if already modified by alshaya_super_category.
+  if (\Drupal::moduleHandler()->moduleExists('alshaya_super_category') && \Drupal::config('alshaya_super_category.settings')->get('status')) {
+    return;
+  }
+
+  $term_id = explode('/', $context['source']);
+
+  if (!empty($term = Term::load($term_id[3])) && $term instanceof TermInterface) {
+    // Remove shop- as prefix from url if true.
+    $is_remove_shop_prefix = $term->get('field_remove_shop_prefix')->getString();
+    if ($is_remove_shop_prefix) {
+      if (str_contains($alias, 'shop-')) {
+        $alias = str_replace('shop-', '', $alias);
+      }
+      return;
+    }
+    // For all the category terms we want shop- prefix for L1 only.
+    $alias = '/shop-' . ltrim($alias, '/');
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function alshaya_acm_product_category_form_taxonomy_term_acq_product_category_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  $form['field_promotion_banner_mobile']['#states'] = [
+    'invisible' => [
+      'input[name="field_promo_banner_for_mobile[value]"]' => ['checked' => TRUE],
+    ],
+  ];
+
+  $form['field_display_as_clickable_link']['widget']['value']['#states'] = [
+    'required' => [
+      ':input[name="field_override_target_link[value]"]' => ['checked' => TRUE],
+    ],
+  ];
+
+  $form['field_target_link']['#states'] = [
+    'visible' => [
+      ':input[name="field_override_target_link[value]"]' => ['checked' => TRUE],
+    ],
+  ];
+  $form['field_target_link']['widget'][0]['uri']['#states'] = [
+    'required' => [
+      ':input[name="field_override_target_link[value]"]' => ['checked' => TRUE],
+    ],
+  ];
+
+  $form['field_include_in_desktop']['#states'] = [
+    'visible' => [
+      ':input[name="field_category_include_menu[value]"]' => ['checked' => TRUE],
+    ],
+  ];
+
+  $form['field_include_in_mobile_tablet']['#states'] = [
+    'visible' => [
+      ':input[name="field_category_include_menu[value]"]' => ['checked' => TRUE],
+    ],
+  ];
+
+  $form['path']['widget']['#after_build'][] = 'alshaya_acm_product_category_after_build';
+}
+
+/**
+ * After build callback to uncheck auto generate path auto.
+ *
+ * @param array $element
+ *   Array of current element.
+ * @param \Drupal\Core\Form\FormStateInterface $form_state
+ *   Form state object.
+ *
+ * @return array
+ *   Return element array.
+ */
+function alshaya_acm_product_category_after_build(array $element, FormStateInterface $form_state) {
+  $element[0]['pathauto']['#states'] = [
+    'unchecked' => [
+      ':input[name="field_override_target_link[value]"]' => ['checked' => TRUE],
+    ],
+  ];
+
+  $element[0]['alias']['#states'] = [
+    'empty' => [
+      ':input[name="field_override_target_link[value]"]' => ['checked' => TRUE],
+    ],
+  ];
+
+  return $element;
+}
+
+/**
+ * Implements hook_block_access().
+ */
+function alshaya_acm_product_category_block_access(Block $block, $operation, AccountInterface $account) {
+  // Disable category facet on group by category listing pages (panty guide).
+  if ($operation == 'view' && $block->id() == 'categoryfacetplp') {
+    $route = \Drupal::routeMatch();
+    if ($route->getRouteName() == 'entity.taxonomy_term.canonical') {
+      /** @var \Drupal\taxonomy\Entity\Term $term */
+      $term = \Drupal::service('alshaya_acm_product_category.product_category_tree')->getCategoryTermFromRoute();
+
+      if (empty($term)) {
+        return;
+      }
+
+      $result = AccessResult::forbiddenIf($term->bundle() !== 'acq_product_category' || $term->get('field_group_by_sub_categories')->getString());
+      $result->addCacheTags($term->getCacheTags());
+      return $result;
+    }
+  }
+}
+
+/**
+ * Implements hook_search_api_index_items_alter().
+ */
+function alshaya_acm_product_category_search_api_index_items_alter(IndexInterface $index, array &$items) {
+  if (!in_array($index->id(), ['acquia_search_index'])) {
+    return;
+  }
+
+  $logger = \Drupal::logger('alshaya_acm_product_category');
+  $term_storage = \Drupal::service('entity_type.manager')->getStorage('taxonomy_term');
+
+  /** @var \Drupal\alshaya_acm_product_category\ProductCategoryTree $product_category_tree */
+  $product_category_tree = \Drupal::service('alshaya_acm_product_category.product_category_tree');
+  /** @var \Drupal\alshaya_acm_product_category\ProductCategoryTree $product_category_tree */
+  $product_category_manager = \Drupal::service('alshaya_acm_product_category.sales_category_manager');
+
+  // Get sales categories to index L2 for sales terms.
+  $old_categorization_rule = $product_category_manager->isOldCategorizationRuleEnabled();
+  // If old categorization rule is not enabled
+  // call getCategorizationIds() with ['sale'].
+  if ($old_categorization_rule) {
+    $sale_categories = $product_category_manager->getCategorizationIds() ?? [];
+  }
+  else {
+    $sale_categories = $product_category_manager->getCategorizationIds()['sale'] ?? [];
+  }
+
+  foreach ($items as $item_id => $item) {
+    /** @var \Drupal\node\NodeInterface $object */
+    $object = $item->getOriginalObject()->getValue();
+
+    // Storing l2 menu items in field_category for sale categories
+    // and l1 menu items for others.
+    if ($object instanceof NodeInterface && $object->bundle() == 'acq_product') {
+      try {
+        $terms = [];
+
+        $node_field_category = array_column($object->get('field_category')->getValue(), 'target_id');
+        foreach ($node_field_category as $value) {
+          $term = $term_storage->load($value);
+
+          if (!($term->get('field_commerce_status')->getString()) || !($term->get('field_category_include_menu')->getString())) {
+            continue;
+          }
+
+          $terms[] = $product_category_tree->getL1Category($term)->id();
+
+          // Index L2 for sale categories.
+          if (in_array($term->id(), $sale_categories)) {
+            $terms[] = $product_category_tree->getL2Category($term)->id();
+          }
+        }
+
+        $item->getField('field_category')->setValues(array_unique($terms));
+      }
+      catch (\Throwable $e) {
+        $logger->warning('Indexing failed for the node:@nid message:@message', [
+          '@nid' => $object->id(),
+          '@message' => $e->getMessage(),
+        ]);
+
+        unset($items[$item_id]);
+      }
+    }
+  }
+}

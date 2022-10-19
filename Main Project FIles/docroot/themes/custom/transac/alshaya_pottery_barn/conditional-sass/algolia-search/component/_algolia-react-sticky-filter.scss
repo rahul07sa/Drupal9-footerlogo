@@ -1,0 +1,17 @@
+#alshaya-algolia-search,
+#block-alshaya-algolia-react-plp,
+#block-alshayaalgoliareactpromotion {
+  .filter-fixed-top {
+    .show-all-filters-algolia,
+    .block-facet-blockcategory-facet-search,
+    .block-facet-blockcategory-facet-plp {
+      @include breakpoint($only-mobile) {
+        top: 3.6875rem;
+
+        html[lang=ar] & {
+          top: 4.0625rem;
+        }
+      }
+    }
+  }
+}

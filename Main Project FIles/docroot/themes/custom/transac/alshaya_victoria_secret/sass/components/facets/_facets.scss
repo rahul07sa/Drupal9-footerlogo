@@ -1,0 +1,142 @@
+.c-facet__label {
+  font-size: 0.75rem;
+  text-transform: none;
+  font-family: $vs-regular;
+
+  @include breakpoint($desktop) {
+    text-transform: uppercase;
+    font-family: $vs-bold;
+  }
+}
+
+.c-facet__blocks {
+  .facet-item .facet-item__value,
+  .c-accordion__title {
+    text-transform: none;
+  }
+
+  .c-accordion__title {
+    &.ui-state-active {
+      border-bottom: none;
+    }
+  }
+
+  .facet-item .facet-item__value,
+  .facet-item .facet-item__count {
+    @include breakpoint($only-mobile) {
+      vertical-align: middle;
+      margin-top: 0;
+    }
+  }
+
+  input[type=checkbox] ~ label::before {
+    @include breakpoint($only-mobile) {
+      top: 0;
+    }
+  }
+
+  .item-list__checkbox,
+  .item-list__range_checkbox,
+  .item-list__swatch_list {
+    max-height: 18.375rem;
+  }
+}
+
+.c-facet {
+  a {
+    text-transform: none;
+    font-weight: normal;
+    color: $plp_facet_item_label;
+  }
+
+  & > a {
+    margin-bottom: 0.625rem;
+
+    &::after {
+      content: "";
+      display: block;
+      height: 0.625rem;
+    }
+  }
+
+  ul {
+    padding-top: 0.5rem;
+
+    li {
+      @include breakpoint($desktop) {
+        margin-bottom: 1.25rem;
+      }
+    }
+
+    ul input[type=checkbox] {
+      & ~ label::before {
+        #{$left}: 0.25rem;
+      }
+    }
+
+    input[type="text"] {
+      width: 100%;
+      height: 2.5rem;
+      background: url(../imgs/assets/search.svg) 96% center no-repeat;
+      background-size: 1rem;
+
+      html[lang=ar] & {
+        background-position-x: 4%;
+      }
+    }
+  }
+}
+
+ul[data-drupal-facet-id=plp_category_facet],
+ul[data-drupal-facet-id=category],
+ul[data-drupal-facet-id=promotion_category_facet] {
+  .facet-item--expanded {
+    & > ul ul .facet-item {
+      @include breakpoint($only-tablet) {
+        margin-#{$left}: 0;
+      }
+    }
+  }
+}
+
+.c-plp {
+  .block-facet-blockcategory {
+    ul[data-drupal-facet-id=plp_category_facet],
+    ul[data-drupal-facet-id=category],
+    ul[data-drupal-facet-id=promotion_category_facet] {
+      & > .facet-item--expanded {
+        & > input[type=checkbox] ~ label::before {
+          font-size: 1.875rem;
+
+          @include breakpoint($only-mobile) {
+            top: 0.875rem;
+          }
+        }
+
+        & > ul {
+          & > li > ul {
+            margin-#{$left}: 1rem !important;
+
+            input[type=checkbox] ~ label::before {
+              top: -1px;
+            }
+          }
+        }
+      }
+
+      ul ul {
+        ul {
+          margin-#{$left}: 1.5rem;
+        }
+      }
+    }
+  }
+
+  .region__content {
+    .block-facets-summary-blockfilter-bar-plp {
+      ul li.clear-all {
+        margin-bottom: 0;
+      }
+    }
+  }
+}

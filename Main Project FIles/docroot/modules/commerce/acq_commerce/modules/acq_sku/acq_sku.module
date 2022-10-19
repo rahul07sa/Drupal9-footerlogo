@@ -1,0 +1,99 @@
+<?php
+
+/**
+ * @file
+ * Acquia Commerce product module file.
+ *
+ * Provides base hooks to the product functionality of Acquia Commerce
+ * connector.
+ */
+
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Render\Element;
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_theme().
+ */
+function acq_sku_theme($existing, $type, $theme, $path) {
+  return [
+    'acq_sku' => [
+      'render element' => 'elements',
+    ],
+    'sku_add_list' => [
+      'variables' => ['content' => NULL],
+    ],
+    'acq_sku_price' => [
+      'variables' => [
+        'price' => NULL,
+        'sku' => NULL,
+      ],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_preprocess_HOOK().
+ */
+function acq_sku_preprocess_acq_sku(&$variables) {
+  /** @var Drupal\acq_commerce\SKUInterface $sku */
+  $sku = $variables['elements']['#acq_sku'];
+
+  $variables['sku_entity'] = $sku;
+  $variables['sku_url'] = $sku->toUrl();
+  $variables['sku'] = [];
+
+  foreach (Element::children($variables['elements']) as $key) {
+    $variables['sku'][$key] = $variables['elements'][$key];
+  }
+}
+
+/**
+ * Prepares variables for list of available sku type templates.
+ *
+ * Default template: sku-add-list.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - content: An array of content types.
+ */
+function template_preprocess_sku_add_list(array &$variables) {
+  if (!empty($variables['content'])) {
+    /** @var \Drupal\acq_sku\Entity\SKUTypeInterface $type */
+    foreach ($variables['content'] as $type) {
+      $variables['types'][$type->id()]['label'] = $type->label();
+      $variables['types'][$type->id()]['url'] = Url::fromRoute('acq_sku.sku_add', ['acq_sku_type' => $type->id()]);
+    }
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_HOOK().
+ */
+function acq_sku_theme_suggestions_acq_sku(array $variables) {
+  $suggestions = [];
+  $sku = $variables['elements']['#acq_sku'];
+  $sanitized_view_mode = strtr($variables['elements']['#view_mode'], '.', '_');
+
+  $suggestions[] = 'acq_sku__' . $sanitized_view_mode;
+  $suggestions[] = 'acq_sku__' . $sku->bundle();
+  $suggestions[] = 'acq_sku__' . $sku->bundle() . '__' . $sanitized_view_mode;
+  $suggestions[] = 'acq_sku__' . $sku->id();
+  $suggestions[] = 'acq_sku__' . $sku->id() . '__' . $sanitized_view_mode;
+  return $suggestions;
+}
+
+
+/**
+ * Implements hook_ENTITY_TYPE_delete().
+ */
+function acq_sku_node_delete(EntityInterface $entity) {
+  if ($entity->bundle() == 'acq_product') {
+    /** @var \Drupal\alshaya_seo_transac\AlshayaSitemapManager $sitemap */
+    \Drupal::logger('acq_sku')->notice('Deleted node for SKU @sku for @langcode with nid @nid.', [
+      '@sku' => $entity->get('field_skus')->getString(),
+      '@langcode' => $entity->language()->getId(),
+      '@nid' => $entity->id(),
+    ]);
+  }
+}

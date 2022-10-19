@@ -1,0 +1,86 @@
+// share fields on product detail page
+.sharethis-wrapper {
+  &.out-of-stock {
+    span::before {
+      color: $oos_pdp_text;
+      background: none;
+    }
+
+    + .delivery-options-wrapper {
+      opacity: 1;
+
+      .field__label,
+      .field__content .c-accordion__title,
+      .field__content .c-accordion__title::after,
+      .subtitle,
+      .c-accordion-delivery-options {
+        color: $oos_pdp_text;
+        border-color: $oos_pdp_text;
+      }
+    }
+  }
+
+  & > span {
+    @include breakpoint($only-mobile) {
+      margin: 0.3125rem 0.25rem 0.625rem 0;
+
+      &:last-child {
+        margin-top: 0.3125rem;
+      }
+    }
+
+    &::before {
+      cursor: pointer;
+      color: $sharethis_text;
+      font-size: 1.938rem;
+
+      @include breakpoint($only-mobile) {
+        color: $sharethis_icon;
+      }
+    }
+  }
+
+  .st_facebook_custom {
+    @include icon(facebook);
+
+    &:hover::before {
+      color: $sharethis_icon;
+      background: none;
+    }
+  }
+
+  .st_twitter_custom {
+    @include icon(twitter);
+
+    &:hover::before {
+      color: $sharethis_icon;
+      background: none;
+    }
+  }
+
+  .st_pinterest_custom {
+    @include icon(pinterest);
+
+    &:hover::before {
+      color: $sharethis_icon;
+      background: none;
+    }
+  }
+
+  .st_instagram_custom {
+    @include icon(instagram);
+
+    &:hover::before {
+      color: $sharethis_icon;
+      background: none;
+    }
+  }
+
+  .st_youtube_custom {
+    @include icon(youtube);
+
+    &:hover::before {
+      color: $sharethis_icon;
+    }
+  }
+}

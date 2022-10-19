@@ -1,0 +1,47 @@
+bazaar_voice.settings_form:
+  path: '/admin/config/system/bazaar_voice'
+  defaults:
+    _form: '\Drupal\bazaar_voice\Form\BazaarVoiceSettingsForm'
+    _title: 'BazaarVoice'
+  requirements:
+    _permission: 'administer site configuration'
+
+bazaar_voice.review_settings_form:
+  path: '/admin/config/system/bazaar_voice/sort-settings'
+  defaults:
+    _form: '\Drupal\bazaar_voice\Form\ReviewSortSettingsForm'
+    _title: 'Review Sort Settings'
+  requirements:
+    _permission: 'administer site configuration'
+
+bazaar_voice.review_sort_option_settings_form:
+  path: '/admin/config/system/bazaar_voice/sort-settings/option'
+  defaults:
+    _form: '\Drupal\bazaar_voice\Form\ReviewSortOptionSettingsForm'
+    _title: 'Review Sort Options'
+  requirements:
+    _permission: 'administer site configuration'
+
+bazaar_voice.review_sort_label_settings_form:
+  path: '/admin/config/system/bazaar_voice/sort-settings/label'
+  defaults:
+    _form: '\Drupal\bazaar_voice\Form\ReviewSortLabelSettingsForm'
+    _title: 'Review Sort Labels'
+  requirements:
+    _permission: 'administer site configuration'
+
+bazaar_voice.review_filter_settings_form:
+  path: '/admin/config/system/bazaar_voice/filter-settings'
+  defaults:
+    _form: '\Drupal\bazaar_voice\Form\ReviewFilterSettingsForm'
+    _title: 'Review Filters Settings'
+  requirements:
+    _permission: 'administer site configuration'
+
+bazaar_voice.error_messages_settings_form:
+  path: '/admin/config/system/bazaar_voice/error-messages-settings'
+  defaults:
+    _form: '\Drupal\bazaar_voice\Form\ErrorMessagesSettingsForm'
+    _title: 'Error messages Settings'
+  requirements:
+    _permission: 'administer site configuration'

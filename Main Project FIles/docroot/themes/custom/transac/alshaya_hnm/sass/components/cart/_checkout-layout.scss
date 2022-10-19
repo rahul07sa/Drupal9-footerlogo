@@ -1,0 +1,90 @@
+.block-customer-service-block {
+  background-color: $block_acm_customer_txt;
+  font-family: $hnm-regular;
+  font-size: 0.8125rem;
+  text-align: center;
+  text-transform: unset;
+
+  @include breakpoint($desktop) {
+    padding: 3.25rem 8.0625rem 0.625rem !important;
+  }
+
+  p {
+    color: $checkout_footer_txt;
+    font-size: 0.8125rem;
+    margin: 0;
+
+    span.subtext {
+      font-size: 0.5625rem;
+      display: inline-block;
+      width: 41%;
+      line-height: 1.45;
+
+      @include breakpoint($only-tablet) {
+        width: 79%;
+      }
+    }
+
+    &.line1 {
+      margin-bottom: 0.25rem;
+    }
+
+    &.line2 {
+      margin-bottom: 1.25rem;
+    }
+
+    &.line3 {
+      margin-bottom: 2rem;
+
+      @include breakpoint($only-mobile) {
+        width: 14.375rem;
+        margin: 0 auto;
+        line-height: 1.5;
+      }
+    }
+
+    &.line4 {
+      span {
+        width: 76.565%;
+
+        @include breakpoint($tablet) {
+          width: 35.4375rem;
+        }
+      }
+    }
+  }
+
+  .light {
+    &.no-direction {
+      html[lang=ar] & {
+        display: inline-block;
+        direction: ltr;
+      }
+    }
+  }
+
+  p:last-child {
+    margin-top: 2rem;
+
+    @include breakpoint($only-mobile) {
+      margin-top: 1.625rem;
+    }
+
+    .light {
+      font-family: $hnm-regular;
+      color: $primary_dark_color;
+    }
+  }
+
+  h3 {
+    @include arabic-letter-spacing;
+
+    font-family: $hnm-bold;
+    font-weight: normal;
+    color: $checkout_footer_txt;
+    font-size: 0.8125rem;
+    letter-spacing: 1px;
+    margin-bottom: 1.188rem;
+    text-transform: uppercase;
+  }
+}

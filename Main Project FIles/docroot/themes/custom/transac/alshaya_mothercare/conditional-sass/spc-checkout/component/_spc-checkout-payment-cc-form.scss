@@ -1,0 +1,11 @@
+.payment-method.payment-method-checkout_com {
+  .spc-checkout-card-option {
+    text-transform: lowercase;
+  }
+
+  input {
+    ~ label {
+      text-transform: lowercase;
+    }
+  }
+}

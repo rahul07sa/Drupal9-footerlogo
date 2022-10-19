@@ -1,0 +1,10 @@
+%btn {
+  @include arabic-letter-spacing;
+
+  color: $primary_btn_text;
+  font-size: 0.875rem;
+  font-family: $hnm-demibold;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  line-height: 1;
+}

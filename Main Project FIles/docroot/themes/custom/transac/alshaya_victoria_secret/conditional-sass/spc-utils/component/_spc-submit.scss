@@ -1,0 +1,36 @@
+.checkout-link {
+  a {
+    font-family: $alshaya-bold;
+    font-size: 0.9375rem;
+    text-transform: uppercase;
+    letter-spacing: 1.58px;
+
+    @include arabic-letter-spacing;
+  }
+
+  &:not(.checkout_com_applepay) {
+    height: rem(40);
+    border-radius: rem(3);
+
+    a {
+      font-size: rem(14);
+    }
+  }
+}
+
+.spc-shopping-link {
+  a {
+    text-transform: capitalize;
+  }
+}
+
+.spc-shopping-link,
+.spc-cnc-store-actions,
+.map-store-list .store-actions {
+  a,
+  button {
+    font-family: $vs-bold;
+    font-weight: normal;
+    text-transform: uppercase;
+  }
+}

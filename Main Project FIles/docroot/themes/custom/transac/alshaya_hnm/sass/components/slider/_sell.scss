@@ -1,0 +1,246 @@
+.view-product-slider {
+  .c-products__item__label {
+    font-family: $hnm-regular;
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+    color: $sell_label;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin: 0.625rem 0 0;
+
+    &:hover:active {
+      color: $default-anchor-link-hover;
+    }
+
+    @include breakpoint($only-mobile) {
+      max-width: 7.625rem;
+    }
+
+    @include breakpoint($desktop) {
+      max-width: 100%;
+    }
+  }
+
+  .price-wrapper {
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+  }
+
+  .views-row {
+    .promotions {
+      a {
+        font-size: 0.8125rem;
+        line-height: 1.25rem;
+        margin: 0;
+      }
+    }
+  }
+
+  &:not(.view-display-id-block_matchback) {
+    .slick-slider {
+      .slick-arrow {
+        @include breakpoint($tablet) {
+          top: 35% !important;
+        }
+
+        &::before {
+          font-size: 1rem;
+        }
+
+        &:hover {
+          &::before {
+            color: $default-anchor-link-hover;
+          }
+        }
+      }
+    }
+  }
+
+  .special--price {
+    @include breakpoint($tablet) {
+      display: inline-block;
+      margin-#{$left}: 0.3125rem;
+    }
+  }
+
+  .has--special--price {
+    @include breakpoint($tablet) {
+      display: inline-block;
+    }
+  }
+}
+
+.subtitle.crossell-title {
+  font-family: $hnm-demibold;
+  font-size: 1rem;
+  line-height: 1.25rem;
+  text-align: $left;
+  text-transform: none;
+
+  @include breakpoint($only-mobile) {
+    margin-#{$left}: 0.625rem;
+  }
+
+  @include breakpoint($tablet) {
+    margin-bottom: 0.25rem;
+    font-size: 1.25rem;
+    line-height: 1.5rem;
+
+    html[lang=ar] & {
+      font-size: 0.875rem;
+    }
+  }
+
+  @include breakpoint($desktop) {
+    margin-#{$left}: 3.5rem;
+  }
+}
+
+.mobile--only--sell .sell-sku {
+  .field__items {
+    @include breakpoint($only-mobile) {
+      padding: 0;
+    }
+  }
+
+  .sku-base-form {
+    .js-form-wrapper {
+      max-width: none;
+      float: $left;
+
+      .form-type-select {
+        margin-top: 1rem;
+        background: $primary_dropdown_bg;
+
+        @include breakpoint($only-mobile) {
+          padding-bottom: 1rem;
+          width: auto;
+
+          &.form-item-configurables-article-castor-id {
+            &::after {
+              display: none;
+            }
+
+            .select-buttons {
+              a {
+                margin-#{$left}: 0.1875rem;
+              }
+            }
+          }
+        }
+
+        &.form-item-configurables-size {
+          @include breakpoint($only-mobile) {
+            width: 40%;
+            margin-top: 1rem;
+
+            html[lang=ar] & {
+              &::after {
+                #{left}: -0.4375rem;
+              }
+            }
+          }
+        }
+
+        &.form-item-configurables-color {
+          @include breakpoint($only-mobile) {
+            display: none;
+          }
+        }
+      }
+    }
+
+    .js-form-submit {
+      margin-bottom: 1.5rem;
+      text-transform: uppercase;
+      background: $primary_btn_bg;
+      margin-top: 1rem;
+    }
+  }
+
+  @include breakpoint($only-mobile) {
+    [class^="acq-sku-configurable-"] {
+      .js-form-submit {
+        width: 54%;
+        position: absolute;
+        #{$right}: 0;
+        bottom: 0.3125rem;
+      }
+
+      .form-item-configurables-article-castor-id {
+        label {
+          display: none;
+        }
+      }
+    }
+  }
+}
+
+.price--discount span,
+.special--price .price-amount,
+.special--price .price-currency,
+.special--price .price-wrapper {
+  color: $price_default !important;
+}
+
+.price--discount {
+  margin-top: 0;
+  font-size: 0.625rem;
+  color: $price_default;
+}
+
+.no-carousel {
+  @include breakpoint($tablet) {
+    display: flex;
+    justify-content: start;
+  }
+
+  @include clearfix;
+
+  .views-row {
+    @include breakpoint($tablet) {
+      max-width: 12rem;
+
+      @include breakpoint($desktop) {
+        margin: 0 1rem;
+      }
+    }
+  }
+}
+
+.horizontal-upell,
+.horizontal-related,
+.horizontal-crossell {
+  @include breakpoint($tablet) {
+    margin-bottom: 0;
+  }
+
+  .view-product-slider {
+    text-align: $left;
+  }
+}
+
+.horizontal-crossell {
+  @include breakpoint($tablet) {
+    padding-top: 0;
+  }
+}
+
+.paragraph--type--product-carousel-category,
+.horizontal-upell,
+.horizontal-related,
+.block-basket-horizontal-recommendation,
+.horizontal-crossell {
+  .view-product-slider {
+    @include breakpoint($only-mobile) {
+      .owl-carousel {
+        .views-row {
+          &:first-child {
+            margin-#{$left}: 0.625rem;
+          }
+        }
+      }
+    }
+  }
+}

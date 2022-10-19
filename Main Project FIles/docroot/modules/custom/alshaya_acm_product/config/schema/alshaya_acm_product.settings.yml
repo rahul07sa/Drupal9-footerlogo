@@ -1,0 +1,128 @@
+alshaya_acm_product.settings:
+  type: config_object
+  label: 'Alshaya ACM Product settings'
+  mapping:
+    related_items_size:
+      type: integer
+      label: 'Number of related items to show'
+    list_view_items_per_page:
+      type: integer
+      label: 'Default Number of items to show on listing pages'
+    list_view_auto_page_load_count:
+      type: integer
+      label: 'Number of pages to load automatically'
+    auto_load_trigger_offset:
+      type: integer
+      label: 'Offset in pixels from the bottom of the page for triggering item load'
+    brand_logo_base_path:
+      type: string
+      label: 'Base path on server for Brand Logo'
+    brand_logo_extension:
+      type: string
+      label: 'File extension for Brand Logo'
+    not_buyable_message:
+      type: text_format
+      label: 'Not-buyable product message'
+    not_buyable_help_text:
+      type: text_format
+      label: 'Not-buyable product help text'
+    vat_text:
+      type: label
+      label: 'VAT Inclusion text'
+    vat_text_footer:
+      type: label
+      label: 'VAT disclaimer text for the footer'
+    image_position_pdp:
+      type: label
+      label: 'Image position on pdp'
+    langcode:
+      type: string
+      label: 'Language code'
+    cross_up_sell_items_settings:
+      type: mapping
+      label: 'Cross sell / Up sell carousel settings'
+      mapping:
+        pdp_carousel_items_size_0:
+          type: integer
+          label: 'Mobile view'
+        pdp_carousel_items_size_768:
+          type: integer
+          label: 'Tablet view'
+        pdp_carousel_items_size_1025:
+          type: integer
+          label: 'Desktop view'
+        basket_carousel_items_size:
+          type: integer
+          label: 'product item on basket page carousel'
+    pdp_slider_items_settings:
+      type: mapping
+      label: 'pdp slider settings'
+      mapping:
+        pdp_slider_items_number:
+          type: integer
+          label: 'Image item for slider'
+        pdp_slider_items_number_cs_us:
+          type: integer
+          label: 'Image item for slider in CS/US modal.'
+
+    product_carousel_items_settings:
+      type: mapping
+      label: 'product carousel settings'
+      mapping:
+        dp_product_carousel_items_number:
+          type: integer
+          label: 'product item on Department page'
+        hp_product_carousel_items_number:
+          type: integer
+          label: 'product item on Home page'
+
+    pdp_colour_swatch_items_settings:
+      type: mapping
+      label: 'colour swatch settings'
+      mapping:
+        pdp_colour_swatch_items_0:
+          type: integer
+          label: 'Mobile view'
+        pdp_colour_swatch_items_768:
+          type: integer
+          label: 'Tablet view'
+        pdp_colour_swatch_items_1025:
+          type: integer
+          label: 'Desktop view'
+    pdp_product_swatch_items_settings:
+      type: mapping
+      label: 'product swatch settings'
+      mapping:
+        pdp_product_swatch_items_0:
+          type: integer
+          label: 'Mobile view'
+        pdp_product_swatch_items_768:
+          type: integer
+          label: 'Tablet view'
+        pdp_product_swatch_items_1025:
+          type: integer
+          label: 'Desktop view'
+    legal_notice_label:
+      type: label
+      label: 'Label'
+    legal_notice_summary:
+      type: text_format
+      label: 'Summary'
+    non_refundable_tooltip:
+      type: label
+      label: 'Non refundable tooltip'
+    non_refundable_text:
+      type: label
+      label: 'Non refundable text'
+    same_day_delivery_text:
+      type: label
+      label: 'Same day delivery'
+    same_day_delivery_sub_text:
+      type: label
+      label: 'Same day delivery sub text'
+    delivery_in_only_city_text:
+      type: label
+      label: 'Delivery in only city'
+    pdp_gallery_type:
+      type: string
+      label: 'PDP gallery type Override'

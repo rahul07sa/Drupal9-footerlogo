@@ -1,0 +1,7 @@
+services:
+  alshaya_hm_images.commands:
+    class: Drupal\alshaya_hm_images\Commands\AlshayaHmImagesCommands
+    arguments:
+      - '@database'
+    tags:
+      - { name: drush.command }

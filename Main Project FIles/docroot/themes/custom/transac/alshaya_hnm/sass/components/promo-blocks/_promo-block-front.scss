@@ -1,0 +1,32 @@
+.c-content__container {
+  .field--name-field-1-row-2-col {
+    .field__label {
+      display: none;
+    }
+
+    .field__items {
+      width: 100%;
+
+      > .field__item {
+        width: calc(50% - 0.75rem);
+
+        &:first-child {
+          float: $left;
+        }
+
+        &:last-child {
+          float: $right;
+
+          @include breakpoint($only-mobile) {
+            margin-bottom: 0;
+          }
+        }
+
+        @include breakpoint($only-mobile) {
+          width: 100%;
+          margin-bottom: 0.75rem;
+        }
+      }
+    }
+  }
+}

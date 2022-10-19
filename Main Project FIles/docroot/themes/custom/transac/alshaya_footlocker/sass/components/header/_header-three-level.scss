@@ -1,0 +1,34 @@
+.has--three-levels {
+  .menu--two__list {
+    .menu--two__list-item > {
+      .menu-two__link-wrapper a {
+        @include breakpoint($desktop) {
+          font-size: 0.75rem;
+        }
+      }
+    }
+
+    .menu__links__wrapper {
+      @include breakpoint($desktop) {
+        padding-top: 1.125rem;
+      }
+    }
+  }
+
+  .menu--three__list-item {
+    > .menu-two__link-wrapper {
+      .menu__link {
+        font-size: 0.875rem !important;
+        text-transform: capitalize;
+      }
+    }
+  }
+}
+
+.block-alshaya-main-menu {
+  li.menu--one__list-item {
+    @include breakpoint($desktop) {
+      vertical-align: middle;
+    }
+  }
+}

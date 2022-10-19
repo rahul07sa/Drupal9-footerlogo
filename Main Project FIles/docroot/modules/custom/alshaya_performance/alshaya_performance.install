@@ -1,0 +1,121 @@
+<?php
+
+/**
+ * @file
+ * Contains install, update, uninstall hooks for alshaya_performance module.
+ */
+
+use Drupal\alshaya_config\AlshayaConfigManager;
+
+/**
+ * Implements hook_update_N().
+ *
+ * [5.13.0]Installs cache_tags_cleanup module if it is not enabled.
+ */
+function alshaya_performance_update_8007() {
+  if (!(\Drupal::moduleHandler()->moduleExists('cache_tags_cleanup'))) {
+    \Drupal::service('module_installer')->install(['cache_tags_cleanup']);
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Blacklist alshaya_product cache tags.
+ */
+function alshaya_performance_update_8006() {
+  if (!(\Drupal::moduleHandler()->moduleExists('purge_queuer_coretags'))) {
+    \Drupal::logger('alshaya_performance')->notice('Skipping as the module is not enabled.');
+    return;
+  }
+
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+
+  $manager->updateConfigs(
+    ['purge_queuer_coretags.settings'],
+    'purge_queuer_coretags'
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable sessions_gc_cron module.
+ */
+function alshaya_performance_update_8005() {
+  \Drupal::service('module_installer')->install(['sessions_expire']);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Blacklist cart and list cache tags for acquia_purge.
+ */
+function alshaya_performance_update_8004() {
+  if (!(\Drupal::moduleHandler()->moduleExists('purge_queuer_coretags'))) {
+    \Drupal::logger('alshaya_performance')->notice('Skipping as the module is not enabled.');
+    return;
+  }
+
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+
+  $manager->updateConfigs(
+    ['purge_queuer_coretags.settings'],
+    'purge_queuer_coretags'
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Truncate table cache_pretty_paths to manage memcache config changes.
+ */
+function alshaya_performance_update_8003() {
+  $connection = \Drupal::database();
+  $table_name = 'cache_pretty_paths';
+
+  // Checks for cache_pretty_paths table and truncate it.
+  if ($connection->schema()->tableExists($table_name)) {
+    $connection->truncate($table_name)->execute();
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add new setting routes_allowed_in_maintenance_mode.
+ */
+function alshaya_performance_update_8002() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+
+  $manager->updateConfigs(
+    ['alshaya_performance.settings'],
+    'alshaya_performance',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+
+  // Rebuild router.
+  \Drupal::service('router.builder')->rebuild();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add performance settings.
+ */
+function alshaya_performance_update_8001() {
+  alshaya_config_install_configs(['alshaya_performance.settings'], 'alshaya_performance');
+  alshaya_performance_reset_log_mode();
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_performance_install() {
+  // Set log mode from settings.
+  alshaya_performance_reset_log_mode();
+}

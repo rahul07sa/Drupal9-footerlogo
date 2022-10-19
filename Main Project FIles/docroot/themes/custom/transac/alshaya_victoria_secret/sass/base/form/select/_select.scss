@@ -1,0 +1,16 @@
+.select2-dropdown {
+  ul.select2-results__options {
+    li.select2-results__option {
+      text-transform: none;
+    }
+  }
+}
+
+.select2-container--default {
+  .select2-selection--single {
+    .select2-selection__rendered {
+      color: $primary_dropdown_text;
+    }
+  }
+}
+

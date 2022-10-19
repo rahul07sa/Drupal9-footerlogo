@@ -1,0 +1,45 @@
+.block-alshaya-newsletter {
+  .newsletter-block-label {
+    text-transform: none;
+  }
+
+  .edit-newsletter[data-style=zoom-in][data-loading] {
+    background: $primary_btn_bg;
+  }
+}
+
+.alshaya-newsletter-subscribe {
+  .form-email {
+    font-size: 0.875rem;
+    margin-top: 0.875rem;
+
+    @include breakpoint($desktop) {
+      margin-top: 0.25rem;
+    }
+  }
+
+  .form-item {
+    input[type=email]::placeholder {
+      color: $newsletter_input_placeholder;
+    }
+
+    .form-email {
+      background-color: $newsletter_input_bg !important;
+    }
+  }
+
+  .newsletter-block-label {
+    font-size: 0.875rem;
+    color: $newsletter_block_text;
+
+    @include breakpoint($only-mobile) {
+      padding: 0 1.5rem;
+    }
+  }
+
+  .form-submit {
+    padding: 0.525rem 1.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+}

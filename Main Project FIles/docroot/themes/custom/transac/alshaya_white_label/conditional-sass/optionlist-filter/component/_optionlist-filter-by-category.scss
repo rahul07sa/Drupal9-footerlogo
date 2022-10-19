@@ -1,0 +1,478 @@
+.options-page-content {
+  max-width: 67.125rem;
+  margin: 0 auto;
+
+  @include breakpoint($only-tablet) {
+    margin: 0 1.5rem;
+  }
+
+  @include breakpoint($only-mobile) {
+    margin: 0 0.5rem;
+  }
+
+  .options-page-title {
+    margin-top: 3.125rem;
+    line-height: 0.89;
+    text-align: center;
+    color: $options-page-title;
+    font-family: $alshaya-bold;
+    text-transform: lowercase;
+
+    @include breakpoint($tablet) {
+      font-size: 2.0625rem;
+      text-transform: lowercase;
+    }
+
+    @include breakpoint($only-mobile) {
+      font-size: 1.375rem;
+      line-height: 1.45;
+      margin-top: 1rem;
+    }
+  }
+
+  .options-page-description {
+    font-family: $alshaya-thin;
+    font-size: 1.75rem;
+    text-align: center;
+    color: $options-page-description;
+    margin-top: 0.75rem;
+
+    @include breakpoint($only-mobile) {
+      font-size: 1rem;
+      margin-top: 0.375rem;
+      padding: 0 1.25rem;
+    }
+  }
+
+  .attribute-title {
+    font-size: 1.125rem;
+    line-height: 0.45;
+    text-align: center;
+    color: $divider-text;
+    position: relative;
+    background: $section_divider_bg;
+    z-index: 2;
+    padding: 0 3.4375rem;
+
+    @include breakpoint($only-mobile) {
+      font-size: 1rem;
+    }
+  }
+
+  .attribute-description {
+    font-family: $alshaya-thin;
+    font-size: 1rem;
+    line-height: 1.25;
+    text-align: center;
+    color: $attribute-description-text;
+    margin-top: 2rem;
+
+    @include breakpoint($only-mobile) {
+      font-size: 0.875rem;
+      margin: 1.75rem 1.6875rem 0;
+    }
+  }
+
+  .attribute-option {
+    margin-top: 4.125rem;
+    position: relative;
+    display: flex;
+    flex-flow: row wrap;
+    align-items: center;
+    justify-content: center;
+
+    @include breakpoint($only-mobile) {
+      border: none;
+      margin-top: 2rem;
+    }
+
+    &::before {
+      content: '';
+      border-top: 1px solid $divider-border;
+      width: 100%;
+      display: inline-block;
+      position: absolute;
+      top: 0;
+      z-index: 1;
+      #{$left}: 0;
+    }
+
+    > div {
+      width: 100%;
+    }
+
+    .attribute-title {
+      width: auto;
+    }
+
+    li {
+      list-style: none;
+    }
+  }
+
+  .divider {
+    display: none;
+  }
+
+  .attribute-detail-link {
+    color: $attribute-detail-link-text;
+    background-color: $attribute-detail-link-background;
+    cursor: pointer;
+    position: relative;
+    margin: 1.4375rem 2.3125rem 0.5rem;
+    text-align: center;
+    text-transform: lowercase;
+    line-height: 1;
+    font-size: 0.875rem;
+    padding: 0.9375rem 0 0.6875rem;
+    z-index: 2;
+  }
+
+  .attribute-option-list-shop-by {
+    @include breakpoint($tablet) {
+      margin-top: 4.5rem;
+    }
+
+    @include breakpoint($desktop) {
+      margin-top: 6.25rem;
+    }
+
+    .attribute-filter-option {
+      @include breakpoint($only-mobile) {
+        display: none;
+      }
+    }
+
+    &.attribute-option {
+      margin-top: 2.875rem;
+
+      @include breakpoint($only-mobile) {
+        margin-top: 2.25rem;
+      }
+    }
+  }
+}
+
+.optionlist-filter-overlay {
+  overflow: hidden;
+
+  .attribute-option-list-shop-by {
+    &.attribute-option {
+      @include breakpoint($only-mobile) {
+        margin-top: 0;
+      }
+    }
+
+    &.above-mobile-block {
+      @include breakpoint($only-mobile) {
+        display: block;
+        z-index: 13;
+      }
+    }
+  }
+
+  .attribute-filter-option {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
+    z-index: 12;
+    background: $attribute-filter-option-background;
+    margin-top: 0;
+  }
+
+  .attribute-title,
+  .attribute-description {
+    display: none;
+  }
+
+  .branding__menu {
+    &.navbar-fixed-top {
+      z-index: 11;
+    }
+  }
+
+  .attribute-overlay-close-icon {
+    #{$left}: auto;
+    #{$right}: 0.5rem;
+  }
+
+  .attribute-filter-block-title {
+    font-family: $alshaya-thin;
+    font-size: 0.875rem;
+    line-height: 1.29;
+    color: $attribute-filter-block-title;
+    text-transform: uppercase;
+  }
+
+  .attribute-filter-header-container {
+    position: fixed;
+    width: calc(100% - 1rem);
+
+    > div {
+      position: fixed;
+      background: $attribute-filter-header-container-background;
+    }
+  }
+
+  .attribute-filter-header {
+    height: 2.875rem;
+    width: 100%;
+    padding: 0.875rem 0.5rem;
+  }
+
+  .attribute-filter-name-list {
+    margin-top: 7rem;
+    padding: 0;
+    font-family: $alshaya-thin;
+
+    .level-1 {
+      ul {
+        padding: 0 1rem;
+      }
+    }
+
+    .group-heading {
+      background-color: $attribute-filter-group-heading-background;
+      padding: 0.6875rem 1rem;
+      border-bottom: none;
+    }
+  }
+
+  .attribute-search-form {
+    top: 2.875rem;
+    position: fixed;
+    margin-top: 0;
+    padding: 0.5rem;
+    background-color: $attribute-filter-group-heading-background;
+    box-shadow: 0 1px 0 0 rgba(51, 51, 51, 0.2);
+
+    #alshaya-options-list-autocomplete-form {
+      display: block;
+      background: $options-list-autocomplete-form-background;
+    }
+  }
+}
+
+.attribute-filter-name-list {
+  @include breakpoint($tablet) {
+    column-count: 4;
+    column-gap: 1.875rem;
+    margin: 2.375rem 0 0;
+    padding: 0 3rem;
+  }
+
+  .level-1 {
+    @include breakpoint($tablet) {
+      break-inside: avoid;
+      display: table;
+      width: 100%;
+    }
+
+    ul {
+      @include breakpoint($tablet) {
+        padding: 0;
+        margin-bottom: 1.875rem;
+      }
+    }
+  }
+}
+
+.attribute-filter-name-thumbnile {
+  padding: 0 3rem;
+  margin-top: 1.6875rem;
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: flex-start;
+
+  @include breakpoint($tablet) {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    grid-gap: 1.9375rem;
+
+    .ie & {
+      column-count: 4;
+      column-gap: 1.875rem;
+      margin: 2.875rem 0 0;
+      padding: 0 3rem;
+
+      li.title {
+        width: calc((100% - 5.8125rem) / 4);
+        margin-#{$right}: 1.9375rem;
+        margin-bottom: 1.9375rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        &:nth-child(4n) {
+          margin-#{$right}: 0;
+        }
+      }
+    }
+  }
+
+  @include breakpoint($only-tablet) {
+    padding: 0 1.4375rem;
+    grid-gap: 1.5rem;
+  }
+
+  @include breakpoint($only-mobile) {
+    padding: 0 0.25rem;
+    margin-top: 2rem;
+  }
+
+  li {
+    @include breakpoint($tablet) {
+      box-sizing: border-box;
+      line-height: 1;
+    }
+  }
+
+  .title {
+    position: relative;
+    min-height: 6.25rem;
+    border: 0.1875rem solid $option-brand-logo-border;
+    border-radius: 0.6875rem;
+
+    @include breakpoint($only-mobile) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.375rem;
+      margin-#{$right}: 0.5rem;
+      margin-bottom: 0.5rem;
+      width: calc((100% - 0.5rem) / 2);
+      min-height: 4.0625rem;
+      border-width: 0.125rem;
+
+      &:nth-child(2n) {
+        margin-#{$right}: 0;
+      }
+    }
+
+    a {
+      display: block;
+      line-height: 0.625rem;
+      overflow: hidden;
+    }
+
+    .swatch-title {
+      display: none;
+    }
+
+    img + span {
+      color: $attribute-swatch-title-text;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+    }
+  }
+}
+
+.attribute-filter-name-thumbnile,
+.attribute-filter-name-list {
+  a {
+    font-family: $alshaya-thin;
+    font-size: 0.875rem;
+    line-height: 2.29;
+    color: $attribute-filter-name-list-text;
+    text-transform: lowercase;
+  }
+
+  &.no-result-container {
+    column-count: 1;
+    text-align: center;
+    padding-top: 1rem;
+  }
+}
+
+.group-heading {
+  font-family: $alshaya-bold;
+  color: $attribute-filter-name-list-text;
+  background: transparent;
+  border-bottom: 1px solid $options-list-heading-group-border;
+  padding: 0 0 0.5rem;
+  margin-bottom: 0.5rem;
+  text-transform: lowercase;
+  font-size: 1rem;
+
+  @include breakpoint($only-mobile) {
+    font-size: 0.875rem;
+  }
+
+  &:empty {
+    display: none;
+  }
+}
+
+.attribute-search-form {
+  display: block;
+  max-width: 25.3125rem;
+  margin-top: 2.4375rem;
+  position: relative;
+
+  @include icon(search, after) {
+    font-size: 2.125rem;
+    position: absolute;
+    width: 2.8125rem;
+    height: 2.75rem;
+    color: $option-list-search-icon-color;
+    #{$right}: 0;
+    top: 0;
+    background-color: $option-list-search-icon-bg;
+    border-top-#{$right}-radius: 0.5rem;
+    border-bottom-#{$right}-radius: 0.5rem;
+    padding-#{$left}: 0.375rem;
+    line-height: 1.3;
+    z-index: 2;
+
+    @include breakpoint($only-mobile) {
+      z-index: 1;
+    }
+  }
+
+  input {
+    &::placeholder {
+      color: $option-list-search-placeholder-text;
+      font-size: 1rem;
+      font-family: $alshaya-thin;
+    }
+  }
+
+  #alshaya-options-list-autocomplete-form {
+    display: block;
+    max-width: 27.75rem;
+    margin: 0 auto;
+    width: 100%;
+    position: relative;
+    padding: 0 0.75rem !important;
+    background: transparent;
+    height: 2.75rem;
+    border: 0.1875rem solid $options-list-autocomplete-form-border;
+    font-size: 0.875rem;
+    border-radius: 0.5rem;
+
+    .safari & {
+      line-height: 2.75rem;
+
+      &::placeholder {
+        line-height: 2.75rem;
+        text-transform: initial;
+      }
+    }
+  }
+}
+
+.attribute-option-list-shop-by {
+  &.above-mobile-block {
+    @include breakpoint($only-mobile) {
+      display: none;
+    }
+  }
+}

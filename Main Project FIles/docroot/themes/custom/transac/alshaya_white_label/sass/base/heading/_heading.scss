@@ -1,0 +1,12 @@
+.c-page-title {
+  @extend %page-title;
+}
+
+.subtitle {
+  font-family: $alshaya-bold;
+  color: $sub_title;
+  font-size: 1rem;
+  text-transform: lowercase;
+  padding-bottom: 9px;
+  margin-bottom: 0;
+}

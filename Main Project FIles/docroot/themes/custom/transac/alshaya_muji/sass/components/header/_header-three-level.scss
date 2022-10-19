@@ -1,0 +1,31 @@
+.has--three-levels {
+  @include breakpoint($desktop) {
+    .highlights {
+      margin-#{$right}: 1.35rem;
+    }
+
+    .menu--two__list {
+      padding-top: 1.35rem;
+
+      .menu--three__list li a:hover {
+        text-decoration: none;
+      }
+
+      .menu--two__list-item {
+        min-width: 12.5rem;
+        padding: 0 0.3rem;
+      }
+    }
+
+    .menu--three__list-item {
+      max-width: 10.9375rem;
+
+      & > .menu-two__link-wrapper {
+        .menu__link {
+          font-size: 0.875rem !important;
+          text-transform: capitalize;
+        }
+      }
+    }
+  }
+}

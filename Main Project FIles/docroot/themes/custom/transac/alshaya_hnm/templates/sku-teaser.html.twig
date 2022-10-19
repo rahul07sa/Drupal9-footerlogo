@@ -1,0 +1,22 @@
+{% extends "@alshaya_acm_product/sku-teaser.html.twig" %}
+
+{% block swatches %}
+	{% if swatches is not empty %}
+		<div class="swatches">
+			{% for key,swatch in swatches %}
+				{% if swatch is not empty %}
+					<a href="{{ product_base_url }}?selected={{ key }}">
+						{% if (swatch == '#FFFFFF') or (swatch == '#ffffff') or (swatch == '#fff') or (swatch == '#FFF') %}
+							<span class='swatch-block' style="background-color:{{ swatch }}; box-shadow: 0px 0px 0px 1px inset #C8C8C8;"></span>
+						{% else %}
+							<span class='swatch-block' style="background-color:{{ swatch }};"></span>
+						{% endif %}
+					</a>
+				{% endif %}
+			{% endfor %}
+			{% if swatch_more_text %}
+				<a class="swatch-more-link product-selected-url" href="{{ product_url }}">{{ swatch_more_text }}</a>
+			{% endif %}
+		</div>
+	{% endif %}
+{% endblock %}

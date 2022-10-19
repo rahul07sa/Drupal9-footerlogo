@@ -1,0 +1,205 @@
+// Dashboard page Sidebar.
+.c-user--node {
+  .c-sidebar-first {
+    @include breakpoint($upto-tablet) {
+      .my-account-nav {
+        a {
+          @include icon(arrow-#{$right}, after) {
+            font-size: 1rem;
+            color: $myaccount_icon;
+          }
+        }
+      }
+    }
+  }
+
+  &.l-two--sf {
+    @include breakpoint($only-mobile) {
+      aside.c-sidebar-first {
+        .my-account-mobile-title1 {
+          @include arabic-letter-spacing;
+
+          font-family: $hnm-demibold;
+          font-size: 0.8125rem;
+          text-transform: uppercase;
+          letter-spacing: 0.8px;
+          color: $myaccount_mobile_title;
+          padding-top: 0.25rem;
+        }
+
+        .my-account-mobile-title2 {
+          font-family: $hnm-regular;
+          color: $myaccount_mobile_title2;
+        }
+      }
+    }
+  }
+}
+
+.c-user-login.user-page {
+  .user-login-form {
+    .form-text,
+    .form-email {
+      color: $primary_input !important;
+      font-family: $hnm-regular;
+      background-color: $default_background_color;
+    }
+
+    .form-type-password .form-text {
+      @include arabic-letter-spacing;
+    }
+
+    .form-item {
+      margin-top: 2.8rem;
+
+      @include breakpoint($tablet) {
+        margin-top: 2.8rem;
+      }
+
+      input {
+        background-color: $default_background_color;
+        color: $primary_input !important;
+        letter-spacing: normal !important;
+      }
+
+      label {
+        color: $primary_input_label !important;
+        font-size: 0.8125rem !important;
+
+        &.error {
+          color: $primary_input_inline_error !important;
+          font-size: 0.6875rem;
+          background: $default_background_color !important;
+          bottom: -1.5rem;
+        }
+      }
+    }
+
+    #edit-actions {
+      @include breakpoint($desktop) {
+        margin-top: 2.5rem;
+      }
+    }
+  }
+
+  .c-sidebar-second {
+    #block-youllbeableto {
+      p {
+        font-size: 0.875rem;
+      }
+    }
+  }
+}
+
+.c-user-password {
+  .user-pass {
+    .form-item {
+      input {
+        background-color: $default_background_color;
+        color: $primary_input !important;
+      }
+
+      label {
+        color: $primary_input_label !important;
+        font-size: 0.8125rem !important;
+
+        &.error {
+          color: $primary_input_inline_error !important;
+          font-size: 0.6875rem;
+          background: $default_background_color;
+          bottom: -1.5rem;
+        }
+      }
+    }
+  }
+}
+
+.password-tooltip {
+  ul {
+    color: $gray44;
+    font-size: 0.6875rem;
+  }
+}
+
+.c-user-register {
+  .c-content__region .user-form {
+    .form-item.form-type-password {
+      @include breakpoint($only-mobile) {
+        margin-top: 2.8rem;
+      }
+    }
+
+    .field--name-field-subscribe-newsletter {
+      p {
+        font-size: 0.6875rem !important;
+        color: $gray44;
+
+        a {
+          color: $gray44;
+          font-family: $hnm-regular;
+          text-decoration: underline;
+          font-weight: normal;
+
+          &:hover {
+            color: $hnm-black-three;
+          }
+        }
+      }
+
+      label {
+        color: $newsletter_subscribe_label;
+        font-size: 0.8125rem !important;
+      }
+    }
+
+    .form-item {
+      input {
+        background-color: $default_background_color;
+        color: $primary_input !important;
+      }
+
+      label {
+        color: $primary_input_label !important;
+        font-size: 0.8125rem;
+
+        &.error {
+          color: $primary_input_inline_error !important;
+          font-size: 0.6875rem;
+          background: $default_background_color !important;
+          bottom: -1.5rem;
+        }
+      }
+    }
+
+    .form-type-password {
+      @include breakpoint($desktop) {
+        margin-top: 2.8rem;
+      }
+    }
+  }
+
+  .c-sidebar-second,
+  .fieldset-wrapper {
+    #block-youllbeableto {
+      p {
+        font-size: 0.875rem;
+      }
+    }
+  }
+
+  main {
+    .user-register-form.user-form {
+      .form-actions {
+        .form-submit {
+          background-color: $hnm-black-three;
+          font-size: 0.8125rem;
+
+          &:hover {
+            background-color: $gray44;
+            border-color: $gray44;
+          }
+        }
+      }
+    }
+  }
+}

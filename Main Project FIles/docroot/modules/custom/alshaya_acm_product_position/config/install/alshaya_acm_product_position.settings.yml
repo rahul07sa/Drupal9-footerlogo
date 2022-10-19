@@ -1,0 +1,44 @@
+available_sort_options:
+  nid: 'Position'
+  name_1: 'Name'
+  final_price: 'Final Price'
+  created: 'New IN'
+  stock_quantity: 'Recommended'
+sort_options:
+  nid: nid
+  name_1: name_1
+  final_price: final_price
+  created: created
+  stock_quantity: stock_quantity
+skip_sync_missing_position_sort: 0
+sort_options_labels:
+  -
+    value: 'nid ASC'
+    label: 'Position'
+  -
+    value: 'nid DESC'
+    label: ''
+  -
+    value: 'name_1 ASC'
+    label: 'Name A to Z'
+  -
+    value: 'name_1 DESC'
+    label: 'Name Z to A'
+  -
+    value: 'final_price ASC'
+    label: 'Price Low to High'
+  -
+    value: 'final_price DESC'
+    label: 'Price High to Low'
+  -
+    value: 'created ASC'
+    label: ''
+  -
+    value: 'created DESC'
+    label: 'New In'
+  -
+    value: 'stock_quantity ASC'
+    label: ''
+  -
+    value: 'stock_quantity DESC'
+    label: 'Recommended'

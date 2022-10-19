@@ -1,0 +1,14 @@
+.c-category-list__title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.c-category-list__item {
+  font-size: 0.875rem;
+  text-transform: capitalize;
+  color: $secondary_text;
+
+  a {
+    color: $secondary_text;
+  }
+}

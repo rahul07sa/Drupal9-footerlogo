@@ -1,0 +1,118 @@
+<?php
+
+/**
+ * @file
+ * Contains general hooks and alters.
+ */
+
+use Drupal\alshaya_amp\AlshayaAmpPreRenderer;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_theme().
+ */
+function alshaya_amp_theme($existing, $type, $theme, $path) {
+  $items = [];
+
+  $items['alshaya_amp_menu'] = [
+    'template' => 'alshaya-amp-menu',
+    'variables' => [
+      'data' => NULL,
+      'slide' => NULL,
+    ],
+  ];
+
+  return $items;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function alshaya_amp_form_system_theme_settings_alter(&$form, FormStateInterface $form_state, $form_id) {
+  $build_info = $form_state->getBuildInfo();
+  if (isset($build_info['args'][0]) && ($theme = $build_info['args'][0])) {
+    $config = \Drupal::configFactory()->getEditable('alshaya_amp.settings');
+    $form['amp_setting'] = [
+      '#type' => 'details',
+      '#title' => t('AMP Settings'),
+      '#open' => TRUE,
+    ];
+    $form['amp_setting']['settings']['image_height_ratio'] = [
+      '#type' => 'textfield',
+      '#title' => t('Image height ratio'),
+      '#description' => t('Enter the height for the image ratio.'),
+      '#default_value' => $config->get($theme . '.image_height_ratio') ?: $config->get('image_height_ratio'),
+    ];
+    $form['amp_setting']['settings']['image_width_ratio'] = [
+      '#type' => 'textfield',
+      '#title' => t('Image width ratio'),
+      '#description' => t('Enter the width for the image ratio.'),
+      '#default_value' => $config->get($theme . '.image_width_ratio') ?: $config->get('image_width_ratio'),
+    ];
+
+    // Register submit handler.
+    array_unshift($form['#submit'], 'alshaya_amp_form_system_theme_settings_submit');
+  }
+}
+
+/**
+ * Save amp settings for the theme.
+ */
+function alshaya_amp_form_system_theme_settings_submit(&$form, FormStateInterface $form_state) {
+  $build_info = $form_state->getBuildInfo();
+  if (isset($build_info['args'][0])) {
+    $theme = $build_info['args'][0];
+    $height_ratio = $form_state->getValue('image_height_ratio');
+    $width_ratio = $form_state->getValue('image_width_ratio');
+    $config = \Drupal::configFactory()->getEditable('alshaya_amp.settings');
+    $config->set($theme . '.image_height_ratio', $height_ratio);
+    $config->set($theme . '.image_width_ratio', $width_ratio);
+    $config->save();
+  }
+}
+
+/**
+ * Implements hook_element_info_alter().
+ */
+function alshaya_amp_element_info_alter(array &$info) {
+  if (isset($info['processed_text']['#pre_render'])) {
+    $info['processed_text']['#pre_render'][] = [
+      AlshayaAmpPreRenderer::class,
+      'ampBodyPreRender',
+    ];
+  }
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function alshaya_amp_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'page_top') {
+    $group = $implementations['alshaya_amp'];
+    unset($implementations['alshaya_amp']);
+    $implementations['alshaya_amp'] = $group;
+  }
+}
+
+/**
+ * Implements hook_page_top().
+ */
+function alshaya_amp_page_top(&$page) {
+  // If amp page, remove GTM <noscript> tag.
+  if (\Drupal::service('router.amp_context')->isAmpRoute()) {
+    if (!empty($page['google_tag_noscript_tag'])) {
+      unset($page['google_tag_noscript_tag']);
+    }
+  }
+}
+
+/**
+ * Implements hook_language_switch_links_alter().
+ */
+function alshaya_amp_language_switch_links_alter(array &$links, $type, Url $url) {
+  foreach ($links as $lang => $url_object) {
+    // This is set from Drupal\amp\EventSubscriber\AmpEventSubscriber.
+    unset($links[$lang]['query']['_wrapper_format']);
+  }
+}

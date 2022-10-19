@@ -1,0 +1,105 @@
+// Size Guide Link theme
+.size-guide-link {
+  color: $primary_link-active;
+  float: $right;
+  margin-top: -0.1875rem;
+  outline: none !important;
+  position: relative;
+  top: 0;
+  z-index: 3;
+
+  @include breakpoint($tablet) {
+    margin-top: 0.5rem;
+  }
+
+  @include breakpoint($desktop) {
+    margin-top: 0;
+    z-index: 0;
+  }
+
+  @include breakpoint($only-mobile) {
+    margin-bottom: 0.25rem;
+  }
+
+  + .ajax-progress-throbber {
+    display: block !important;
+    float: $right;
+    margin-top: -0.5rem;
+    position: static;
+
+    @include breakpoint($tablet) {
+      margin-top: 0;
+    }
+
+    .throbber {
+      background-image: url(#{$base_theme_loader_img_directory_path}) !important;
+      background-position: $right center !important;
+      background-repeat: no-repeat !important;
+      background-size: 1.5rem;
+      padding: 0.625rem;
+
+      @include breakpoint($desktop) {
+        padding: 0.5rem 0.625rem;
+      }
+    }
+  }
+}
+
+// Size Guide modal popup theming
+.path--cart .ui-dialog,
+.nodetype--acq_product .ui-dialog,
+.dynamic-yield-recommendations.ui-dialog {
+  @include breakpoint($tablet) {
+    padding: calc((100vh - 39rem) / 2) calc((100vw - 45rem) / 2);
+  }
+
+  @include breakpoint($desktop) {
+    padding: calc((100vh - 34.75rem) / 2) calc((100vw - 64.13rem) / 2);
+  }
+
+  #drupal-modal,
+  div[id^="drupal-dialog-alshaya-acm-productpdp-modal-links-"] {
+    @include breakpoint($tablet) {
+      height: 39rem !important;
+    }
+
+    @include breakpoint($desktop) {
+      height: 34.75rem !important;
+    }
+  }
+}
+
+.mobile--only--sell {
+  .sell-sku {
+    .size-guide-link {
+      position: absolute;
+      bottom: 4.3125rem;
+      #{$right}: 60%;
+      top: initial;
+    }
+  }
+}
+
+.sizeguide-modal-overlay {
+  .ui-dialog {
+    @include breakpoint($tablet) {
+      padding: calc((100vh - 34.75rem) / 2) calc((100vw - 33.375rem) / 2);
+    }
+
+    div[id^="drupal-dialog-alshaya-acm-productpdp-modal-links-"] {
+      margin: 0 auto;
+      width: 100%;
+      overflow: auto !important;
+
+      @include breakpoint($tablet) {
+        max-width: 33.375rem !important;
+      }
+    }
+
+    .ui-dialog-titlebar-close {
+      @include breakpoint($only-tablet) {
+        #{$right}: -1.0625rem;
+      }
+    }
+  }
+}

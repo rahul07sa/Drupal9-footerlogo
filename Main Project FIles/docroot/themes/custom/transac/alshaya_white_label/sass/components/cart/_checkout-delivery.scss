@@ -1,0 +1,43 @@
+// Adding throbber overlay for any ajax call on payment and checkout delivery page.
+.page-standard.c-pdp,
+.page-standard.c-plp,
+.page-standard.c-address-book,
+.page-standard.overlay__wrapper,
+.pdp-modal-overlay .page-standard,
+.free-gifts-modal-overlay .page-standard,
+.sizeguide-modal-overlay,
+#block-sizefacetblock,
+#drupal-modal .basic-details-wrapper {
+  .ajax-progress-throbber {
+    @include fullPageLoader;
+  }
+}
+
+#address-book-form-wrapper {
+  .address--deliver-to-this-address {
+    border: 1px solid $address_button_border;
+
+    a {
+      color: $address_button_text;
+    }
+  }
+
+  .active .address--deliver-to-this-address {
+    background-color: $primary_btn_bg;
+    border: none;
+
+    a {
+      color: $primary_btn_text;
+    }
+  }
+
+  .address--edit {
+    text-align: $right;
+
+    a {
+      color: $content_link_color;
+      border: none;
+      text-transform: capitalize;
+    }
+  }
+}

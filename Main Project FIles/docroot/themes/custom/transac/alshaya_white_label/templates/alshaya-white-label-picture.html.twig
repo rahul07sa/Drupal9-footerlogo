@@ -1,0 +1,7 @@
+<div class="picture-tag">
+  <picture>
+    <source media="(min-width: 768px)" data-srcset="{{ file_url(desktop_image) }}">
+    <source media="(max-width: 767px)" data-srcset="{{ file_url(mobile_image) }}">
+    <img loading="lazy" src="{{ file_url(default_image) }}"/>
+  </picture>
+</div>

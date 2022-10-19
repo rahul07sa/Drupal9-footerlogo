@@ -1,0 +1,48 @@
+show_cart_form_in_related: 0
+related_items_size: 12
+list_view_items_per_page: 12
+list_view_auto_page_load_count: 3
+back_to_list: '1'
+auto_load_trigger_offset: 800
+local_storage_cache_time: 15
+pdp_gallery_pager_limit: 5
+brand_logo_base_path: 'media/attribute/swatch'
+brand_logo_extension: 'jpg'
+not_buyable_message:
+  format: rich_text
+  value: '<p>Unfortunately, we do not yet offer furniture items for purchase online. But we will be happy to tell you more about this product and how you can buy it.</p>'
+not_buyable_help_text:
+  format: rich_text
+  value: '<p>Please visit a <a href=":find_store">Mothercare store</a> or contact customer services for support on 182-12-12.</p>'
+langcode: en
+image_slider_position_pdp: 'left'
+cross_up_sell_items_settings:
+  pdp_carousel_items_size_0: 2
+  pdp_carousel_items_size_768: 2
+  pdp_carousel_items_size_1025: 3
+  basket_carousel_items_size: 5
+pdp_slider_items_settings:
+  pdp_slider_items_number: 5
+  pdp_slider_items_number_cs_us: 5
+product_carousel_items_settings:
+  dp_product_carousel_items_number: 5
+  hp_product_carousel_items_number: 6
+pdp_layout: 'default'
+pdp_layout_options:
+  default: 'Default'
+  magazine: 'Magazine'
+pdp_colour_swatch_items_settings:
+  pdp_colour_swatch_items_0: 6
+  pdp_colour_swatch_items_768: 14
+  pdp_colour_swatch_items_1025: 14
+pdp_product_swatch_items_settings:
+  pdp_product_swatch_items_0: 4
+  pdp_product_swatch_items_768: 12
+  pdp_product_swatch_items_1025: 12
+excluded_attribute_options: []
+acq_sku__attributes_skip: { }
+max_discount_to_log: 80
+enable_size_grouping_filter: 0
+pause_videos_download: FALSE
+delivery_in_only_city_key: 0
+pdp_gallery_type: 'default'

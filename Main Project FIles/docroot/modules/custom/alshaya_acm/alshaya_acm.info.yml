@@ -1,0 +1,24 @@
+name: 'Alshaya ACM'
+type: module
+description: 'Custom work around Acquia Commerce Middleware'
+package: Alshaya
+core: 8.x
+core_version_requirement: ^8 || ^9
+dependencies:
+  - acq_commerce:acq_cart
+  - acq_commerce:acq_commerce
+  - acq_commerce:acq_customer
+  - acq_commerce:acq_sku
+  - acq_commerce:acq_promotion
+  - consumers:consumers
+  - drupal:block
+  - drupal:block_content
+  - ctools:ctools
+  - drupal:image
+  - drupal:language
+  - drupal:node
+  - drupal:pathauto
+  - drupal:system
+  - drupal:taxonomy
+  - drupal:user
+  - pcb:pcb

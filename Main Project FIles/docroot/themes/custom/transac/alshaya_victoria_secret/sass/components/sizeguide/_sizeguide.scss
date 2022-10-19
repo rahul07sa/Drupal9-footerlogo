@@ -1,0 +1,89 @@
+.size-guide-link {
+  float: $right;
+  position: relative;
+  padding-top: 0.875rem;
+  font-size: 0.75rem;
+  line-height: 1.33;
+  text-decoration: underline;
+  top: 0;
+
+  @include breakpoint($only-tablet) {
+    z-index: 2;
+  }
+
+  @include breakpoint($only-mobile) {
+    padding: 0;
+    margin-bottom: 0.3125rem;
+
+    + .form-item-configurables-band-size,
+    + .form-item-configurables-cup-size {
+      clear: both;
+    }
+  }
+}
+
+.path--cart .ui-dialog,
+.nodetype--acq_product .ui-dialog,
+.sizeguide-modal-overlay .ui-dialog,
+.dynamic-yield-recommendations.ui-dialog {
+  #drupal-modal {
+    overflow-y: auto;
+
+    .full-prod-link {
+      margin-bottom: 0;
+      padding-top: 0.65rem;
+      padding-bottom: 0.45rem;
+    }
+
+    #lightSlider {
+      @include breakpoint($desktop) {
+        height: 31rem;
+      }
+    }
+  }
+}
+
+.acq-content-product-modal {
+  .content__main {
+    min-height: auto;
+  }
+
+  .full-prod-link {
+    &::after {
+      font-size: 1.5rem;
+    }
+  }
+}
+
+.sizeguide-modal-overlay,
+#block-sizefacetblock {
+  .size-guide-link {
+    + .ajax-progress-throbber {
+      .throbber {
+        background-position: center !important;
+      }
+    }
+  }
+}
+
+.size-guide-form-and-link-wrapper {
+  @include breakpoint($tablet) {
+    position: relative;
+  }
+
+  .size-guide-link {
+    @include breakpoint($tablet) {
+      position: absolute;
+    }
+  }
+
+  .form-item-configurables-size {
+    @include breakpoint($mobile) {
+      clear: both;
+    }
+  }
+}
+
+.sizeguide-modal-overlay .ui-dialog {
+  z-index: 100 !important;
+}

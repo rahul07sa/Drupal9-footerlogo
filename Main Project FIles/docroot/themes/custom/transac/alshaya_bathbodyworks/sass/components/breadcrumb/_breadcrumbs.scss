@@ -1,0 +1,23 @@
+.c-breadcrumb {
+  ol {
+    height: 2.5rem;
+    line-height: 1.1;
+
+    html[lang=ar] & {
+      line-height: 0.9;
+    }
+  }
+
+  li {
+    font-weight: normal;
+    text-transform: capitalize;
+  }
+
+  @include breakpoint($only-tablet) {
+    &.show-overlay {
+      &::before {
+        top: -0.1875rem;
+      }
+    }
+  }
+}

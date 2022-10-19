@@ -1,0 +1,605 @@
+<?php
+
+/**
+ * @file
+ * Module file for alshaya_user.
+ */
+
+use Drupal\alshaya_user\AlshayaUserInfo;
+use Drupal\Core\Block\BlockPluginInterface;
+use Drupal\Core\Database\Database;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Link;
+use Drupal\Core\Messenger\MessengerInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Site\Settings;
+use Drupal\user\Entity\User;
+use Drupal\Core\Url;
+use Drupal\alshaya_spc\Helper\SecureText;
+
+/**
+ * Implements hook_theme().
+ */
+function alshaya_user_theme() {
+  return [
+    'alshaya_user_signin_signup_button' => [
+      'variables' => [
+        'sub_text' => NULL,
+        'link_text' => NULL,
+        'link_url' => NULL,
+      ],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function alshaya_user_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'form_alter' && isset($implementations['alshaya_user'])) {
+    $group = $implementations['alshaya_user'];
+    unset($implementations['alshaya_user']);
+    $implementations['alshaya_user'] = $group;
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function alshaya_user_form_user_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  $user = $form_state->getFormObject()->getEntity();
+
+  $form['full_name'] = [
+    '#type' => 'textfield',
+    '#title' => t('Full Name'),
+    '#default_value' => AlshayaUserInfo::getFullName($user),
+    '#size' => '120',
+    '#required' => TRUE,
+    '#attributes' => ['specialchar' => 'specialchar'],
+    '#element_validate' => ['alshaya_valid_full_name'],
+    '#weight' => -5,
+  ];
+
+  // Change email label.
+  $form['account']['mail']['#title'] = t('Email address');
+  $form['account']['mail']['#element_validate'] = [
+    'alshaya_valid_email_address',
+  ];
+
+  // Reset help text for the fields.
+  $form['account']['mail']['#description'] = '';
+  $form['account']['name']['#description'] = '';
+  $form['account']['pass']['#description'] = '';
+
+  // First name and last name will not accept some special characters.
+  $form['field_first_name']['#access'] = FALSE;
+  $form['field_last_name']['#access'] = FALSE;
+
+  $form['#attached']['library'][] = 'alshaya_user/email_validator_override';
+  $form['#attached']['library'][] = 'alshaya_user/clear_autofill';
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function alshaya_user_form_user_register_form_alter(&$form, FormStateInterface $form_state) {
+  // Add our custom submit handler function for anonymous users.
+  if (\Drupal::currentUser()->isAnonymous()) {
+    $form['full_name'] = [
+      '#type' => 'textfield',
+      '#title' => t('Full Name'),
+      '#size' => '120',
+      '#required' => TRUE,
+      '#attributes' => ['specialchar' => 'specialchar'],
+      '#element_validate' => ['alshaya_valid_full_name'],
+      '#weight' => -5,
+    ];
+
+    $form['field_first_name']['#access'] = FALSE;
+    $form['field_last_name']['#access'] = FALSE;
+
+    // Hide mobile number field from registration page.
+    $form['field_mobile_number']['#access'] = FALSE;
+
+    $form['actions']['submit']['#submit'][] = 'alshaya_user_form_user_register_form_submit';
+
+    // Add markup for terms and conditions.
+    $form['field_subscribe_newsletter']['widget']['#suffix'] = \Drupal::config('alshaya_user.settings')
+      ->get('terms_conditions.value');
+
+    // Change password_confirm field to normal password field.
+    $form['account']['pass']['#title'] = t('Password');
+    $form['account']['pass']['#type'] = 'password';
+    $form['account']['pass']['#attributes']['data-twig-suggestion'] = 'userregisterformpassword';
+
+    // Add password validation attribute.
+    $form['account']['pass']['#attributes']['passvalidate'] = 'passvalidate';
+
+    // First name and last name will not accept some special characters.
+    $form['field_first_name']['widget'][0]['value']['#attributes']['specialchar'] = 'specialchar';
+    $form['field_last_name']['widget'][0]['value']['#attributes']['specialchar'] = 'specialchar';
+
+    // Hide store field for anonymous users.
+    $form['field_agent_store']['#access'] = FALSE;
+  }
+
+  $form['#attached']['library'][] = 'alshaya_user/clear_autofill';
+}
+
+/**
+ * Validate full name value.
+ */
+function alshaya_valid_full_name(&$element, FormStateInterface $form_state, &$complete_form) {
+  $value = trim($element['#value']);
+
+  if (empty($value)) {
+    // We will let required field validation handled by Core.
+    return;
+  }
+
+  $full_name_error = TRUE;
+  if ($full_name = array_map('trim', explode(' ', $value))) {
+    if (count($full_name) > 1) {
+      [$first_name, $last_name] = alshaya_user_first_name_last_name($value);
+      $full_name_error = empty($first_name) || empty($last_name);
+    }
+  }
+
+  if ($full_name_error || empty($full_name)) {
+    // Only email address is something where our validations dont match.
+    $form_state->setError($element, t('Please enter your full name.'));
+    return;
+  }
+  else {
+    $form_state->setTemporaryValue('first_name', $first_name);
+    $form_state->setTemporaryValue('last_name', $last_name);
+  }
+
+  // Set trimmed value again into form state.
+  $form_state->setValueForElement($element, $value);
+}
+
+/**
+ * Form submit callback for user registration form.
+ *
+ * Store the email address in session and redirect to completion page.
+ *
+ * @see user_registrationpassword_form_user_register_submit()
+ */
+function alshaya_user_form_user_register_form_submit($form, FormStateInterface $form_state) {
+  // Get form storage.
+  $storage = $form_state->getStorage();
+
+  // Get the new user account object from storage.
+  $account = $storage['user'];
+
+  // Redirect the user with email in GET to registration complete screen.
+  if (\Drupal::currentUser()->isAnonymous()) {
+    // We don't want to display any status messages after registration as we are
+    // redirecting user to a page that contains all the information.
+    \Drupal::service('messenger')->deleteByType(MessengerInterface::TYPE_STATUS);
+    // Get the string to pass into GET.
+    $encrypted_user_id = SecureText::encrypt(
+      $account->id(),
+      Settings::get('hash_salt')
+    );
+    $form_state->setRedirect('alshaya_user.user_register_complete', ['user' => $encrypted_user_id]);
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function alshaya_user_form_user_login_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  unset($form['name']['#attributes']['autofocus']);
+
+  // Add forgot password link.
+  $form['account']['forgot_password'] = [
+    '#markup' => Link::createFromRoute(t('Forgot password?'), 'user.pass')
+      ->toString(),
+  ];
+
+  // Change submit button text.
+  $form['actions']['submit']['#value'] = t('sign in');
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function alshaya_user_form_user_pass_alter(&$form, FormStateInterface $form_state, $form_id) {
+  $form['forgot_text'] = [
+    '#markup' => '<div class="password--message">' . t('Please enter your email address.') . '</br>' . t('We will send you an email with a password reminder.') . '</div>',
+    '#weight' => -10,
+  ];
+
+  $form['name']['#element_validate'] = [
+    'alshaya_valid_email_address',
+  ];
+
+  unset($form['name']['#attributes']['autofocus']);
+
+  $form['#attached']['library'][] = 'alshaya_user/email_validator_override';
+  $form['#attached']['library'][] = 'alshaya_user/clear_autofill';
+  // Custom submit handler.
+  $form['actions']['submit']['#submit'][] = '_alshaya_user_password_reset_submit';
+}
+
+/**
+ * Implements hook_preprocess_menu().
+ */
+function alshaya_user_preprocess_menu(&$variables) {
+  // For now we want to process only for authenticated users.
+  if (\Drupal::currentUser()->isAuthenticated()) {
+    // Loop through all the links.
+    foreach ($variables['items'] as $key => &$item) {
+      try {
+        // We want to process only the register link.
+        if ($item['url']->getRouteName() == 'user.register' || $item['url']->getRouteName() == 'user.login') {
+          // Hide the register link for authenticated user.
+          unset($variables['items'][$key]);
+        }
+      }
+      catch (\Exception) {
+        // Do nothing, issue may be with external link.
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_block_build_alter().
+ */
+function alshaya_user_block_build_alter(array &$build, BlockPluginInterface $block) {
+  if ($block->getPluginId() == 'system_menu_block:account') {
+    $build['#cache']['contexts'][] = 'url.path';
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function alshaya_user_form_change_pwd_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  // Change password_confirm field to normal password field.
+  $form['account']['pass']['#title'] = t('new password');
+  $form['account']['pass']['#type'] = 'password';
+  $form['account']['pass']['#attributes']['data-twig-suggestion'] = 'userregisterformpassword';
+
+  // Change current password title and submit button text.
+  $form['account']['current_pass']['#title'] = t('current password');
+  $form['actions']['submit']['#value'] = t('change password');
+
+  // Password policy submit handlers.
+  $form['#submit'][] = 'alshaya_user_change_password_submit';
+  $form['#submit'][] = '_password_policy_user_profile_form_submit';
+
+  // Add password validation attribute.
+  $form['account']['pass']['#attributes']['passvalidate'] = 'passvalidate';
+  $form['#attached']['library'][] = 'alshaya_user/email_validator_override';
+  $form['#attached']['library'][] = 'alshaya_user/clear_autofill';
+}
+
+/**
+ * Custom submit function for change password form.
+ */
+function alshaya_user_change_password_submit(&$form, FormStateInterface &$form_state) {
+  if (!$form_state->getErrors()) {
+    $account = \Drupal::routeMatch()->getParameter('user');
+
+    // Add entry into hash table after all validations have passed, this is not
+    // done by module for us because it checks for confirm_password field and
+    // we need a single password field.
+    _alshaya_user_password_policy_history_insert_password_hash($account, $form_state->getValue('pass'));
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_presave().
+ */
+function alshaya_user_user_presave(EntityInterface $entity) {
+  // Remove leading zeroes to avoid issues of having unknown number type.
+  if ($values = $entity->get('field_mobile_number')->getValue()) {
+    foreach ($values as $index => $phone) {
+      $values[$index]['local_number'] = ltrim($phone['local_number'], 0);
+    }
+
+    $entity->get('field_mobile_number')->setValue($values);
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for page templates.
+ */
+function alshaya_user_preprocess_page_title(&$variables) {
+  // Add back link for my account page sub links.
+  $current_path = \Drupal::service('path.current')->getPath();
+  if (str_contains($current_path, '/user') && $user = \Drupal::request()->attributes->get('user')) {
+    $arg = explode('/', $current_path);
+
+    if (!empty($arg[3])) {
+      $back_link_route = ($arg[3] === 'order') ? 'acq_customer.orders' : 'entity.user.canonical';
+
+      $uid = $user instanceof User ? $user->id() : $user;
+      $link = Url::fromRoute($back_link_route, ['user' => $uid])->toString();
+
+      $variables['title_prefix'] = [
+        '#markup' => "<a href=" . $link . " class='back-link'>",
+        '#weight' => 100,
+      ];
+      $variables['title_suffix'] = [
+        '#markup' => "</a>",
+        '#weight' => 100,
+      ];
+    }
+  }
+  elseif ($current_path == '/user/password') {
+    $variables['title'] = t('forgot password');
+  }
+}
+
+/**
+ * Implements hook_alshaya_acm_customer_update_account_alter().
+ */
+function alshaya_user_alshaya_acm_customer_update_account_alter(User $user, array $customer) {
+  // Update phone_number if available in customer data.
+  if (isset($customer['extension'], $customer['extension']['phone_number'])) {
+    $user->get('field_mobile_number')
+      ->setValue($customer['extension']['phone_number']);
+  }
+}
+
+/**
+ * Implements hook_alshaya_api_update_customer_api_request_alter().
+ */
+function alshaya_user_alshaya_api_update_customer_api_request_alter(array &$request_options) {
+  if (isset($request_options['json'], $request_options['json']['customer']['email'])) {
+    /** @var \Drupal\user\Entity\User $user */
+    $user = user_load_by_mail($request_options['json']['customer']['email']);
+
+    if (!empty($user)) {
+      $phone_number = $user->get('field_mobile_number')->getValue();
+      $contact_number = !empty($phone_number) ? $phone_number[0]['value'] : '';
+      $request_options['json']['customer']['extension']['phone_number'] = $contact_number;
+    }
+  }
+}
+
+/**
+ * Implements hook_entity_type_alter().
+ */
+function alshaya_user_entity_type_alter(array &$entity_types) {
+  /** @var \Drupal\Core\Entity\EntityTypeInterface[] $entity_types */
+  $entity_types['user']->setFormClass('default', 'Drupal\alshaya_user\Form\AlshayaUserProfileForm');
+}
+
+/**
+ * Implements hook_alshaya_i18n_onetime_translation_add().
+ */
+function alshaya_user_alshaya_i18n_onetime_translation_add() {
+  // Set signup mail translation.
+  $signup_mail = \Drupal::languageManager()
+    ->getLanguageConfigOverride('ar', 'user_registrationpassword.mail');
+  $signup_mail->set('register_confirmation_with_pass.subject', 'على موقع [site:name] [user:field_first_name:value] تفاصيل حساب');
+  $signup_mail->set('register_confirmation_with_pass.body', '<h1>،[user:field_first_name:value] مرحباً</h1>
+
+.أهلاً بك في موقع [site:name] و شكراً على الانضمام إلينا
+<br/><br/>
+[user:mail] :لقد قمت بالتسجيل عن طريق عنوان البريد الإلكتروني
+<br/><br/>
+<b>الرجاء الضغط على رابط “التحقق من بريدك الإلكتروني” ليتم تأكيد بريدك آلإلكتروني و تفعيل حسابك</b>
+<br/>
+<a href="[user:registrationpassword-url]" class="button">التحقق من بريدك الإلكتروني</a>
+<br/><br/>
+<a href="[user:registrationpassword-url]">[user:registrationpassword-url]</a> :أو تحقق عبر الضغط على الرابط التالي
+<br/><br/>
+.إذا كان لديك أي سؤال، يرجى الاطلاع على <a href="[site:url]">صفحة الأسئلة المتكررة</a>  أو يمكنك الاتصال في أي وقت بمركز خدمة الزبائن
+
+،مع أطيب التحيات
+<br/>
+فريق عمل [site:name]
+<br/>
+<a href="tel:+9651821212">(+965) 182-12-12</a> :هاتف
+<br/>
+<a href="[site:url]">[site:url-brief]</a>');
+
+  $signup_mail->save();
+
+  // Disable account activation mail.
+  \Drupal::configFactory()
+    ->getEditable('user.settings')
+    ->set('notify.status_activated', FALSE)
+    ->save();
+
+  // Set reset password mail translation.
+  $reset_password_mail = \Drupal::languageManager()
+    ->getLanguageConfigOverride('ar', 'user.mail');
+  $reset_password_mail->set('password_reset.subject', 'على موقع [site:name] [user:field_first_name:value] معلومات تسجيل الدخول البديلة للمستخدم');
+  $reset_password_mail->set('password_reset.body', '<h1>،[user:field_first_name:value] أهلاً بك </h1>
+
+تم إجراء طلب لإعادة تعيين كلمة المرور لحسابك على موقع [site:name]
+<br/><br/>
+:يمكنك الآن تسجيل الدخول بالضغط على هذا الرابط أو نسخه ولصقه في المتصفح
+<br/><br/>
+<a href="[user:one-time-login-url]">[user:one-time-login-url]</a>
+<br/><br/>
+.لا يمكن استخدام هذا الرابط إلا مرة واحدة لتسجيل الدخول وسيقودك إلى صفحة حيث يمكنك تعيين كلمة المرور الخاصة بك. تنتهي صلاحيتها بعد يوم واحد ولن يحدث شيء إذا لم يتم استخدامها
+<br/><br/>
+،مع أطيب التحيات
+<br/>
+فريق عمل [site:name]
+<br/>
+<a href="tel:+9651821212">(+965) 182-12-12</a> :هاتف
+<br/>
+<a href="[site:url]">[site:url-brief]</a>');
+
+  $reset_password_mail->save();
+}
+
+/**
+ * Helper function to get hashed password and insert it into the history table.
+ *
+ * @param \Drupal\Core\Session\AccountInterface $account
+ *   User account object.
+ * @param string $password
+ *   A plain-text password.
+ *
+ * @see _password_policy_history_insert_password_hash()
+ */
+function _alshaya_user_password_policy_history_insert_password_hash(AccountInterface $account, $password) {
+  if (!\Drupal::moduleHandler()->moduleExists('password_policy_history')) {
+    return;
+  }
+
+  if ($account) {
+    // See _password_policy_history_insert_password_hash() for code below.
+    // @todo We should refactor the module and remove this code.
+    $connection = Database::getConnection();
+
+    $hashed_pass = \Drupal::service('password')->hash($password);
+    $values = [
+      $account->id(),
+      $hashed_pass,
+      time(),
+    ];
+
+    $connection->insert('password_policy_history')
+      ->fields(['uid', 'pass_hash', 'timestamp'], $values)
+      ->execute();
+
+  }
+}
+
+/**
+ * Implements hook_field_info_alter().
+ */
+function alshaya_user_field_info_alter(&$info) {
+  // Change default mobile number constraint to custom.
+  if (isset($info['mobile_number'])) {
+    // This is to replace a custom token (@entity_type) just for error message
+    // in mobile number.
+    unset($info['mobile_number']['constraints']['MobileNumber']);
+    $info['mobile_number']['constraints']['AlshayaMobileNumber'] = [];
+  }
+}
+
+/**
+ * Form element validation handler for #type 'email'.
+ *
+ * Note that #maxlength and #required is validated by _form_validate() already.
+ */
+function alshaya_valid_email_address(&$element, FormStateInterface $form_state, &$complete_form) {
+  $value = trim($element['#value']);
+
+  if (empty($value)) {
+    // We will let required field validation handled by Core.
+    return;
+  }
+
+  // Set trimmed value again into form state.
+  $form_state->setValueForElement($element, $value);
+
+  // Normal regex check.
+  if (!preg_match('/^(?!(?:(?:\x22?\x5C[\x00-\x7E]\x22?)|(?:\x22?[^\x5C\x22]\x22?)){255,})(?!(?:(?:\x22?\x5C[\x00-\x7E]\x22?)|(?:\x22?[^\x5C\x22]\x22?)){65,}@)(?:(?:[\x21\x23-\x27\x2A\x2B\x2D\x2F-\x39\x3D\x3F\x5E-\x7E]+)|(?:\x22(?:[\x01-\x08\x0B\x0C\x0E-\x1F\x21\x23-\x5B\x5D-\x7F]|(?:\x5C[\x00-\x7F]))*\x22))(?:\.(?:(?:[\x21\x23-\x27\x2A\x2B\x2D\x2F-\x39\x3D\x3F\x5E-\x7E]+)|(?:\x22(?:[\x01-\x08\x0B\x0C\x0E-\x1F\x21\x23-\x5B\x5D-\x7F]|(?:\x5C[\x00-\x7F]))*\x22)))*@(?:(?:(?!.*[^.]{64,})(?:(?:(?:xn--)?[a-z0-9]+(?:-[a-z0-9]+)*\.){1,126}){1,}(?:(?:[a-z][a-z0-9]*)|(?:(?:xn--)[a-z0-9]+))(?:-[a-z0-9]+)*)|(?:\[(?:(?:IPv6:(?:(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){7})|(?:(?!(?:.*[a-f0-9][:\]]){7,})(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,5})?::(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,5})?)))|(?:(?:IPv6:(?:(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){5}:)|(?:(?!(?:.*[a-f0-9]:){5,})(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,3})?::(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,3}:)?)))?(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))(?:\.(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))){3}))\]))$/iD', $value)) {
+    $form_state->setError($element, t('The email address %mail is not valid.', ['%mail' => $value]));
+    return;
+  }
+
+  // Check MX records. This is done by Magento and good to have this check.
+  $domain = explode('@', $value)[1];
+  $host = gethostbyname($domain);
+  if (empty($host) || $host === $domain) {
+    $form_state->setError($element, t('The email address %mail is not valid.', ['%mail' => $value]));
+  }
+}
+
+/**
+ * Implements hook_mail_alter().
+ */
+function alshaya_user_mail_alter(&$message) {
+  if ($message['key'] == 'password_reset') {
+    $language_manager = \Drupal::service('language_manager');
+
+    // Get user preferred language.
+    $lang = $message['params']['account']->getPreferredLangcode();
+    $language = $language_manager->getLanguage($lang);
+
+    // Get original language.
+    $original_language = $language_manager->getConfigOverrideLanguage();
+    // Set language according to user preferred language.
+    $language_manager->setConfigOverrideLanguage($language);
+
+    // Get site name.
+    $sitename = \Drupal::config('system.site')->get('name');
+    // Reset the language to original language.
+    $language_manager->setConfigOverrideLanguage($original_language);
+
+    // Alter the header from information according to user preferred language.
+    // Using iconv_mime_encode() to encode site name to UTF-8 format.
+    // Adding line-length upto 500 characters to avoid newline character.
+    $encodedSiteName = iconv_mime_encode('From', $sitename, ['line-length' => 500]);
+    $message['from'] = str_replace('From: ', '', $encodedSiteName) . ' <' . $message['from'] . '>';
+    $message['headers']['From'] = $message['headers']['Sender'] = $message['from'];
+  }
+
+  if ($message['key'] === 'register') {
+    $sitename = \Drupal::config('system.site')->get('name');
+    $message['from'] = mb_encode_mimeheader($sitename, 'UTF-8') . ' <' . $message['from'] . '>';
+    $message['headers']['From'] = $message['headers']['Sender'] = $message['from'];
+  }
+}
+
+/**
+ * Implements hook_link_alter().
+ */
+function alshaya_user_link_alter(&$variables) {
+  /** @var \Drupal\core\Url $url */
+  $url = $variables['url'];
+  if ($url->isExternal()) {
+    return;
+  }
+  elseif ($url->isRouted() && $url->getRouteName() == 'user.logout') {
+    // Getting raw uri as categories and products are not saved in V3.
+    $variables['options']['query']['destination'] = Url::fromRoute('<current>')->toString();
+  }
+}
+
+/**
+ * Return array of first name and last name from given full name.
+ *
+ * @param string $name
+ *   The full name string.
+ *
+ * @return array
+ *   Return array of first name & last name, empty array for empty argument.
+ */
+function alshaya_user_first_name_last_name(string $name): array {
+  if (empty($name)) {
+    return [];
+  }
+  return array_filter(
+    array_map(
+      'trim',
+      explode(' ', $name, 2)
+    )
+  );
+}
+
+/**
+ * Custom method for user redirect.
+ */
+function _alshaya_user_password_reset_submit(array $form, FormStateInterface $form_state) {
+  call_user_func_array(
+    $form_state->prepareCallback('::submitForm'),
+    [&$form, &$form_state]
+  );
+  // Redirect to login page after form submit.
+  $form_state->setRedirect('user.login');
+}
+
+/**
+ * Implements hook_page_attachments_alter().
+ */
+function alshaya_user_page_attachments_alter(array &$attachments) {
+  // Attach user logger library.
+  $attachments['#attached']['library'][] = 'alshaya_user/user_action_logger';
+}

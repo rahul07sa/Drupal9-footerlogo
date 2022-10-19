@@ -1,0 +1,11 @@
+acq_commerce.currency:
+  title: 'Acquia Commerce Currency settings'
+  base_route_name: acq_commerce.configuration.currency
+  names:
+    - acq_commerce.currency
+
+acq_commerce.store:
+  title: 'Store Settings'
+  base_route_name: acq_commerce.configuration.store
+  names:
+    - acq_commerce.store

@@ -1,0 +1,112 @@
+<?php
+
+/**
+ * @file
+ * Module file for alshaya_permissions.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Element;
+use Drupal\user\Entity\User;
+use Symfony\Component\Yaml\Yaml;
+use Drupal\user\Entity\Role;
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function alshaya_permissions_form_node_acq_product_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  // Disable the access to SKU field while creating product for webmasters.
+  // We are not restricting access based on role but create access to entity.
+  $form['field_skus']['#access'] = \Drupal::entityTypeManager()->getAccessControlHandler('acq_sku')->createAccess();
+  $form['field_category']['#access'] = \Drupal::entityTypeManager()->getAccessControlHandler('acq_sku')->createAccess();
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function alshaya_permissions_form_node_acq_product_edit_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  // Show the data in edit but disable them as disabled for webmaster.
+  // We are not restricting access based on role but create access to entity.
+  if (!\Drupal::entityTypeManager()->getAccessControlHandler('acq_sku')->createAccess()) {
+    $fieldsToHide = [
+      'field_skus',
+      'field_category',
+    ];
+    foreach ($fieldsToHide as $fieldToHide) {
+      foreach (Element::children($form[$fieldToHide]['widget']) as $index) {
+        if (is_numeric($index)) {
+          $form[$fieldToHide]['widget'][$index]['#disabled'] = TRUE;
+        }
+        else {
+          $form[$fieldToHide]['widget'][$index]['#access'] = FALSE;
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function alshaya_permissions_form_taxonomy_term_acq_product_category_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  if (!\Drupal::currentUser()->hasPermission('translate acq_product_category taxonomy_term')) {
+    $form['name']['#disabled'] = TRUE;
+  }
+  if (!\Drupal::currentUser()->hasPermission('alshaya edit language field on acq_product_category')) {
+    $form['langcode']['#access'] = FALSE;
+  }
+  if (!\Drupal::currentUser()->hasPermission('alshaya edit translation field on acq_product_category')) {
+    $form['content_translation']['#access'] = FALSE;
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function alshaya_permissions_form_alter(array &$form, FormStateInterface $form_state, $form_id) {
+  $current_user_id = \Drupal::currentUser()->id();
+  if ($user = User::load($current_user_id)) {
+    if ($user->hasRole('reviewer') && isset($form['revision_log'])) {
+      $form['revision_log']['#access'] = TRUE;
+    }
+
+    // If webmaster and creating a user.
+    if ($user->hasRole('webmaster') && $form_id == 'user_register_form') {
+      // If we don't do this, drupal automatically login with the newly created
+      // user. @see RegisterForm::save().
+      $form['administer_users']['#value'] = TRUE;
+      $form['account']['roles']['#access'] = TRUE;
+      unset($form['account']['roles']['#options']['administrator']);
+    }
+  }
+}
+
+/**
+ * Implements a helper to update role permissions from config.
+ */
+function _alshaya_permissions_update_role_from_config(array $roles = NULL) {
+  $roles = Role::loadMultiple($roles);
+  $module_handler = Drupal::service('module_handler');
+  foreach ($roles as $rid => $role) {
+    $path = $module_handler->getModule('alshaya_permissions')->getPath() . '/config/install/user.role.' . $rid . '.yml';
+    if (file_exists($path)) {
+      $ymldata = Yaml::parse(file_get_contents($path));
+      foreach ($ymldata['permissions'] as $permission) {
+        $role->grantPermission($permission);
+      }
+      $role->save();
+    }
+  }
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function alshaya_permissions_module_implements_alter(&$implementations, $hook) {
+  // To call the form_alter at the end for final changes.
+  if ($hook == 'form_alter') {
+    $group = $implementations['alshaya_permissions'];
+    unset($implementations['alshaya_permissions']);
+    $implementations['alshaya_permissions'] = $group;
+  }
+}

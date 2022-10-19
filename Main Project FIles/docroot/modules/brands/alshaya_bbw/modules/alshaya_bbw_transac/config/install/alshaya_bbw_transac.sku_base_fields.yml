@@ -1,0 +1,41 @@
+fields:
+  fragrance_name:
+    label: 'Fragrance Name'
+    index: 1
+    facet: 1
+
+  fragrance_description:
+    label: 'Fragrance Description'
+    type: 'text_long'
+
+  fragrance_category:
+    label: 'Fragrance Category'
+    index: 1
+    facet: 1
+
+  brand:
+    label: 'Product Brand'
+    index: 1
+
+  collection_1:
+    label: 'Product Type'
+    index: 1
+    facet: 1
+
+  descriptive_name:
+    label: 'Description Name'
+    type: 'string'
+    index: 1
+
+  form:
+    label: 'Form'
+    type: 'string'
+    index: 1
+
+  more_info:
+    label: 'More info'
+    type: 'text_long'
+
+  usage:
+    label: 'Usage'
+    type: 'text_long'

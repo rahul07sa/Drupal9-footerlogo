@@ -1,0 +1,16 @@
+name: 'Alshaya Image Styles'
+type: module
+core: 8.x
+core_version_requirement: ^8 || ^9
+description: 'All the image styles.'
+dependencies:
+  - alshaya_config:alshaya_config
+  - drupal:block
+  - drupal:image
+  - drupal:image_style_quality
+  - drupal:responsive_image
+  - drupal:system
+  - drupal:views
+  - imagemagick:imagemagick
+  - memory_limit_policy:memory_limit_policy
+package: Alshaya

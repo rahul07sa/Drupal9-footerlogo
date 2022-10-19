@@ -1,0 +1,29 @@
+body {
+  &.aura-enabled {
+    &.super-category-enabled {
+      .region__menu-secondary {
+        & > div,
+        & > nav {
+          height: auto;
+          padding-top: 0;
+
+          .aura-rewards-wrapper {
+            .aura-header-popup-wrapper {
+              a {
+                height: auto;
+              }
+            }
+          }
+        }
+
+        #block-account-menu,
+        #block-alshayastoresfinder {
+          a {
+            align-items: center;
+            display: inline-flex;
+          }
+        }
+      }
+    }
+  }
+}

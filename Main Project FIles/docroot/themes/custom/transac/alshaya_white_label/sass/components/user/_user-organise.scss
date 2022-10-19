@@ -1,0 +1,15 @@
+.c-user-register {
+  main {
+    .user-register-form {
+      @include breakpoint($desktop) {
+        max-width: 23.1rem;
+      }
+    }
+  }
+
+  &.user-page .c-sidebar-second .c-sidebar-second__region {
+    @include breakpoint($desktop) {
+      padding-#{$left}: 6.1875rem;
+    }
+  }
+}

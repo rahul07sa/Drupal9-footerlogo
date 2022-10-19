@@ -1,0 +1,159 @@
+.spc-order-summary-order-preview,
+.spc-order-summary-order-detail {
+  background: $spc-checkout-order-detail-bg;
+  padding: 0 0.5rem;
+  font-size: 0.875rem;
+
+  .spc-order-summary-item {
+    padding: 1.25rem 0.75rem;
+    border-bottom: 1px solid $spc-delivery-info-separator;
+    display: inline-flex;
+    justify-content: space-between;
+    width: 100%;
+
+    .spc-address {
+      @include arabic-line-height(1.5);
+    }
+
+    .spc-label {
+      color: $spc-checkout-order-detail-label;
+    }
+
+    .spc-value {
+      color: $spc-checkout-payment-method-desc;
+      text-align: $right;
+      max-width: 60%;
+      overflow-wrap: break-word;
+
+      &.phone-number {
+        html[lang=ar] & {
+          direction: ltr;
+        }
+      }
+    }
+
+    &.spc-order-summary-address-item {
+      .spc-value {
+        max-width: 15.125rem;
+        display: inline-block;
+        text-align: $right;
+
+        @include breakpoint($tablet) {
+          max-width: 20.125rem;
+        }
+
+        .spc-store-open-hours {
+          margin: 1.25rem 0;
+        }
+
+        .spc-store-map-link {
+          a {
+            text-decoration: underline;
+            color: $spc-checkout-order-detail-map-link;
+          }
+        }
+
+        .spc-address-name {
+          display: block;
+          font-family: $alshaya-bold;
+          font-weight: normal;
+          margin-bottom: 0.3125rem;
+          color: $spc-checkout-order-detail-label;
+        }
+
+        .spc-cnc-address-phone {
+          display: block;
+        }
+      }
+    }
+
+    &.spc-order-summary-markup-item {
+      .spc-value {
+        .banktransfer__details {
+          max-width: 15.125rem;
+
+          > div {
+            text-align: $right;
+            margin-bottom: 0.625rem;
+
+            > span {
+              display: block;
+
+              &:first-child {
+                color: $spc-checkout-order-detail-label;
+                font-family: $alshaya-bold;
+                font-weight: normal;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .spc-order-summary-item:last-child {
+    border-bottom: none;
+  }
+}
+
+.spc-order-summary-item.order-summary-banner-fawry {
+  > span {
+    &:first-child {
+      font-size: 0.75rem;
+      color: $fawry-banner;
+      line-height: 1.67;
+      max-width: 24.125rem;
+
+      > a {
+        color: $fawry-banner;
+        text-decoration: underline;
+      }
+
+      @include breakpoint($upto-desktop) {
+        max-width: 13.125rem;
+      }
+    }
+
+    &:last-child {
+      max-width: 4.625rem;
+    }
+  }
+}
+
+.spc-order-summary-order-detail {
+  margin-top: 0.3125rem;
+
+  label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 0.75rem;
+    height: 3.5rem;
+
+    &::before {
+      display: none;
+    }
+
+    @include icon('chevrondown', 'after') {
+      font-size: 2rem;
+      display: inline-block;
+      transition: tansform 0.3s ease-in-out;
+    }
+  }
+
+  .spc-detail-content {
+    height: 0;
+    overflow: hidden;
+    transition: all 0.5s ease-in-out;
+  }
+
+  input[type=checkbox]:checked {
+    ~ .spc-detail-content {
+      height: auto;
+    }
+
+    + label::after {
+      transform: rotate(180deg);
+    }
+  }
+}

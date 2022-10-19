@@ -1,0 +1,533 @@
+<?php
+
+/**
+ * @file
+ * Module file for seo.
+ */
+
+use Drupal\alshaya_i18n\AlshayaI18nLanguages;
+use Drupal\alshaya_seo\Services\UrlHelper;
+use Drupal\alshaya_user\Plugin\Block\MyAccountLinks;
+use Drupal\Component\Utility\Unicode;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Url;
+use Drupal\node\NodeInterface;
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Function to check if we should process GTM code for current request.
+ *
+ * @return bool
+ *   Whether to process or not.
+ */
+function _alshaya_seo_process_gtm() {
+  static $process = NULL;
+
+  if ($process !== NULL) {
+    return $process;
+  }
+
+  // Not process GTM for amp route.
+  if (_alshaya_custom_is_amp_route()) {
+    return FALSE;
+  }
+
+  $currentUser = \Drupal::currentUser();
+  $current_route_name = \Drupal::routeMatch()->getRouteName();
+
+  // List of route expections with AJAX.
+  $whitelisted_routes = [
+    'views.ajax',
+    'alshaya_acm_product.product_modal',
+  ];
+
+  // Add related products url for matchback. so, when when GTM event triggers
+  // "addToCart", the js can fetch all required attributes.
+  if (\Drupal::config('alshaya_acm.settings')->get('show_crosssell_as_matchback')) {
+    $whitelisted_routes[] = 'alshaya_acm_product.get_related_products';
+  }
+
+  // Disable SEO modifications for non-customer users (admins).
+  if ($currentUser->isAuthenticated() && function_exists('alshaya_acm_customer_is_customer') && !alshaya_acm_customer_is_customer($currentUser)) {
+    $process = FALSE;
+  }
+  // Don't process for AJAX requests.
+  elseif ((stripos(\Drupal::request()->getRequestUri(), 'ajax') > -1) && (!in_array($current_route_name, $whitelisted_routes))) {
+    $process = FALSE;
+  }
+  elseif (!\Drupal::service('router.admin_context')->isAdminRoute()
+    || ($current_route_name === 'entity.user.edit_form')) {
+    $process = TRUE;
+  }
+  else {
+    // Return false by default.
+    $process = FALSE;
+  }
+
+  return $process;
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function alshaya_seo_page_attachments(array &$attachments) {
+  // Add script for sitelink searchbox.
+  if (\Drupal::service('path.matcher')->isFrontPage()) {
+    if (_alshaya_seo_process_sitelink_searchbox()) {
+      $attachments['#attached']['html_head']['alshaya_seo_search'] = [
+        [
+          '#type' => 'html_tag',
+          '#tag' => 'script',
+          '#attributes' => [
+            'type' => 'application/ld+json',
+          ],
+          // Adding PHP_EOL on both sides to make it look exactly
+          // same as expected.
+          '#value' => _alshaya_seo_prepare_sitelink_searchbox_metadata(),
+          '#weight' => 100,
+        ],
+        'sitelinkSearchbox',
+      ];
+    }
+
+    // Adding cache tag as alshaya_seo.sitelink_search.
+    $attachments['#cache']['tags'][] = 'config:alshaya_seo.sitelink_search';
+  }
+
+  if (!_alshaya_seo_process_gtm()) {
+    return;
+  }
+
+  $gkg_config = \Drupal::config('alshaya_seo.google_knowledge_graph');
+
+  $gkg_data = [];
+
+  $gkg_data['@context'] = 'http://schema.org';
+  // As checked in current prod, following text is not to be translated.
+  $gkg_data['@type'] = 'Organization';
+  $gkg_data['name'] = \Drupal::config('system.site')->get('name');
+  $gkg_data['logo'] = Url::fromUserInput(theme_get_setting('logo.url'), ['absolute' => TRUE])->toString();
+  // Adding url parameter for schema organization.
+  $gkg_data['url'] = Url::fromRoute('<front>')->setAbsolute()->toString();
+  $node = \Drupal::routeMatch()->getParameter('node');
+  $content_type = NULL;
+  if ($node instanceof NodeInterface) {
+    $content_type = $node->bundle();
+  }
+
+  // Add all sameAs links as provided in Config.
+  if ($same_as = $gkg_config->get('same_as')) {
+    foreach (explode(PHP_EOL, $same_as) as $same_as_link) {
+      // Remove \r as well if string contains \r\n.
+      $same_as_link = trim($same_as_link, "\r");
+
+      if (!empty($same_as_link)) {
+        $gkg_data['sameAs'][] = $same_as_link;
+      }
+    }
+  }
+
+  // Add all contact options. Basic check added to have contact_type set in
+  // config to show the whole object.
+  if ($gkg_config->get('contact_telephone') && $content_type != 'acq_product') {
+    $contact = [];
+    $contact['@type'] = 'ContactPoint';
+    $contact['telephone'] = $gkg_config->get('contact_telephone');
+    $contact['contactType'] = $gkg_config->get('contact_type');
+    $contact['areaServed'] = $gkg_config->get('contact_areaserved');
+    $contact['contactOption'] = $gkg_config->get('contact_option');
+
+    // Add all site languages as available language.
+    foreach (\Drupal::languageManager()->getLanguages() as $language) {
+      $contact['availableLanguage'][] = $language->getName();
+    }
+
+    // As required, we want it to be array of objects.
+    $gkg_data['contactPoint'][] = $contact;
+  }
+
+  $gkg_script =
+    [
+      '#type' => 'html_tag',
+      '#tag' => 'script',
+      '#attributes' => [
+        'type' => 'application/ld+json',
+      ],
+      // Adding PHP_EOL on both sides to make it look exactly same as expected.
+      '#value' => PHP_EOL . json_encode($gkg_data, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . PHP_EOL,
+      '#weight' => 100,
+    ];
+  $attachments['#attached']['html_head'][] = [$gkg_script, 'gkg_data'];
+  // Adding Product schema for PDP.
+  // For rcs_product type, we process the schema in the rcs code.
+  if (\Drupal::moduleHandler()->moduleExists('alshaya_seo_transac')
+    && $content_type !== 'rcs_product') {
+    $product_schema_data = _alshaya_seo_transac_pdp_rich_snippet();
+    // Allow other modules to update the schema data and page attachments.
+    \Drupal::moduleHandler()->alter('page_attachments_schema_data', $attachments, $product_schema_data);
+
+    if (!empty($product_schema_data)) {
+      $product_script = [
+        '#type' => 'html_tag',
+        '#tag' => 'script',
+        '#attributes' => [
+          'type' => 'application/ld+json',
+        ],
+        // Adding PHP_EOL on both sides so it looks exactly same as expected.
+        '#value' => PHP_EOL . json_encode($product_schema_data, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . PHP_EOL,
+        '#weight' => 110,
+      ];
+      $attachments['#attached']['html_head'][] = [
+        $product_script,
+        'product_data',
+      ];
+    }
+  }
+}
+
+/**
+ * Implements hook_page_attachments_alter().
+ */
+function alshaya_seo_dynamic_yield_context_alter(&$lng) {
+  // Replace en_US in DY context with site specific locale.
+  $langcode = \Drupal::languageManager()->getCurrentLanguage()->getId();
+  $lng = AlshayaI18nLanguages::getLocale($langcode);
+}
+
+/**
+ * Implements hook_simple_sitemap_links_alter().
+ */
+function alshaya_seo_simple_sitemap_links_alter(&$links) {
+  foreach ($links as &$link) {
+    // We don't want to use langcode but want to use the country code for
+    // that language. Altering data here.
+    if (isset($link['alternate_urls'])) {
+      $alternate_urls = $link['alternate_urls'];
+
+      foreach ($alternate_urls as $language_id => $alternate_url) {
+        if ($hreflangcode = AlshayaI18nLanguages::getHrefLangCountry($language_id)) {
+          unset($link['alternate_urls'][$language_id]);
+          $link['alternate_urls'][$hreflangcode] = $alternate_url;
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Get the meta tag description.
+ *
+ * @return string
+ *   Meta tag description.
+ */
+function _alshaya_seo_get_node_meta_description() {
+  $meta_description = '';
+  // Get meta tag for the route.
+  $meta_tags = metatag_get_tags_from_route();
+  if (!empty($meta_tags)) {
+    $tags = $meta_tags['#attached']['html_head'];
+    if (!empty($tags)) {
+      foreach ($tags as $tag) {
+        // If meta description tag.
+        if ($tag[1] == 'description') {
+          $meta_description = $tag[0]['#attributes']['content'];
+        }
+      }
+    }
+  }
+
+  return $meta_description;
+}
+
+/**
+ * Implements template preprocess_input().
+ */
+function alshaya_seo_preprocess_input(&$variables) {
+  if ($variables['element']['#type'] === 'submit') {
+    $value = $variables['element']['#value'];
+    if (($value instanceof TranslatableMarkup) && (Unicode::strcasecmp($value->getUntranslatedString(), 'Add to cart') === 0)) {
+      $variables['attributes']['gtm-type'] = 'add-cart-link';
+    }
+  }
+}
+
+/**
+ * Implements template_preprocess_menu().
+ */
+function alshaya_seo_preprocess_menu(&$variables) {
+  if ($variables['menu_name'] === 'account') {
+    foreach ($variables['items'] as $key => $item) {
+      // Get existing options.
+      $options = $item['url']->getOptions();
+
+      // Use class as array.
+      if (empty($options['attributes']['class'])) {
+        $options['attributes']['class'] = [];
+      }
+      elseif (!is_array($options['attributes']['class'])) {
+        $options['attributes']['class'] = [$options['attributes']['class']];
+      }
+
+      $options['attributes']['class'][] = strtolower(str_replace(' ', '', $item['title'])) . '-link';
+
+      if (Unicode::strcasecmp($item['title'], t('Sign in')) === 0) {
+        $options['attributes']['class'][] = 'gtm-sign-in';
+      }
+
+      $variables['items'][$key]['url']->setOptions($options);
+    }
+  }
+  elseif ($variables['menu_name'] === 'footer') {
+    foreach ($variables['items'] as $key => $item) {
+      // Get existing options.
+      $options = $item['url']->getOptions();
+
+      // Use class as array.
+      if (empty($options['attributes']['class'])) {
+        $options['attributes']['class'] = [];
+      }
+      elseif (!is_array($options['attributes']['class'])) {
+        $options['attributes']['class'] = [$options['attributes']['class']];
+      }
+
+      $options['attributes']['class'][] = 'c-footer-menu__link';
+
+      $variables['items'][$key]['url']->setOptions($options);
+    }
+  }
+}
+
+/**
+ * Implements template_preprocess_alshaya_main_menu_level2().
+ */
+function alshaya_seo_preprocess_alshaya_main_menu_level2(&$variables) {
+  if ($variables['menu_type'] == 'default' || $variables['menu_type'] == 'menu_dynamic_display') {
+    $sub_nav_label = str_replace(' ', '-', strtolower($variables['data']['l1_object']['label']));
+    $sub_nav_class = 'sub-nav-' . $sub_nav_label . ' sub-nav-link';
+    $variables['data']['l1_object']['sub_nav_class'] = 'sub-nav-' . $sub_nav_label . ' sub-nav-link';
+    foreach ($variables['data']['columns'] as $key1 => $value) {
+      foreach ($value as $key2 => $level2) {
+        $variables['data']['columns'][$key1][$key2]['sub_nav_class'] = $sub_nav_class;
+        foreach ($level2['child'] as $key3 => $value2) {
+          $variables['data']['columns'][$key1][$key2]['child'][$key3]['sub_nav_class'] = $sub_nav_class;
+        }
+      }
+    }
+  }
+  else {
+    $sub_nav_label = str_replace(' ', '-', strtolower($variables['data']['label']));
+    $sub_nav_class = 'sub-nav-' . $sub_nav_label . ' sub-nav-link';
+    $variables['data']['sub_nav_class'] = 'sub-nav-' . $sub_nav_label . ' sub-nav-link';
+    foreach ($variables['data']['child'] as $key1 => $value) {
+      $variables['data']['child'][$key1]['sub_nav_class'] = $sub_nav_class;
+      foreach ($value['child'] as $key2 => $value2) {
+        $variables['data']['child'][$key1]['child'][$key2]['sub_nav_class'] = $sub_nav_class;
+      }
+    }
+  }
+}
+
+/**
+ * Implements template_preprocess_views_view_field().
+ */
+function alshaya_seo_preprocess_views_view_field(&$variables) {
+  $langcode = \Drupal::languageManager()->getCurrentLanguage()->getId();
+
+  $field = $variables['field'];
+  $view = $variables['view'];
+
+  $is_product_level_3_view = ((($view->id() === 'product_category_level_3') && ($view->current_display === 'block_1')) ||
+    ($view->id() === 'product_category_level_2_3') && ($view->current_display === 'block_2'));
+  if (($is_product_level_3_view) &&
+    ($field->getPluginId() === 'term_name')) {
+    /** @var \Drupal\alshaya_acm_product_category\ProductCategoryTree $product_category_tree */
+    $product_category_tree = \Drupal::service('alshaya_acm_product_category.product_category_tree');
+    $tid = $product_category_tree->getDepartmentPageCategoryIdFromRoute();
+    $args = $view->args;
+    $parents = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadParents($args[0]);
+    $parent_term = array_shift($parents);
+    $term_classes = [];
+    if ($parent_term) {
+      $parent_term_name = $parent_term->getName();
+      $term_classes[] = 'vert-nav-' . str_replace(' ', '-', strtolower($parent_term_name));
+    }
+
+    /** @var \Drupal\taxonomy\Entity\Term $term */
+    $term = $variables['row']->_entity;
+    $term_class_name = str_replace(' ', '-', strtolower(preg_replace('/[^A-Za-z0-9\-\s]/', '', $term->getName())));
+    $term_classes[] = 'left-nav-' . $term_class_name;
+    // Add class 'active' in LHN which match category coming from route.
+    if ($tid === $term->id()) {
+      $term_classes[] = 'active';
+    }
+    $options = [
+      'attributes' => [
+        'class' => $term_classes,
+      ],
+    ];
+
+    if ($term->hasTranslation($langcode)) {
+      $term = $term->getTranslation($langcode);
+    }
+    $variables['output'] = $term->get('field_display_as_clickable_link')->getString()
+      ? $term->toLink($term->getName(), 'canonical', $options)->toString()
+      : $term->getName();
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_presave().
+ */
+function alshaya_seo_user_presave(EntityInterface $entity) {
+  try {
+    if ($entity->get('field_subscribe_newsletter')->getString()) {
+      $original_entity = $entity->original;
+
+      // Check if the user updated their subscription status from 0 to 1.
+      if (($original_entity) &&
+        ($original_entity->get('field_subscribe_newsletter')->getString() !== '1') &&
+        ($entity->get('field_subscribe_newsletter')->getString() === '1')) {
+        user_cookie_save(['alshaya_gtm_update_user_lead' => $entity->id()]);
+      }
+      // Handle registrations with subscrition checked.
+      elseif ((empty($original_entity)) &&
+        ($entity->get('field_subscribe_newsletter')->getString() === '1')) {
+        user_cookie_save(['alshaya_gtm_update_user_lead' => $entity->id()]);
+      }
+    }
+  }
+  catch (Exception) {
+    \Drupal::logger('alshaya_seo')->critical('Field subscribe newsletter not found.');
+  }
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function alshaya_seo_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'robotstxt') {
+    if (isset($implementations['simple_sitemap'])) {
+      // Remove hook_robotstxt() implementation of the simple_sitemap module.
+      unset($implementations['simple_sitemap']);
+    }
+  }
+}
+
+/**
+ * Get the meta tag description.
+ *
+ * @return string
+ *   Meta tag description.
+ */
+function _alshaya_seo_prepare_sitelink_searchbox_metadata() {
+  $searchUrl = 'search?keywords={search_term_string}';
+  // Invoke the alter hook to allow all modules to set search url.
+  \Drupal::moduleHandler()->alter('alshaya_seo_google_sitelink_searchbox_url', $searchUrl);
+  $ss_data = [];
+  $ss_data['@context'] = 'http://schema.org';
+  // As checked in current prod, following text is not to be translated.
+  $ss_data['@type'] = 'WebSite';
+  $ss_data['url'] = Url::fromRoute('<front>')->setAbsolute()->toString();
+  $ss_data['potentialAction']['@type'] = 'SearchAction';
+  $ss_data['potentialAction']['target'] = Url::fromRoute('<front>')->setAbsolute()->toString() . $searchUrl;
+  $ss_data['potentialAction']['query-input'] = 'required name=search_term_string';
+
+  return PHP_EOL . json_encode($ss_data, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . PHP_EOL;
+}
+
+/**
+ * Function to check process sitelink search script for current request.
+ *
+ * @return bool
+ *   Whether to process or not.
+ */
+function _alshaya_seo_process_sitelink_searchbox() {
+  static $process = NULL;
+
+  if ($process !== NULL) {
+    return $process;
+  }
+
+  $process = FALSE;
+  // Enable sitelink searchbox for live sites only.
+  if (!alshaya_is_env_prod()) {
+    return $process;
+  }
+
+  // Enable sitelink searchbox script on home page.
+  if (\Drupal::config('alshaya_seo.sitelink_search')->get('enable_sitelink_searchbox')) {
+    $process = TRUE;
+  }
+
+  return $process;
+}
+
+/**
+ * Implements hook_metatags_alter().
+ */
+function alshaya_seo_metatags_alter(array &$metatags, array $context) {
+  // Twitter tags which have been set in global metatags settings have to
+  // be removed in this way from user account pages.
+  $user_routes = array_column(MyAccountLinks::getMyAccountLinks(), 'route');
+  $current_route = \Drupal::routeMatch()->getRouteName();
+  if (in_array($current_route, $user_routes)) {
+    foreach ($metatags as $key => $value) {
+      if (preg_match('/twitter/', $key)) {
+        unset($metatags[$key]);
+      }
+    }
+  }
+  else {
+    // Copy title & description into metatag twitter cards.
+    $metatags['twitter_cards_page_url'] = ($metatags['canonical_url']) ?? '';
+    $metatags['twitter_cards_title'] = ($metatags['title']) ?? '';
+    $metatags['twitter_cards_description'] = ($metatags['description']) ?? '';
+    $metatags['twitter_cards_image'] = ($metatags['image_src']) ?? '';
+  }
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter().
+ */
+function alshaya_seo_form_google_tag_container_alter(&$form, FormStateInterface $form_state) {
+  $form['#validate'][] = 'alshaya_seo_google_tag_container_validate_handler';
+}
+
+/**
+ * Gtm tag container form validation handler.
+ *
+ * @param array $form
+ *   An associative array containing the structure of the form.
+ * @param \Drupal\Core\Form\FormStateInterface $form_state
+ *   The current state of the form.
+ */
+function alshaya_seo_google_tag_container_validate_handler(array $form, FormStateInterface $form_state) {
+  // Unset conditions to resolve gtm tag visibilty for anonymous users.
+  $condition_ids = $form_state->getTemporaryValue('filtered_conditions');
+  if (!empty($condition_ids)) {
+    $form_state->setTemporaryValue('filtered_conditions', []);
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_update() for node entities.
+ */
+function alshaya_seo_node_update(EntityInterface $node) {
+  // Create entity alias for arabic translation
+  // when english translation is saved.
+  if ($node->bundle() == 'acq_product'
+    && $node->language()->getId() === 'en'
+    && $node->hasTranslation('ar')) {
+    $node_translation = $node->getTranslation('ar');
+    \Drupal::service('pathauto.generator')->createEntityAlias($node_translation, 'update');
+  }
+}
+
+/**
+ * Implements hook_pathauto_alias_alter().
+ */
+function alshaya_seo_pathauto_alias_alter(&$alias, array &$context) {
+  // Replace special characters from the path.
+  $alias = strtr($alias, UrlHelper::SPECIAL_CHARACTERS_MAP);
+}

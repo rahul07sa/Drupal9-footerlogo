@@ -1,0 +1,67 @@
+#backtotop {
+  @include breakpoint($only-mobile) {
+    right: 0;
+    bottom: 0.25rem;
+    width: 2.75rem;
+    height: 2.75rem;
+
+    html[lang=ar] & {
+      left: 1.8rem;
+      right: auto;
+    }
+  }
+
+  @include breakpoint($only-tablet) {
+    right: 0;
+    bottom: 3rem;
+
+    html[lang=ar] & {
+      left: 2.5rem;
+      right: auto;
+    }
+  }
+
+  @include icon(arrow-left, after) {
+    width: 2.75rem;
+    height: 2.75rem;
+    color: $btt_icon;
+    border-radius: 0;
+    font-size: 1rem;
+    padding: 0.875rem;
+    background-color: $btt_bg;
+  }
+
+  width: 2.75rem;
+  height: 2.75rem;
+  font-size: 0;
+  transform: rotate(90deg);
+  padding: 0;
+  background-color: transparent;
+  right: 0;
+
+  html[lang=ar] & {
+    left: 1.5625rem;
+    right: auto;
+  }
+
+  &.backtotop-nofooter {
+    position: fixed;
+  }
+
+  &:hover {
+    opacity: unset !important;
+  }
+}
+
+.nodetype--acq_product {
+  #backtotop {
+    @include breakpoint($only-mobile) {
+      bottom: 0.25rem;
+      line-height: 1;
+
+      &::after {
+        margin-top: 0;
+      }
+    }
+  }
+}

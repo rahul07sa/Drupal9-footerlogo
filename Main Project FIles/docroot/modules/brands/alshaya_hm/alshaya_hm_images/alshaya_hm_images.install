@@ -1,0 +1,211 @@
+<?php
+
+/**
+ * @file
+ * Contains install, update, uninstall hooks for alshaya_hm_images module.
+ */
+
+use Drupal\alshaya_config\AlshayaConfigManager;
+use Drupal\acq_sku\Entity\SKU;
+
+/**
+ * Installs alshaya_media_assets module.
+ */
+function alshaya_hm_images_update_8014() {
+  \Drupal::service('module_installer')->install(['alshaya_media_assets']);
+  \Drupal::configFactory()->getEditable('alshaya_hm_images.settings')->delete();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Remove broken LP images from skus.
+ */
+function alshaya_hm_images_update_8013() {
+  $query = 'select distinct sku from acq_sku_field_data where attr_assets__value like CONCAT(\'%\', (select fid from file_managed where filename like \'%assets-lp-shared%\') ,\'%\')';
+  $skus = \Drupal::database()->query($query)->fetchCol();
+  // If there are skus with wrong data for LP.
+  if (!empty($skus)) {
+    \Drupal::logger('alshaya_hm_images')->notice('Fixing assets for skus: @skus', [
+      '@skus' => implode(', ', $skus),
+    ]);
+    foreach ($skus as $sku) {
+      try {
+        $sku_entity = SKU::loadFromSku($sku);
+        // phpcs:ignore
+        $assets = unserialize($sku_entity->get('attr_assets')->first()->getString());
+        foreach ($assets as &$asset) {
+          // Unset fid and uri.
+          if (isset($asset['fid']) && $asset['drupal_uri'] && $asset['drupal_uri'] == 'brand://assets-lp-shared//') {
+            unset($asset['fid']);
+            unset($asset['drupal_uri']);
+          }
+        }
+
+        // Save sku with updated assets value.
+        $sku_entity->get('attr_assets')->setValue(serialize($assets));
+        $sku_entity->save();
+        \Drupal::logger('alshaya_hm_images')->notice('Processed assets for sku: @sku', [
+          '@sku' => $sku,
+        ]);
+      }
+      catch (\Exception $e) {
+        \Drupal::logger('alshaya_hm_images')->notice('Error while processing assets for sku: @sku. Error: @message', [
+          '@sku' => $sku,
+          '@message' => $e->getMessage(),
+        ]);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add MovingMedia in PDP assets list.
+ */
+function alshaya_hm_images_update_8012() {
+  alshaya_config_install_configs(['alshaya_hm_images.settings'], 'alshaya_hm_images');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * PDP - Change dimensions for PDP image style.
+ */
+function alshaya_hm_images_update_8011() {
+  $configs = [
+    'image.style.product_zoom_medium_606x504',
+  ];
+
+  alshaya_config_install_configs($configs, 'alshaya_image_styles');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Make assets field non-translatable.
+ */
+function alshaya_hm_images_update_8010() {
+  alshaya_config_install_configs(['alshaya_hm_images.sku_base_fields'], 'alshaya_hm_images');
+
+  $additions = \Drupal::configFactory()->getEditable('acq_sku.base_field_additions');
+  $assets = $additions->get('assets');
+  $assets['translatable'] = 0;
+  $additions->set('assets', $assets);
+  $additions->save();
+
+  \Drupal::service('acq_sku.fields_manager')->addFields();
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+
+  /** @var \Drupal\Core\Entity\EntityFieldManagerInterface $entityManager */
+  $entityManager = \Drupal::service('entity_field.manager');
+  $fields = $entityManager->getBaseFieldDefinitions('acq_sku');
+  $field = $fields['attr_assets'];
+  $field->setTranslatable(FALSE);
+  $update_manager->updateFieldStorageDefinition($field);
+  $update_manager->applyUpdates();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update the width for 291x288 image style.
+ * Add new config keys in alshaya_hm_images.settings.
+ */
+function alshaya_hm_images_update_8009() {
+  // Re-install the config for image style.
+  alshaya_config_install_configs(['image.style.291x288'], 'alshaya_image_styles');
+
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_hm_images.settings'],
+    'alshaya_hm_images',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+
+  // Reset Image Settings to set proper pims_base_url.
+  /** @var \Drupal\alshaya_acm\AlshayaAcmConfigCheck $config_check */
+  $config_check = \Drupal::service('alshaya_acm.config_check');
+  $config_check->checkConfig(TRUE, 'alshaya_hm_images.settings');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update default value for swatch type attribute to "Details"
+ */
+function alshaya_hm_images_update_8008() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  \Drupal::service('alshaya_config.manager')
+    ->updateConfigs(['field.field.taxonomy_term.acq_product_category.field_swatch_type'], 'alshaya_hm_images');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update missing style_identifiers.
+ */
+function alshaya_hm_images_update_8007() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  \Drupal::service('alshaya_config.manager')
+    ->updateConfigs(['alshaya_hm_images.settings'], 'alshaya_hm_images');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update new image resolutions.
+ */
+function alshaya_hm_images_update_8006() {
+  alshaya_config_install_configs(['alshaya_hm_images.settings'], 'alshaya_hm_images');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Set image types for swatch images to use DescriptiveStillLife or
+ * STILL_LIFE_FRONT_URL.
+ */
+function alshaya_hm_images_update_8005() {
+  alshaya_config_install_configs(['alshaya_hm_images.settings'], 'alshaya_hm_images');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding new swatch_type field to product category vocabulary.
+ * Removed hook_update_8003 as the config has moved from optional to override
+ * folder.
+ */
+function alshaya_hm_images_update_8004() {
+  // Save overridden configs.
+  _alshaya_config_save_overridden_configs('alshaya_hm_images');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Updating the order of season5 images.
+ */
+function alshaya_hm_images_update_8002() {
+  alshaya_config_install_configs(['alshaya_hm_images.settings'], 'alshaya_hm_images', 'install');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Set image setting to use asset type: STILL_LIFE_FRONT_URL.
+ */
+function alshaya_hm_images_update_8001() {
+  \Drupal::configFactory()->getEditable('alshaya_hm_images.settings')
+    ->set('weights.swatch.STILL_LIFE_FRONT_URL', 5)
+    ->set('weights.pdp.STILL_LIFE_FRONT_URL', 8)
+    ->set('weights.plp.STILL_LIFE_FRONT_URL', 5)
+    ->set('weights.plp_hover.STILL_LIFE_FRONT_URL', 5)
+    ->set('weights.teaser.STILL_LIFE_FRONT_URL', 5)
+    ->set('weights.cart.STILL_LIFE_FRONT_URL', 5)
+    ->save();
+}

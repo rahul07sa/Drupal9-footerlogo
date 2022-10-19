@@ -1,0 +1,33 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - language
+    - node
+id: department_page_path_pattern
+label: 'Department page path pattern'
+type: 'canonical_entities:node'
+pattern: 'department-[node:title]'
+selection_criteria:
+  eb0b2a43-a125-4677-9aae-509cc6418eee:
+    id: node_type
+    bundles:
+      department_page: department_page
+    negate: false
+    context_mapping:
+      node: node
+    uuid: eb0b2a43-a125-4677-9aae-509cc6418eee
+  083f3239-b555-4e62-bdbe-50fbfeaf4b66:
+    id: language
+    langcodes:
+      en: en
+      ar: ar
+    negate: false
+    context_mapping:
+      language: 'node:langcode:language'
+    uuid: 083f3239-b555-4e62-bdbe-50fbfeaf4b66
+selection_logic: and
+weight: -8
+relationships:
+  'node:langcode:language':
+    label: Language

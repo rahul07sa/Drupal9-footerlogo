@@ -1,0 +1,224 @@
+<?php
+
+/**
+ * @file
+ * Module file.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\acq_commerce\SKUInterface;
+use Drupal\acq_sku\Entity\SKU;
+use Drupal\alshaya_acm_product\SkuManager;
+use Drupal\alshaya_search_algolia\Service\AlshayaAlgoliaIndexHelper;
+use Drupal\node\NodeInterface;
+use Drupal\search_api\IndexInterface;
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function alshaya_search_algolia_module_implements_alter(&$implementations, $hook) {
+  // Call the alshaya_search_algolia_search_api_algolia_objects_alter last.
+  if ($hook == 'search_api_algolia_objects_alter') {
+    $group = $implementations['alshaya_search_algolia'];
+    unset($implementations['alshaya_search_algolia']);
+    $implementations['alshaya_search_algolia'] = $group;
+  }
+}
+
+/**
+ * Implements hook_search_api_algolia_sorts_alter().
+ */
+function alshaya_search_algolia_search_api_algolia_sorts_alter(array &$sorts, IndexInterface $index) {
+  // We have added stock as ranking already in all the replicas.
+  // It is added in views to keep consistency with solr / db.
+  unset($sorts['stock']);
+
+  // Sort by relevance is default index.
+  if (isset($sorts['search_api_relevance'])) {
+    unset($sorts['search_api_relevance']);
+  }
+}
+
+/**
+ * Implements hook_acq_sku_base_fields_updated().
+ */
+function alshaya_search_algolia_acq_sku_base_fields_updated(array $fields, $op = 'add') {
+  // For now we support only adding new fields / facets for Algolia.
+  if ($op !== 'add') {
+    return;
+  }
+
+  $indexable_fields = array_keys(array_filter($fields, fn($item) => isset($item['facet']) && $item['facet']));
+
+  if (empty($indexable_fields)) {
+    return;
+  }
+
+  array_walk($indexable_fields, function (&$field_code) {
+    $field_code = "attr_{$field_code}";
+  });
+
+  /** @var \Drupal\alshaya_search_algolia\Service\AlshayaAlgoliaIndexHelper $helper */
+  $helper = \Drupal::service('alshaya_search_algolia.index_helper');
+  $helper->addCustomFacetToIndex($indexable_fields);
+}
+
+/**
+ * Implements hook_search_api_index_items_alter().
+ *
+ * Use this hook to unset items which we don't want to index. using
+ * hook_search_api_algolia_objects_alter to unset items, may sometimes unset all
+ * objects in current batch, and that will return empty array. And index process
+ * assumes the indexing is finished and won't process further.
+ */
+function alshaya_search_algolia_search_api_index_items_alter(IndexInterface $index, array &$items) {
+  /** @var \Drupal\alshaya_search_algolia\Service\AlshayaAlgoliaIndexHelper $algolia_index */
+  $algolia_index = \Drupal::service('alshaya_search_algolia.index_helper');
+  $index_name = $algolia_index->getAlgoliaIndexNames();
+  if (!in_array($index->id(), $index_name)) {
+    return;
+  }
+
+  $logger = \Drupal::logger('alshaya_search_algolia');
+
+  /** @var \Drupal\alshaya_acm_product\SkuManager $skuManager */
+  $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+
+  // Disable alshaya_color_split hook calls.
+  SkuManager::$colorSplitMergeChildren = FALSE;
+  foreach ($items as $item_id => $item) {
+    /** @var \Drupal\node\NodeInterface $object */
+    $node = $item->getOriginalObject()->getValue();
+
+    if ($node instanceof NodeInterface && $node->bundle() == 'acq_product') {
+      try {
+        $langcode = $node->language()->getId();
+
+        $sku_string = $skuManager->getSkuForNode($node);
+        $sku = SKU::loadFromSku($sku_string, $langcode);
+
+        if (!($sku instanceof SKUInterface)) {
+          throw new \Exception('Not able to load sku from node.');
+        }
+        elseif ($sku->language()->getId() != $langcode) {
+          throw new \Exception('SKU not available for language of Node');
+        }
+      }
+      catch (\Throwable $e) {
+        $logger->warning('Indexing failed for the node:@nid message:@message', [
+          '@nid' => $node->id(),
+          '@message' => $e->getMessage(),
+        ]);
+        unset($items[$item_id]);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_search_api_algolia_objects_alter().
+ */
+function alshaya_search_algolia_search_api_algolia_objects_alter(array &$objects, IndexInterface $index, array $items) {
+  /** @var \Drupal\alshaya_search_algolia\Service\AlshayaAlgoliaIndexHelper $algolia_index */
+  $algolia_index = \Drupal::service('alshaya_search_algolia.index_helper');
+  $index_names = $algolia_index->getAlgoliaIndexNames();
+  $excludedAttributes = $algolia_index->getExcludedAttributeList();
+
+  if (!in_array($index->id(), $index_names)) {
+    return;
+  }
+  $logger = \Drupal::logger('alshaya_search_algolia');
+  foreach ($objects as $id => &$object) {
+    $node = $items[$id]->getOriginalObject()->getValue();
+
+    if (!$node instanceof NodeInterface || $node->bundle() != 'acq_product') {
+      continue;
+    }
+
+    try {
+      // Process index object for product list index.
+      if ($index->id() == AlshayaAlgoliaIndexHelper::PRODUCT_LIST_INDEX) {
+        // Get all node langges.
+        $nodeLanguages = $node->getTranslationLanguages();
+        $object['objectID'] = $object['sku'];
+        $ob = [];
+        foreach ($nodeLanguages as $lan_key => $lan_value) {
+          $object['search_api_language'] = $lan_key;
+          $node_object = $node->getTranslation($lan_key);
+          $object['title'] = $node_object->getTitle();
+          $algolia_index->processIndexItem($object, $node_object);
+          $ob[$lan_key] = $object;
+        }
+        $lang_object = [];
+        foreach ($object as $key => $value) {
+          // Skip language suffix for these attributes.
+          if (in_array($key, $excludedAttributes)) {
+            continue;
+          }
+          foreach ($nodeLanguages as $lanCode => $lanValues) {
+            $lang_object[$lanCode] = $ob[$lanCode][$key];
+            $object[$key] = $lang_object;
+          }
+        }
+      }
+      else {
+        $algolia_index->processIndexItem($object, $node);
+      }
+    }
+    catch (\Throwable $e) {
+      $logger->warning('Indexing failed for the node:@nid message:@message index:@index', [
+        '@nid' => $object['nid'],
+        '@message' => $e->getMessage(),
+        '@index' => $index->id(),
+      ]);
+      unset($objects[$id]);
+    }
+  }
+}
+
+/**
+ * Implements hook_alshaya_seo_google_sitelink_searchbox_url_alter().
+ */
+function alshaya_search_algolia_alshaya_seo_google_sitelink_searchbox_url_alter(&$searchUrl) {
+  $searchUrl = '#query={search_term_string}';
+}
+
+/**
+ * Implements hook_alshaya_search_filter_link_alter().
+ */
+function alshaya_search_algolia_alshaya_search_filter_link_alter(&$link, array &$data) {
+  $langcode = \Drupal::languageManager()->getCurrentLanguage()->getId();
+  $link = '/' . $langcode . '/search#refinementList[attr_' . $data['attribute_code'] . '][0]=';
+}
+
+/**
+ * Implements hook_srp_sort_settings_form_alter().
+ */
+function alshaya_search_algolia_form_alshaya_srp_sort_settings_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  $form['#submit'][] = '_alshaya_search_algolia_sort_settings_submit';
+}
+
+/**
+ * A submit handler to manage replicas in aloglia/drupal.
+ */
+function _alshaya_search_algolia_sort_settings_submit(&$form, FormStateInterface $form_state) {
+  $values = $form_state->getValues();
+  if (!empty($values['sort_options'])) {
+    $config = \Drupal::configFactory()->getEditable('alshaya_search.settings');
+    $labels = $config->get('sort_options_labels');
+
+    $algolia_search_helper = \Drupal::service('alshaya_search_algolia.index_helper');
+    $sort_fields = $algolia_search_helper->prepareFieldsToSort($labels, $values['sort_options']);
+    $algolia_search_helper->updateReplicaIndex($sort_fields);
+  }
+}
+
+/**
+ * Implements hook_alshaya_reset_config_configs_to_reset().
+ */
+function alshaya_search_algolia_alshaya_reset_config_configs_to_reset_alter(array &$reset) {
+  $index_source = \Drupal::service('module_handler')->moduleExists('alshaya_rcs')
+    ? 'mdc'
+    : 'drupal';
+  \Drupal::service('alshaya_search_algolia.index_helper')->setAlgoliaIndexPrefix($index_source);
+}

@@ -1,0 +1,27 @@
+name: 'Alshaya Stores Finder'
+type: module
+core: 8.x
+core_version_requirement: ^8 || ^9
+package: Alshaya
+description: 'Alshaya stores CT and related settings.'
+dependencies:
+  - alshaya_i18n:alshaya_i18n
+  - alshaya_geolocation:alshaya_geolocation
+  - better_exposed_filters:better_exposed_filters
+  - drupal:block
+  - drupal:content_translation
+  - drupal:field
+  - geolocation:geolocation
+  - key_value_field:key_value_field
+  - drupal:language
+  - drupal:menu_ui
+  - metatag:metatag
+  - drupal:file
+  - drupal:node
+  - drupal:path
+  - drupal:system
+  - drupal:text
+  - drupal:user
+  - drupal:views
+  - views_infinite_scroll:views_infinite_scroll
+  - alshaya_custom:alshaya_custom

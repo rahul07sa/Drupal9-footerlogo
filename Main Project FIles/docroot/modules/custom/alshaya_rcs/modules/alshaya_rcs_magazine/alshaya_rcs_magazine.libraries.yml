@@ -1,0 +1,9 @@
+main:
+  version: 1.x
+  js:
+    js/alshaya_rcs_magazine.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - rcs_placeholders/helpers
+    - alshaya_master/common_functions

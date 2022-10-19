@@ -1,0 +1,34 @@
+postpay_sdk:
+  remote: https://cdn.postpay.io
+  version: VERSION
+  license:
+    name: UNKNOWN
+    url: UNKNOWN
+    gpl-compatible: FALSE
+  js:
+    js/postpay.js: { }
+    https://cdn.postpay.io/v1/js/postpay.js: { type: external }
+  dependencies:
+    - core/drupalSettings
+
+postpay_pdp:
+  version: 1.x
+  js:
+    js/postpay_pdp.js: { }
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/jquery.once
+
+postpay_cart:
+  version: 1.x
+  js:
+    js/postpay_cart.js: { }
+  dependencies:
+    - core/jquery
+
+postpay_mode:
+  version: 1.x
+  css:
+    theme:
+      css/postpay_mode.css: {}

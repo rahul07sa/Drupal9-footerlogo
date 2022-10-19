@@ -1,0 +1,189 @@
+.user-page {
+  .form-item input:focus ~ label:not(.error),
+  .form-item input:not(:focus):valid ~ label:not(.error),
+  .form-item input:active ~ label:not(.error),
+  .form-item input:not(:active):valid ~ label:not(.error),
+  .form-item input.error ~ label:not(.error) {
+    font-size: 0.75rem;
+  }
+}
+
+.path--user {
+  .c-order-help {
+    .field--name-body {
+      border: 1px solid $user_order_help_border;
+
+      &::before {
+        color: $user_order_help_text_links;
+      }
+
+      p {
+        font-family: $vs-bold;
+        font-weight: normal;
+        font-size: 0.875rem;
+      }
+
+      ul {
+        @include breakpoint($upto-tablet) {
+          margin-#{$left}: 0;
+        }
+      }
+
+      a {
+        text-decoration: underline;
+
+        &:hover {
+          text-decoration: none;
+        }
+      }
+
+      li:last-child {
+        @include breakpoint($desktop) {
+          padding-#{$right}: 1.25rem;
+        }
+      }
+    }
+  }
+
+  .l-two--sf {
+    padding-bottom: 5.625rem;
+
+    @include breakpoint($only-tablet) {
+      padding-bottom: 7.5rem;
+    }
+
+    &.c-user--node {
+      @include breakpoint($only-tablet) {
+        margin-top: 0;
+      }
+    }
+
+    @include breakpoint($desktop) {
+      padding-bottom: 9rem;
+      margin-top: 1.3rem;
+    }
+  }
+}
+
+.c-user--node {
+  .c-sidebar-first {
+    .my-account-nav a {
+      @include breakpoint($upto-tablet) {
+        padding: 1rem 0;
+      }
+    }
+  }
+
+  &.l-two--sf {
+    aside.c-sidebar-first {
+      li a::after {
+        #{$right}: 0;
+      }
+
+      .my-account-mobile-title1 {
+        text-transform: capitalize;
+
+        @include breakpoint($upto-tablet) {
+          font-size: 1rem;
+          padding-top: 0.5rem;
+        }
+      }
+    }
+  }
+
+  .c-page-title {
+    font-size: 1rem;
+
+    @include breakpoint($tablet) {
+      font-size: 1.5rem;
+    }
+  }
+}
+
+.c-address-book .profile-form .form-submit,
+.path--user .ui-dialog .button--primary,
+.c-address-book .block-system > a,
+.order-detail .print--button,
+.block-alshaya-acm-customer > .edit-account {
+  color: $order_edit_account_link;
+  background: $primary_btn_bg;
+  text-decoration: none;
+  font-family: $vs-bold;
+  font-weight: normal;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  padding: 0.75rem;
+  height: 2.5rem;
+  border-radius: rem(3);
+
+  &:hover,
+  &:active,
+  &:focus {
+    color: $order_edit_account_link;
+  }
+
+  &:hover {
+    opacity: 0.75;
+  }
+}
+
+.block-alshaya-acm-customer > .edit-account {
+  padding: 0.75rem 1.25rem;
+  line-height: normal;
+  background: none;
+  border: rem(1) solid $btn_border;
+}
+
+.c-page-title,
+.path--user .ui-dialog-title,
+.c-related-info .c-related-info__label,
+.c-content__title,
+.c-content__secondary .c-related-info__label,
+.c-user-password h1,
+.c-user-register h1,
+.c-user-login h1 {
+  @include breakpoint($upto-tablet) {
+    font-size: 0.875rem;
+  }
+}
+
+.order-detail,
+.c-change-password,
+.c-communication-preferences,
+.c-user-edit,
+.c-order-list,
+.c-address-book {
+  .block-page-title-block {
+    @include breakpoint($upto-tablet) {
+      padding: 0.875rem 0 0.5rem;
+    }
+  }
+}
+
+.c-user-edit {
+  .field--name-field-first-name input,
+  .field--name-field-last-name input,
+  .mobile-input--wrapper .form-type-tel {
+    margin-top: 0;
+  }
+}
+
+.c-change-password {
+  .form-type-password {
+    label {
+      text-transform: capitalize;
+    }
+  }
+}
+
+.c-user-password h1,
+.c-user-register h1,
+.c-user-login h1 {
+  font-size: 1rem;
+  margin-top: 0.5rem;
+
+  @include breakpoint($tablet) {
+    font-size: 1.5rem;
+    margin-top: 0;
+  }
+}

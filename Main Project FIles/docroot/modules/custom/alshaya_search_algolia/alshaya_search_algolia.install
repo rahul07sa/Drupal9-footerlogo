@@ -1,0 +1,232 @@
+<?php
+
+/**
+ * @file
+ * Install file.
+ */
+
+use Drupal\search_api\Entity\Index;
+use Drupal\alshaya_config\AlshayaConfigManager;
+
+/**
+ * Implements hook_update_N().
+ *
+ * Added index prefix config for algolia to use drupal or mdc indices.
+ */
+function alshaya_search_algolia_update_8013() {
+  // Check if alshaya_rcs is enabled and update index prefix based on it.
+  $index_source = \Drupal::service('module_handler')->moduleExists('alshaya_rcs')
+    ? 'mdc'
+    : 'drupal';
+  \Drupal::service('alshaya_search_algolia.index_helper')->setAlgoliaIndexPrefix($index_source);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update configuration to add field which determines if Magento Algolia indices
+ * will be used or Drupal.
+ */
+function alshaya_search_algolia_update_8012() {
+  $manager = \Drupal::service('alshaya_config.manager');
+  // Adding fields in search_api index.
+  $manager->updateConfigs(
+    [
+      'alshaya_search_algolia.settings',
+    ],
+    'alshaya_search_algolia',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Updating alshaya_algolia_index and alshaya_algolia_product_list_index
+ * to add created field.
+ */
+function alshaya_search_algolia_update_8011() {
+  $manager = \Drupal::service('alshaya_config.manager');
+  // Adding fields in search_api index.
+  $manager->updateConfigs(
+    [
+      'search_api.index.alshaya_algolia_index',
+      'search_api.index.alshaya_algolia_product_list_index',
+    ],
+    'alshaya_search_algolia',
+    'install',
+    AlshayaConfigManager::MODE_ADD_MISSING_RECURSIVE
+  );
+
+  // Re-index items.
+  \Drupal::service('alshaya_acm_product.product_queue_utility')->queueAllProducts();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Re-indexing items for updating promotion_nid.
+ */
+function alshaya_search_algolia_update_8010() {
+  \Drupal::service('alshaya_acm_product.product_queue_utility')->queueAllProducts();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Batch configuration and custom field
+ * update for alshaya_algolia_index and alshaya_algolia_product_list_index.
+ */
+function alshaya_search_algolia_update_8009() {
+  \Drupal::configFactory()->getEditable('search_api.index.alshaya_algolia_product_list_index')->save();
+  \Drupal::configFactory()->getEditable('search_api.index.alshaya_algolia_index')->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * [6.2.4] Re-indexing items for indexing `is_buyable` attribute.
+ */
+function alshaya_search_algolia_update_8008() {
+  \Drupal::service('alshaya_acm_product.product_queue_utility')->queueAllProducts();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Create new search api index alshaya_algolia_product_list_index
+ * language suffix configuration update for alshaya_algolia_index
+ * and acquia_search_index.
+ */
+function alshaya_search_algolia_update_8007() {
+  // Create new index.
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['search_api.index.alshaya_algolia_product_list_index'],
+    'alshaya_search_algolia',
+    'install'
+  );
+  // Update acquia_search_index index with algolia_index_apply_suffix.
+  \Drupal::configFactory()->getEditable('search_api.index.acquia_search_index')->save();
+  // Update alshaya_algolia_index index with algolia_index_apply_suffix.
+  \Drupal::configFactory()->getEditable('search_api.index.alshaya_algolia_index')->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * [5.13.0] Re-indexing items for updating promo label URLs.
+ */
+function alshaya_search_algolia_update_8006() {
+  \Drupal::service('alshaya_acm_product.product_queue_utility')->queueAllProducts();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add child categories for algolia menu in lhn.
+ */
+function alshaya_search_algolia_update_8005() {
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_search_algolia.settings'],
+    'alshaya_search_algolia'
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Queue all products for re-indexation.
+ * Done to add translated rendered_price for all products.
+ */
+function alshaya_search_algolia_update_8004() {
+  \Drupal::service('alshaya_acm_product.product_queue_utility')->queueAllProducts();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Queue all products for re-indexation.
+ * Done to add SKU is_new property to index.
+ */
+function alshaya_search_algolia_update_8003() {
+  \Drupal::service('alshaya_acm_product.product_queue_utility')->queueAllProducts();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Queue all products for re-indexation.
+ * Done to add changed in Algolia for all products.
+ * Done to add attr_color_label for HM.
+ */
+function alshaya_search_algolia_update_8002() {
+  \Drupal::service('alshaya_acm_product.product_queue_utility')->queueAllProducts();
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function alshaya_search_algolia_update_8001() {
+  // Install algolia index.
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['search_api.index.alshaya_algolia_index'],
+    'alshaya_search_algolia',
+    'install'
+  );
+
+  // Rebuild tracker info to index products.
+  $index = Index::load('alshaya_algolia_index');
+  $index->rebuildTracker();
+  $index->save();
+
+  // Remove unnecessary autocomplete block.
+  alshaya_block_delete_blocks(['autocompletewidgetofalgolia']);
+
+  // Installing module, for sites where alshaya_search_algolia is already
+  // enabled.
+  \Drupal::service('module_installer')->install(['alshaya_algolia_react']);
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_search_algolia_install() {
+  // Move top search block to proper theme.
+  alshaya_block_move_blocks_theme_to_theme(
+    \Drupal::service('theme_handler')->getDefault(),
+    'alshaya_white_label'
+  );
+
+  $strings = [
+    'Search' => [
+      'en' => 'What are you looking for?',
+      'ar' => 'عن ماذا تبحث؟',
+      'context' => 'alshaya_static_text|algolia_search_block_placeholder',
+    ],
+    'Trending searches' => [
+      'ar' => 'الأكثر بحثاً',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+
+  // Enable lhn filters.
+  \Drupal::configFactory()->getEditable('alshaya_acm_product_category.settings')
+    ->set('enable_lhn_tree_search', 1)
+    ->save();
+
+  // Set Drupal index as index prefix.
+  \Drupal::service('alshaya_search_algolia.index_helper')->setAlgoliaIndexPrefix('drupal');
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function alshaya_search_algolia_uninstall() {
+  // Reset configs overridden by this module.
+  alshaya_config_install_configs(['search_api.index.acquia_search_index'], 'alshaya_search', 'optional');
+}

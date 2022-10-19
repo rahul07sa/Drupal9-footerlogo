@@ -1,0 +1,23 @@
+alshaya_seo.redirect_bulk_upload:
+  path: '/admin/config/search/redirect/redirect-bulk-add'
+  defaults:
+    _form: '\Drupal\alshaya_seo_transac\Form\AlshayaBulkUploadRedirect'
+    _title: 'Bulk add redirects'
+  requirements:
+    _permission: 'administer redirects'
+alshaya_seo.sitemap:
+  path: '/sitemap'
+  defaults:
+    _controller: '\Drupal\alshaya_seo_transac\Controller\AlshayaSeoController::siteMap'
+    _title: 'site map'
+  requirements:
+  # Sitemap should be accessible without any restriction.
+    _access: 'TRUE'
+
+alshaya_seo_transac.alshaya_seo_transac_settings:
+  path: '/admin/config/alshaya/alshaya-seo-settings'
+  defaults:
+    _title: 'Alshaya Seo Settings'
+    _form: 'Drupal\alshaya_seo_transac\Form\AlshayaSeoTransacSettings'
+  requirements:
+    _permission: 'administer site configuration'

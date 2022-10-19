@@ -1,0 +1,146 @@
+<?php
+
+/**
+ * @file
+ * Contains form alter for sku base form.
+ */
+
+use Drupal\acq_commerce\SKUInterface;
+use Drupal\alshaya_acm_product\SkuImagesHelper;
+use Drupal\image\Entity\ImageStyle;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
+use Drupal\Core\Ajax\SettingsCommand;
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter().
+ */
+function alshaya_acm_cart_notification_form_sku_base_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  // Attach the js file with the add to cart form.
+  $form['#attached']['library'][] = 'core/drupal.ajax';
+  $form['#attached']['library'][] = 'core/drupal.dialog.ajax';
+  $form['#attached']['library'][] = 'alshaya_acm_cart_notification/cart_notification_js';
+  $form['#attached']['drupalSettings']['currency_code'] = \Drupal::config('acq_commerce.currency')->getRawData()['currency_code'];
+  $form['#attached']['drupalSettings']['ajaxSpinnerMessageInterval'] = (int) \Drupal::config('alshaya_master.settings')->get('ajax_spinner_message_interval');
+  $form['#attached']['drupalSettings']['show_crosssell_as_matchback'] = (bool) \Drupal::config('alshaya_acm.settings')->get('show_crosssell_as_matchback');
+  $form['#attached']['drupalSettings']['display_upsell'] = (bool) \Drupal::config('alshaya_acm.settings')->get('display_upsell');
+  $form['#attached']['drupalSettings']['display_related'] = (bool) \Drupal::config('alshaya_acm.settings')->get('display_related');
+  $form['#cache']['tags'] = \Drupal::config('alshaya_acm.settings')->getCacheTags();
+}
+
+/**
+ * Implements hook_alshaya_acm_product_add_to_cart_submit_ajax_response_alter().
+ */
+function alshaya_acm_cart_notification_alshaya_acm_product_add_to_cart_submit_ajax_response_alter(AjaxResponse $response, SKU $sku, array $data) {
+  $current_url = \Drupal::request()->server->get('HTTP_REFERER');
+  $url = Url::fromRoute('acq_cart.cart', [], ['absolute' => TRUE])->toString();
+
+  if ($current_url == $url) {
+    $response->addCommand(new RedirectCommand($url));
+    return;
+  }
+
+  /** @var \Drupal\acq_sku\ProductInfoHelper $productInfoHelper */
+  $productInfoHelper = \Drupal::service('acq_sku.product_info_helper');
+
+  // Include the utility file to get product image.
+  \Drupal::moduleHandler()->loadInclude('alshaya_acm_product', 'inc', 'alshaya_acm_product.utility');
+
+  // We might be adding different product then the visited PDP.
+  // Use the product SKU from request data if available.
+  $product_added = empty($data['selected_variant_sku']) ? $sku : SKU::loadFromSku($data['selected_variant_sku']);
+  $product_name = $productInfoHelper->getTitle($product_added, 'basket');
+  $image = alshaya_acm_get_product_display_image($product_added, SkuImagesHelper::STYLE_PRODUCT_THUMBNAIL, 'cart');
+
+  // Quantity.
+  $quantity = $data['quantity'] ?? 1;
+
+  $show_crosssell_as_matchback = \Drupal::config('alshaya_acm.settings')->get('show_crosssell_as_matchback');
+
+  // Use the template to render the HTML.
+  $output = [
+    '#theme' => 'cart_notification',
+    '#quantity' => $quantity,
+    '#image' => $image,
+    '#product_name' => $product_name,
+    '#link' => $url,
+    '#link_text' => t('view cart'),
+    '#show_cart_matchback' => $show_crosssell_as_matchback,
+  ];
+
+  // Update mini cart Block.
+  $mini_cart_html = \Drupal::service('acq_cart.mini_cart')->getMiniCart();
+  if ($show_crosssell_as_matchback) {
+    $mini_cart_html['#suffix'] = '</div><div id="cart_notification" class="matchback-cart-notification"></div>';
+  }
+
+  $sku_css_id = strtolower(HTML::cleanCssIdentifier($sku->getSku()));
+  // Get cart items by sku.
+  $cart_items = [];
+  $cart_items['cart_items'] = alshaya_acm_get_cart_items_by_sku();
+
+  $response->addCommand(new HtmlCommand('.error-container-' . $sku_css_id, ''));
+  $response->addCommand(new HtmlCommand('#block-cartminiblock', $mini_cart_html));
+  $response->addCommand(new HtmlCommand('#cart_notification', render($output)));
+  $response->addCommand(new InvokeCommand(NULL, 'cartNotificationScroll'));
+  $response->addCommand(new SettingsCommand($cart_items, TRUE));
+}
+
+/**
+ * Implements hook_theme().
+ */
+function alshaya_acm_cart_notification_theme($existing, $type, $theme, $path) {
+  return [
+    'add_to_cart_error' => [
+      'variables' => [
+        'message' => '',
+      ],
+      'template' => 'add-to-cart-error',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_theme_suggestions_alter().
+ */
+function alshaya_acm_cart_notification_theme_suggestions_input_alter(array &$suggestions, array $variables) {
+  $routmatch = \Drupal::routeMatch();
+  if ($routmatch->getRouteName() == 'entity.node.canonical') {
+    $node = \Drupal::request()->attributes->get('node');
+
+    $is_add_to_cart = !empty($variables['element']['#id']) && ($variables['element']['#id'] == 'edit-add-to-cart');
+    if ($node->bundle() == 'acq_product' && $is_add_to_cart) {
+      $suggestions[] = 'input__add_to_cart';
+    }
+  }
+}
+
+/**
+ * Implements hook_sku_variant_info_alter().
+ */
+function alshaya_acm_cart_notification_sku_variant_info_alter(array &$variant, SKUInterface $child, ?SKUInterface $parent) {
+  /** @var \Drupal\acq_sku\ProductInfoHelper $productInfoHelper */
+  $productInfoHelper = \Drupal::service('acq_sku.product_info_helper');
+  // Include the utility file to get product image.
+  \Drupal::moduleHandler()->loadInclude('alshaya_acm_product', 'inc', 'alshaya_acm_product.utility');
+  $variant['cart_title'] = $productInfoHelper->getTitle($child, 'basket');
+  $image = alshaya_acm_get_product_display_image($child, SkuImagesHelper::STYLE_PRODUCT_THUMBNAIL, 'cart');
+
+  // Prepare image style url.
+  if (!empty($image['#theme'])) {
+    $image = ($image['#theme'] == 'image_style')
+      ? file_url_transform_relative(ImageStyle::load($image['#style_name'])->buildUrl($image['#uri']))
+      : $image['#uri'];
+  }
+
+  $variant['cart_image'] = is_string($image) ? $image : '';
+}
+
+/**
+ * Implements hook_preprocess_node().
+ */
+function alshaya_acm_cart_notification_preprocess_node(&$variables) {
+  if ($variables['node']->bundle() == 'rcs_product' || $variables['node']->bundle() == 'acq_product') {
+    $variables['#attached']['drupalSettings']['addToCartNotificationTime'] = \Drupal::config('alshaya_acm_cart_notification.settings')->get('notification_time');
+  }
+}

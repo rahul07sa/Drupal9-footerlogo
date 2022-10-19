@@ -1,0 +1,16 @@
+name: 'Alshaya Menus'
+type: module
+core: 8.x
+core_version_requirement: ^8 || ^9
+description: 'Footer and Header menus and related code.'
+dependencies:
+  - drupal:block
+  - drupal:language
+  - menu_admin_per_menu:menu_admin_per_menu
+  - menu_link_attributes:menu_link_attributes
+  - drupal:system
+  - drupal:taxonomy
+  - taxonomy_term_depth:taxonomy_term_depth
+  - drupal:user
+  - drupal:views
+package: Alshaya

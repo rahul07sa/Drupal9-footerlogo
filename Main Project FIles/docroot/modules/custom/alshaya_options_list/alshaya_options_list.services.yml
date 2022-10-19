@@ -1,0 +1,22 @@
+services:
+  alshaya_options_list.alshaya_options_service:
+    class: Drupal\alshaya_options_list\AlshayaOptionsListHelper
+    arguments:
+      - '@database'
+      - '@language_manager'
+      - '@entity_type.manager'
+      - '@config.factory'
+      - '@acq_sku.fields_manager'
+      - '@plugin.manager.search_api.parse_mode'
+      - '@facets.manager'
+      - '@module_handler'
+      - '@cache.data'
+
+  alshaya_options_list.breadcrumb:
+    class: Drupal\alshaya_options_list\Breadcrumb\AlshayaOptionsBreadcrumbBuilder
+    tags:
+      - { name: breadcrumb_builder, priority: 100 }
+    arguments:
+      - '@path.validator'
+      - '@title_resolver'
+      - '@request_stack'

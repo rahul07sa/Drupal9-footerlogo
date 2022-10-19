@@ -1,0 +1,515 @@
+<?php
+
+/**
+ * @file
+ * Contains general hooks and alters.
+ */
+
+use Drupal\acq_commerce\SKUInterface;
+use Drupal\acq_cart\CartInterface;
+use Drupal\acq_sku\Entity\SKU;
+use Drupal\alshaya_acm_promotion\Form\SelectFreeGiftForm;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormState;
+use Drupal\Core\Url;
+use Drupal\node\Entity\Node;
+use Drupal\node\NodeInterface;
+use Drupal\Component\Utility\Html;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Drupal\search_api\Entity\Index;
+
+/**
+ * Implements hook_views_data_alter().
+ */
+function alshaya_acm_promotion_views_data_alter(array &$data) {
+  $data['search_api_index_product']['field_skus']['argument']['id'] = 'alshaya_sku_ignore_whitespaces';
+}
+
+/**
+ * Implements hook_theme().
+ */
+function alshaya_acm_promotion_theme($existing, $type, $theme, $path) {
+  $items = [];
+
+  $items['free_gift_promotions'] = [
+    'variables' => [
+      'free_sku_entity_id' => NULL,
+      'free_sku_code' => NULL,
+      'free_sku_title' => NULL,
+      'promo_title' => NULL,
+      'sku_image' => NULL,
+      'promo_code' => NULL,
+    ],
+  ];
+
+  $items['free_gift_cart_label'] = [
+    'variables' => [
+      'promos' => NULL,
+    ],
+  ];
+
+  $items['free_gift_promotion_list'] = [
+    'variables' => [
+      'message' => NULL,
+      'coupon' => NULL,
+      'image' => NULL,
+      'title' => NULL,
+    ],
+  ];
+
+  $items['free_gift_item'] = [
+    'variables' => [
+      'title' => NULL,
+      'image' => NULL,
+      'url' => NULL,
+      'select_link' => NULL,
+    ],
+  ];
+
+  return $items;
+}
+
+/**
+ * Implements hook_theme_registry_alter().
+ */
+function alshaya_acm_promotion_theme_registry_alter(&$theme_registry) {
+  $theme_registry['acq_commerce_price']['variables']['promotions'] = NULL;
+  $theme_registry['acq_commerce_price']['variables']['final_price'] = NULL;
+  $theme_registry['acq_commerce_price']['variables']['discount'] = NULL;
+}
+
+/**
+ * Implements hook_acq_promotion_promotion_node_alter().
+ */
+function alshaya_acm_promotion_acq_promotion_promotion_node_alter(Node $node, array $promotion) {
+  // Set the Promotion subtype.
+  $node->get('field_alshaya_promotion_subtype')
+    ->setValue(\Drupal::service('alshaya_acm_promotion.manager')
+      ->getSubType($promotion));
+
+  // Set free skus for promotions.
+  if (!empty($promotion['free_gift_products'])) {
+    $node->get('field_free_gift_skus')->setValue($promotion['free_gift_products']);
+  }
+
+  $product_queue_utility = \Drupal::service('alshaya_acm_product.product_queue_utility');
+  $is_full_catalog_promotion = empty($promotion['products'])
+    && empty($promotion['action_condition']['conditions'])
+    && empty($promotion['condition']['conditions']);
+  $is_originally_full_catalog_promotion = $node->isNew() ? FALSE : (bool) $node->get('field_acq_promotion_full_catalog')->getString();
+
+  if ($is_originally_full_catalog_promotion !== $is_full_catalog_promotion) {
+    $product_queue_utility->queueAllProducts();
+    if ($is_full_catalog_promotion) {
+      $node->get('field_acq_promotion_full_catalog')->setValue(TRUE);
+    }
+    else {
+      $node->get('field_acq_promotion_full_catalog')->setValue(FALSE);
+    }
+  }
+  else {
+    $queuing_required = 0;
+    foreach ($node->getTranslationLanguages() as $langcode => $language) {
+      $temp_node = ($node->language()->getId() != $langcode)
+        ? $node->getTranslation($langcode)
+        : $node;
+
+      if ($temp_node->get('field_acq_promotion_label')->getString() !== $promotion['processed_promo_labels'][$language->getId()]) {
+        $queuing_required = 1;
+        break;
+      }
+    }
+
+    if (!$queuing_required) {
+      // Check if context has changed.
+      $promotion_context = $node->get('field_acq_promotion_context')->getValue();
+      if (!empty($promotion_context)) {
+        $promotion_context = array_column($promotion_context, 'value');
+      }
+      $new_promotion_context = $promotion['extension']['channel'];
+      if ((is_countable($promotion_context) ? count($promotion_context) : 0) != (is_countable($new_promotion_context) ? count($new_promotion_context) : 0) ||
+        array_diff($promotion_context, $new_promotion_context) !== array_diff($new_promotion_context, $promotion_context)) {
+        $queuing_required = 1;
+      }
+    }
+
+    if ($queuing_required) {
+      if ($is_full_catalog_promotion) {
+        // Queue products when promotion label/context changes for full
+        // catalog promotions.
+        $product_queue_utility->queueAllProducts();
+        // Since all products are already queued, we do not need to apply
+        // further checks.
+      }
+      else {
+        /** @var \Drupal\acq_promotion\AcqPromotionsManager $promotion_manager */
+        $promotion_manager = \Drupal::service('acq_promotion.promotions_manager');
+        // Fetch the Associated SKUs.
+        $skus = $promotion_manager->getSkusForPromotion($promotion['rule_id']);
+
+        // Queue associated SKUs when promotion label/context changes.
+        if (!empty($skus)) {
+          $product_queue_utility->queueAvailableProductsForSkus($skus);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_acq_promotion_data_alter().
+ */
+function alshaya_acm_promotion_acq_promotion_data_alter(&$promotion) {
+  $promotion['free_gift_products'] = [];
+
+  // Conductor api version.
+  $middleware_version = \Drupal::config('acq_commerce.conductor')->get('api_version');
+  // @todo remove it when we using v2 for all.
+  $extension_key = $middleware_version == 'v2' ? 'extension' : 'extension_attributes';
+
+  // Remove the free gift skus from products list.
+  foreach ($promotion['products'] as $key => $product) {
+    if (isset($product[$extension_key], $product[$extension_key]['ampromo_cart_sku'])) {
+      unset($promotion['products'][$key]);
+    }
+  }
+
+  // Read free gift skus from promo_skus key in extension_attributes.
+  if (isset($promotion[$extension_key]['promo_skus']) && !empty($promotion[$extension_key]['promo_skus'])) {
+    $promotion['free_gift_products'] = array_map('trim', explode(',', $promotion[$extension_key]['promo_skus']));
+  }
+}
+
+/**
+ * Implements hook_acq_sku_base_fields_updated().
+ */
+function alshaya_acm_promotion_acq_sku_base_fields_updated(array $fields, $op = 'add') {
+  /** @var \Drupal\alshaya_search_api\AlshayaSearchApiFacetsManager $facet_manager */
+  $facet_manager = \Drupal::service('alshaya_search_api.facets_manager');
+
+  $facet_source_id = 'search_api:views_block__alshaya_product_list__block_2';
+  $filter_bar_id = 'facets_summary.facets_summary.filter_bar_promotions';
+  $prefix = 'promo';
+
+  switch ($op) {
+    case 'add':
+      /** @var \Drupal\search_api\Entity\Index $index */
+      $index = Index::load('product');
+
+      foreach ($fields as $field_code => $field) {
+        if (empty($field['facet'])) {
+          // We use add even when resetting. Remove facet if available.
+          $facet_manager->removeFacet($field_code, $filter_bar_id, $prefix);
+          continue;
+        }
+
+        // Prepare overrides data for the facet.
+        $overrides['name'] = $field['label'];
+
+        // If widget data is present in fields array, include that in overrides
+        // to ensure correct widget information is added while creating facets.
+        if (isset($field['widget'])) {
+          foreach ($field['widget'] as $key => $widget) {
+            $overrides['widget'][$key] = $widget;
+          }
+        }
+        $facet_manager->createFacet($field_code, $facet_source_id, $filter_bar_id, $prefix, $overrides, $index->status());
+      }
+      break;
+
+    case 'remove':
+      foreach ($fields as $field_code => $field) {
+        // Remove from facets if facet is 1.
+        if (!empty($field['facet'])) {
+          $facet_manager->removeFacet($field_code, $filter_bar_id, $prefix);
+        }
+      }
+      break;
+  }
+}
+
+/**
+ * Implements hook_alshaya_acm_get_remove_from_basket_link_alter().
+ */
+function alshaya_acm_promotion_alshaya_acm_get_remove_from_basket_link_alter(&$remove_url, CartInterface $cart, SKUInterface $sku) {
+  // If for any reason we set it to empty value in any other alter
+  // implementation, we don't want to modify again.
+  if (empty($remove_url)) {
+    return;
+  }
+
+  // We need to modify here only if there are rules applied in cart.
+  $rules_applied = $cart->get('cart_rules');
+  if (empty($rules_applied)) {
+    return;
+  }
+
+  /** @var \Drupal\alshaya_acm_promotion\AlshayaPromotionsManager $manager */
+  $manager = \Drupal::service('alshaya_acm_promotion.manager');
+
+  $coupon = $cart->getCoupon();
+
+  foreach ($rules_applied as $rule_id) {
+    $promotion = $manager->getPromotionByRuleId($rule_id);
+
+    if (!($promotion instanceof NodeInterface)) {
+      continue;
+    }
+
+    $free_skus = $manager->getFreeSkusByRuleId($rule_id);
+
+    $sku_string = $sku->getSku();
+    $is_free_sku_item = FALSE;
+
+    if (in_array($sku_string, $free_skus)) {
+      $is_free_sku_item = TRUE;
+    }
+    else {
+      /** @var \Drupal\alshaya_acm_product\SkuManager $skuManager */
+      $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+      $parent = $skuManager->getParentSkuBySku($sku_string);
+      if ($parent instanceof SKU && in_array($parent->getSku(), $free_skus)) {
+        $is_free_sku_item = TRUE;
+      }
+    }
+
+    if ($is_free_sku_item) {
+      if ($coupon && $promotion->get('field_coupon_code')->getString() == $coupon) {
+        // For coupon based promotions we want to allow removal.
+        // But we need to remove the coupon as well.
+        $remove_url->setRouteParameter('coupon', 'remove');
+      }
+      else {
+        // For non-coupon based free gifts, we don't want to allow removal
+        // for now.
+        $remove_url = NULL;
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_view().
+ */
+function alshaya_acm_promotion_node_view(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, $view_mode) {
+
+  if ($entity->bundle() == 'acq_promotion') {
+    $context = $entity->get('field_acq_promotion_context')->getValue();
+    // Throw exception only if the web is not set in the context.
+    // Do nothing if context is not set at all.
+    if (!empty($context)
+      && !in_array('web', array_column($context, 'value'))) {
+      throw new NotFoundHttpException();
+    }
+  }
+
+  // Need processing only for products.
+  if ($entity->bundle() != 'acq_product') {
+    return;
+  }
+
+  // Return early for unknown view modes.
+  if (!in_array($view_mode, [
+    'modal',
+    'full',
+    'teaser',
+    'product_category_carousel',
+  ])
+  ) {
+    return;
+  }
+
+  /** @var \Drupal\alshaya_acm_product\SkuManager $skuManager */
+  $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+  /** @var \Drupal\alshaya_acm_promotion\AlshayaPromoLabelManager $promoLabelManager */
+  $promoLabelManager = \Drupal::service('alshaya_acm_promotion.label_manager');
+
+  $sku = $skuManager->getSkuForNode($entity);
+
+  // Sanity check.
+  // We add logs for such faulty data either in ACM or in alshaya_acm_product.
+  if (empty($sku)) {
+    return;
+  }
+
+  $sku_entity = SKU::loadFromSku($sku);
+
+  // Sanity check.
+  // We add logs for such faulty data either in ACM or in alshaya_acm_product.
+  if (!($sku_entity instanceof SKUInterface)) {
+    return;
+  }
+
+  $promotion_label = $promoLabelManager->getPromotionLabelForProductDetail($sku_entity, $view_mode, 'web');
+
+  if (!empty($promotion_label['promotions'])) {
+    $build['promotions'] = $promotion_label['promotions'];
+  }
+
+  if (!empty($promotion_label['free_gift_promotions'])) {
+    $build['free_gift_promotions'] = $promotion_label['free_gift_promotions'];
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_view().
+ */
+function alshaya_acm_promotion_acq_sku_view(array &$build,
+                                            EntityInterface $entity,
+                                            EntityViewDisplayInterface $display,
+                                            $view_mode) {
+  if ($view_mode != 'free_gift') {
+    return;
+  }
+
+  // Disable the default add to cart form.
+  $build['#no_add_to_cart'] = TRUE;
+
+  /** @var \Drupal\alshaya_acm_product\SkuManager $skuManager */
+  $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+
+  /** @var \Drupal\alshaya_acm_product\SkuImagesManager $skuImagesManager */
+  $skuImagesManager = \Drupal::service('alshaya_acm_product.sku_images_manager');
+
+  /** @var \Drupal\alshaya_acm_promotion\AlshayaPromotionsManager $promotionsManager */
+  $promotionsManager = \Drupal::service('alshaya_acm_promotion.manager');
+  try {
+    $skuForGallery = $promotionsManager->getSkuForFreeGiftGallery($entity);
+    $gallery = $skuImagesManager->getGallery($skuForGallery, 'pdp');
+    $build['gallery']['#markup'] = !empty($gallery)
+      ? \Drupal::service('renderer')->renderPlain($gallery)
+      : '';
+  }
+  catch (\Exception) {
+    $build['gallery'] = [];
+  }
+
+  $build['price_block']['#markup'] = '<div class="free-price-markup">' . t('FREE') . '</div>';
+  $build['item_code']['#markup'] = $entity->getSku();
+
+  \Drupal::moduleHandler()->loadInclude('alshaya_acm_product', 'inc', 'alshaya_acm_product.utility');
+  $build['brand_logo'] = alshaya_acm_product_get_brand_logo($entity);
+
+  // Add PDP slider position config to drupalSettings so we can use it in JS.
+  $build['#attached']['drupalSettings']['alshaya_white_label']['image_slider_position_pdp'] = 'slider-position-' . $skuManager->getImageSliderPosition($entity);
+  $build['image_slider_position_pdp']['#markup'] = 'slider-position-' . Html::cleanCssIdentifier($skuManager->getImageSliderPosition($entity));
+
+  // Add PDP slider position config to variable so it is available in themes.
+  $build['#attached']['drupalSettings']['pdp_slider_items'] = \Drupal::config('alshaya_acm_product.settings')->get('pdp_slider_items_settings.pdp_slider_items_number');
+
+  $coupon = \Drupal::request()->get('coupon') ?? '';
+  $promotion_id = \Drupal::request()->get('promotion_id') ?? NULL;
+  $back = \Drupal::request()->get('back') ?? NULL;
+  if (!empty($back)) {
+    $build['back_to_collection'] = [
+      '#type' => 'link',
+      '#title' => t('Back to Collection'),
+      '#url' => Url::fromRoute('alshaya_acm_promotion.free_gifts_list',
+        [
+          'node' => $promotion_id,
+          'js' => 'nojs',
+        ],
+        [
+          'attributes' => [
+            'class' => ['use-ajax'],
+          ],
+          'query' => [
+            'replace' => 1,
+            'coupon' => $coupon,
+          ],
+        ]
+      ),
+    ];
+  }
+
+  $form_state = new FormState();
+  $form_state->setStorage([
+    'coupon' => $coupon ?? '',
+    'sku' => $entity->getSku(),
+    'promotion_id' => $promotion_id ?? '',
+  ]);
+
+  $build['select_free_gift'] = \Drupal::formBuilder()->buildForm(
+    SelectFreeGiftForm::class,
+    $form_state
+  );
+
+  /** @var Drupal\acq_sku\ProductInfoHelper $productInfoHelper */
+  $productInfoHelper = \Drupal::service('acq_sku.product_info_helper');
+  $build['short_desc'] = $productInfoHelper->getValue($entity, 'short_description', 'pdp');
+  $build['description'] = $productInfoHelper->getValue($entity, 'description', 'pdp');
+}
+
+/**
+ * Implements hook_sku_variant_info_alter().
+ */
+function alshaya_acm_promotion_sku_variant_info_alter(array &$variant, SKUInterface $child, ?SKUInterface $parent) {
+  /** @var \Drupal\alshaya_acm_product\AlshayaRequestContextManager $requestContextManager */
+  $requestContextManager = \Drupal::service('alshaya_acm_product.context_manager');
+  $context = $requestContextManager->getContext();
+  /** @var \Drupal\alshaya_acm_promotion\AlshayaPromoLabelManager $promoLabelManager */
+  $promoLabelManager = \Drupal::service('alshaya_acm_promotion.label_manager');
+  $variant['promotionsRaw'] = $promoLabelManager->getPromotionLabelForProductDetail($child, 'api', $context);
+  $variant['freeGiftPromotion'] = $promoLabelManager->getPromotionLabelForProductDetail($child, 'free_gift', $context);
+}
+
+/**
+ * Implements hook_sku_product_info_alter().
+ */
+function alshaya_acm_promotion_sku_product_info_alter(array &$product_info, SKUInterface $sku) {
+  /** @var \Drupal\alshaya_acm_promotion\AlshayaPromoLabelManager $promoLabelManager */
+  $promoLabelManager = \Drupal::service('alshaya_acm_promotion.label_manager');
+  $product_info['promotionsRaw'] = $promoLabelManager->getPromotionLabelForProductDetail($sku, 'api', 'web');
+  $product_info['freeGiftPromotion'] = $promoLabelManager->getPromotionLabelForProductDetail($sku, 'free_gift', 'web');
+}
+
+/**
+ * Implements hook_alshaya_acm_product_light_product_data_alter().
+ */
+function alshaya_acm_promotion_alshaya_acm_product_light_product_data_alter(SKU $sku, array &$data, $type) {
+  /** @var \Drupal\alshaya_acm_promotion\AlshayaPromoLabelManager $promoLabelManager */
+  $promoLabelManager = \Drupal::service('alshaya_acm_promotion.label_manager');
+  $context = \Drupal::requestStack()->getCurrentRequest()->query->get('context');
+
+  if (!empty($context) && $context == 'mapp') {
+    $data['free_gift_promotion'] = $promoLabelManager->getPromotionLabelForProductDetail($sku, 'free_gift', 'app');
+  }
+  else {
+    $data['freeGiftPromotion'] = $promoLabelManager->getPromotionLabelForProductDetail($sku, 'free_gift', 'web');
+  }
+}
+
+/**
+ * Implements hook_alshaya_mobile_app_skus_product_list_data_alter().
+ */
+function alshaya_acm_promotion_alshaya_mobile_app_skus_product_list_data_alter(array &$data, SKUInterface $sku) {
+  /** @var \Drupal\alshaya_acm_promotion\AlshayaPromoLabelManager $promoLabelManager */
+  $promoLabelManager = \Drupal::service('alshaya_acm_promotion.label_manager');
+  $data['free_gift_promotion'] = $promoLabelManager->getPromotionLabelForProductDetail($sku, 'free_gift', 'app');
+}
+
+/**
+ * Implements hook_entity_delete().
+ */
+function alshaya_acm_promotion_entity_delete(EntityInterface $entity) {
+  // Queue all products for reindexation when a promotion node applying to
+  // entire catalog is deleted.
+  if (($entity->bundle() === 'acq_promotion')
+    && ($entity->get('field_acq_promotion_full_catalog')->getString())) {
+    \Drupal::service('alshaya_acm_product.product_queue_utility')->queueAllProducts();
+  }
+}
+
+/**
+ * Implements hook_preprocess_html().
+ */
+function alshaya_acm_promotion_preprocess_html(&$variables) {
+  /** @var \Drupal\alshaya_acm_promotion\AlshayaAcmPromotionAPIHelper $alshayaAcmPromotionAPIHelper */
+  $alshayaAcmPromotionAPIHelper = \Drupal::service('alshaya_acm_promotion.api_helper');
+
+  // Return if discounted text visibility set as true.
+  if ($alshayaAcmPromotionAPIHelper->getDiscountTextVisibilityStatus() === 'true') {
+    $variables['attributes']['class'][] = 'hide-discount-text';
+  }
+}

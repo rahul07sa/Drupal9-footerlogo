@@ -1,0 +1,63 @@
+.cloudzoom {
+  &.thumbnail-count-1 {
+    #cloud-zoom-big {
+      #{$left}: 103.8% !important;
+    }
+
+    @include breakpoint($tablet) {
+      .cloudzoom__thumbnails {
+        display: none;
+      }
+
+      .cloudzoom__herocontainer {
+        width: 100%;
+      }
+    }
+  }
+}
+
+.mobilegallery {
+  padding-bottom: 0;
+}
+
+.cloudzoom__image {
+  .img-wrap {
+    height: auto;
+
+    @include breakpoint($desktop) {
+      min-height: 40rem;
+    }
+  }
+
+  .hover-text {
+    padding: 1rem 1.5rem;
+  }
+}
+
+#cloud-zoom-big {
+  #{$left}: 103.8% !important;
+  top: 12.65rem !important;
+}
+
+.ui-dialog .ui-dialog-titlebar-close {
+  @include breakpoint($only-tablet) {
+    $right: -1.35rem;
+  }
+}
+
+#lightSlider {
+  &.pager-no {
+    @include breakpoint($only-tablet) {
+      padding-#{$left}: 2em;
+      padding-#{$right}: 2rem;
+    }
+  }
+}
+
+.slider-position-bottom {
+  .cloudzoom__herocontainer {
+    @include breakpoint($tablet) {
+      min-height: 26.25rem;
+    }
+  }
+}

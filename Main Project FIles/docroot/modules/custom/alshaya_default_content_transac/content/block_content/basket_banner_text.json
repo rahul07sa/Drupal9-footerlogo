@@ -1,0 +1,177 @@
+{
+  "_links": {
+    "self": {
+      "href": "http:\/\/local.alshaya.com\/en\/block\/6?_format=hal_json"
+    },
+    "type": {
+      "href": "http:\/\/drupal.org\/rest\/type\/block_content\/basic"
+    },
+    "http:\/\/drupal.org\/rest\/relation\/block_content\/basic\/content_translation_uid": [
+      {
+        "href": "http:\/\/local.alshaya.com\/en\/user\/1?_format=hal_json",
+        "lang": "ar"
+      }
+    ]
+  },
+  "id": [
+    {
+      "value": 6
+    }
+  ],
+  "uuid": [
+    {
+      "value": "f42b2da3-366f-4143-8b91-e90e0fa3c082"
+    }
+  ],
+  "revision_id": [
+    {
+      "value": 6
+    }
+  ],
+  "langcode": [
+    {
+      "value": "en",
+      "lang": "en"
+    },
+    {
+      "value": "ar",
+      "lang": "ar"
+    }
+  ],
+  "type": [
+    {
+      "target_id": "basic"
+    }
+  ],
+  "revision_created": [
+    {
+      "value": "2017-05-10T12:47:49+00:00",
+      "format": "Y-m-d\\TH:i:sP"
+    }
+  ],
+  "status": [
+    {
+      "value": true,
+      "lang": "en"
+    },
+    {
+      "value": true,
+      "lang": "ar"
+    }
+  ],
+  "info": [
+    {
+      "value": "Basket Promotion message",
+      "lang": "en"
+    },
+    {
+      "value": "Basket Promotion message",
+      "lang": "ar"
+    }
+  ],
+  "machine_name": [
+    {
+      "value": "basketpromotionmessage",
+      "lang": "en"
+    },
+    {
+      "value": "basketpromotionmessage",
+      "lang": "ar"
+    }
+  ],
+  "changed": [
+    {
+      "value": "2017-05-10T12:47:49+00:00",
+      "lang": "en",
+      "format": "Y-m-d\\TH:i:sP"
+    },
+    {
+      "value": "2018-08-20T09:53:05+00:00",
+      "lang": "ar",
+      "format": "Y-m-d\\TH:i:sP"
+    }
+  ],
+  "default_langcode": [
+    {
+      "value": true,
+      "lang": "en"
+    },
+    {
+      "value": false,
+      "lang": "ar"
+    }
+  ],
+  "revision_translation_affected": [
+    {
+      "value": true,
+      "lang": "en"
+    },
+    {
+      "value": true,
+      "lang": "ar"
+    }
+  ],
+  "metatag": [
+    {
+      "value": {
+        "title": "| Alshaya",
+        "og_site_name": "Alshaya",
+        "canonical_url": "http:\/\/local.alshaya.com\/en\/home",
+        "og_locale": "en_KW",
+        "og_locale_alternative_0": "ar_KW"
+      }
+    }
+  ],
+  "content_translation_source": [
+    {
+      "value": "und",
+      "lang": "en"
+    },
+    {
+      "value": "und",
+      "lang": "ar"
+    }
+  ],
+  "content_translation_outdated": [
+    {
+      "value": false,
+      "lang": "en"
+    },
+    {
+      "value": false,
+      "lang": "ar"
+    }
+  ],
+  "_embedded": {
+    "http:\/\/drupal.org\/rest\/relation\/block_content\/basic\/content_translation_uid": [
+      {
+        "_links": {
+          "self": {
+            "href": "http:\/\/local.alshaya.com\/en\/user\/1?_format=hal_json"
+          },
+          "type": {
+            "href": "http:\/\/drupal.org\/rest\/type\/user\/user"
+          }
+        },
+        "uuid": [
+          {
+            "value": "5e50d7c6-bc7d-4773-a149-d9804bcaec2b"
+          }
+        ],
+        "lang": "ar"
+      }
+    ]
+  },
+  "content_translation_created": [
+    {
+      "value": "2017-05-10T12:47:49+00:00",
+      "lang": "en",
+      "format": "Y-m-d\\TH:i:sP"
+    },
+    {
+      "value": "2018-08-20T09:53:05+00:00",
+      "lang": "ar",
+      "format": "Y-m-d\\TH:i:sP"
+    }
+  ]
+}

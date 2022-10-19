@@ -1,0 +1,115 @@
+// Check alshaya_white_label/font-face for font-face declarations.
+
+/////////// English fonts ///////////
+// Adding Arabic fonts as fallback for arabic text to be shown correctly in English site.
+$vs-bold: 'BentonSans-Bold', 'DroidArabicKufi-Bold', 'Arial';
+$vs-regular: 'BentonSans-Book', 'DroidArabicKufi', 'Arial';
+$vspromo: 'HarrietDisplay', 'DroidArabicKufi', 'Arial';
+$vspromo-regular: 'BentonSans-Book', 'GESSTwoLight-Light', 'Arial';
+
+// Extra fonts for PDP and Today's Offer
+$vs-bentonsans-medium: 'BentonSans-Medium', 'DroidArabicKufi-Bold', 'Arial';
+$vs-bentonsans-light: 'BentonSans-Light', 'DroidArabicKufi', 'Arial';
+$vs-bentonsans-regular: 'BentonSans-Regular', 'DroidArabicKufi', 'Arial';
+$vs-bentonsanscomp-medium: 'BentonSansCompMedium', 'DroidArabicKufi-Bold', 'Arial';
+
+// Extra cursive fonts for Stylefinder
+$vs-gotcha-regular: 'Gotcha Crush Regular', 'DroidArabicKufi', 'Arial';
+
+/////////// Arabic fonts ///////////
+// Adding En fonts so browser prints English characters & numbers correctly in arabic.
+$vs-arabic-bold: 'DroidArabicKufi-Bold', 'BentonSans-Bold', 'Arial';
+$vs-arabic-regular: 'DroidArabicKufi', 'BentonSans-Book', 'Arial';
+$vspromo-arabic: 'DroidArabicKufi', 'HarrietDisplay', 'Arial';
+$vspromo-arabic-regular: 'GESSTwoLight-Light', 'BentonSans-Book', 'Arial';
+
+// Icon fonts
+$alshaya-icons: 'alshaya-icons';
+$body_font: $vs-regular;
+
+// Used for victoria's pink super category content.
+$pink-pinksans: 'PinkSans', 'DroidArabicKufi', 'Arial';
+$pink-pinksans-130: 'PinkSans-130', 'DroidArabicKufi', 'Arial';
+$pink-pinkslab: 'PinkSlab', 'DroidArabicKufi-Bold', 'Arial';
+
+// Override font variables coming from MC, without this we get a 404 as font files are no longer present in VS theme.
+$arial: $vs-regular;
+$alshaya-bold: $vs-bold;
+$alshaya-arabic-bold: $vs-arabic-bold;
+$alshaya-thin: $vs-regular;
+$arial-nodir: $vs-arabic-regular;
+$alshaya-thin-nodir: $vs-regular;
+$alshaya-bold-nodir: $vs-bold;
+$alshaya-arabic-thin: $vs-arabic-regular;
+$alshaya-cursive-regular: $vs-gotcha-regular;
+
+$icons: (
+  login: "\e929",
+  ic_login: "\e929",
+  chevrondown: "\25bd",
+  ic_chevrondown: "\25bd",
+  chevronleft: "\e902",
+  chevronright: "\e903",
+  chevronup: "\e904",
+  arrowup: "\e901",
+  check: "\e905",
+  close: "\e906",
+  checkshape: "\e907",
+  circle-stroke-shape: "\e908",
+  circle-shape: "\e909",
+  checkboxempty: "\e90a",
+  checkboxfull: "\e90b",
+  delivery: "\e90c",
+  direction-fill: "\e90d",
+  direction-stroke: "\e90e",
+  dropdown-collapse: "\e90f",
+  dropdown-expand: "\e910",
+  favorite-fill: "\e911",
+  favorite-stroke: "\e912",
+  paginator-active: "\e913",
+  paginator-inactive: "\e914",
+  radio-empty: "\e915",
+  radio-filled: "\e916",
+  rating: "\e917",
+  ratingfull: "\e918",
+  video path1: "\e919",
+  video path2: "\e91a",
+  loader path1: "\e91b",
+  loader path2: "\e91c",
+  loader path3: "\e91d",
+  search: "\e91e",
+  menu: "\e91f",
+  list: "\e920",
+  shopping-bag: "\e921",
+  mappin: "\e922",
+  map: "\e923",
+  mylocation: "\e924",
+  newsletter: "\e925",
+  rewards: "\e926",
+  language: "\e927",
+  infomation: "\e928",
+  ic_infomation: "\e928",
+  warning: "\2757",
+  googleplus: "\1f576",
+  facebook: "\1f575",
+  twitter: "\1f425",
+  pinterest: "\1f4cc",
+  instagram: "\1f305",
+  youtube: "\1f4fa",
+  price-tag: "\e93a",
+  filter: "\e93c",
+  edit-input: "\e93d",
+  arrow-left: "\e93e",
+  arrow-right: "\e93f",
+  bin: "\e9ac",
+  new-facebook-default: "\e900",
+  new-facebook-hover: "\e92a",
+  new-instagram-default: "\e92b",
+  new-instagram-hover: "\e92c",
+  new-twitter-default: "\e92d",
+  new-twitter-hover: "\e92e",
+  new-whatsapp-default: "\e92f",
+  new-whatsapp-hover: "\e930",
+  minus: "\e943",
+  plus: "\e944",
+);

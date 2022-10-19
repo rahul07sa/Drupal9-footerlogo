@@ -1,0 +1,15 @@
+services:
+  dynamic_yield.dynamic_yield:
+    class: Drupal\dynamic_yield\DynamicYieldService
+    arguments: ['@config.factory']
+  dynamic_yield.default:
+    class: Drupal\dynamic_yield\EventSubscriber\DefaultSubscriber
+    arguments: ['@path.matcher']
+    tags:
+      - { name: event_subscriber }
+  dynamic_yield.product_feed_api_wrapper:
+    class: Drupal\dynamic_yield\Service\ProductDeltaFeedApiWrapper
+    arguments:
+      - '@config.factory'
+      - '@http_client'
+      - '@logger.factory'

@@ -1,0 +1,29 @@
+{#
+/**
+ * @file
+ *
+ * Default user order detail template.
+ *
+ * Available variables:
+ * - attributes: HTML attributes for the wrapper.
+ * - order: Array containing all order details.
+ *
+ * @ingroup themeable
+ */
+#}
+{{ attach_library('alshaya_white_label/tooltip') }}
+
+{% set count = order.quantity %}
+{% if download_link %}
+  <div class="download-invoice-wrapper">
+    <a href="{{ download_link }}" class="download-invoice">{{ "Download Invoice"|t }}</a>
+  </div>
+{% endif %}
+<div>
+  <a href="{{ print_link }}" target="_blank" class="button-wide print--button">{{ "print"|t }}</a>
+</div>
+{% if bazaarvoice_strings %}
+  {{ bazaarvoice_strings }}
+{% endif %}
+{% set aura_class = order.auraEnabled ? 'has-aura-points' %}
+<div id="user-order-details" {{ attributes }}></div>

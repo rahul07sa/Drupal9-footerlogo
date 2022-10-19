@@ -1,0 +1,57 @@
+@include breakpoint($only-mobile) {
+  .filter-fixed-top {
+    .block-alshaya-plp-facets-block-all,
+    .block-facet-blockcategory-facet-plp {
+      top: 3.625rem;
+
+      html[lang=ar] & {
+        top: 4rem;
+      }
+    }
+  }
+}
+
+.filter-fixed-top {
+  .sticky-filter-wrapper {
+    .site-brand-home {
+      a {
+        picture {
+          display: flex;
+          align-items: center;
+        }
+      }
+    }
+  }
+}
+
+.block-alshaya-category-lhn-block {
+  ul {
+    li {
+      a {
+        &.lhn-4,
+        &.lhn-3 {
+          &.active {
+            font-weight: bold;
+          }
+        }
+      }
+    }
+  }
+}
+
+.c-plp {
+  .region__content {
+    .view-empty {
+      @include breakpoint($upto-desktop) {
+        text-align: center;
+      }
+    }
+  }
+}
+
+.show-all-filters,
+.show-all-filters-algolia {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  line-height: 2.875rem;
+}

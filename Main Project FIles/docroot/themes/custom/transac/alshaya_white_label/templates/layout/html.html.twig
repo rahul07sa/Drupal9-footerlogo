@@ -1,0 +1,42 @@
+<!-- CONDITIONAL CSS -->
+
+<!DOCTYPE html>
+<html{{ html_attributes }}>
+<head>
+    <meta name="google" value="notranslate">
+    <link rel="apple-touch-icon" sizes="57x57" href="{{ base_path }}/{{ active_theme_path() }}/apple-touch-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="{{ base_path }}/{{ active_theme_path() }}/apple-touch-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="{{ base_path }}/{{ active_theme_path() }}/apple-touch-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="15 2x152" href="{{ base_path }}/{{ active_theme_path() }}/apple-touch-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="{{ base_path }}/{{ active_theme_path() }}/apple-touch-icon-167x167.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ base_path }}/{{ active_theme_path() }}/apple-touch-icon-180x180.png">
+    <link rel="icon" sizes="192x192" href="{{ base_path }}/{{ active_theme_path() }}/android-chrome-192x192.png">
+    <link rel="icon" sizes="128x128" href="{{ base_path }}/{{ active_theme_path() }}/android-chrome-128x128.png">
+    <head-placeholder token="{{ placeholder_token|raw }}">
+    <title>{{ head_title|safe_join(' | ') }}</title>
+    <css-placeholder token="{{ placeholder_token|raw }}">
+    <js-placeholder token="{{ placeholder_token|raw }}">
+</head>
+<body{{ attributes }}>
+<div id="skip">
+    <a class="visually-hidden focusable skip-link" href="#main-menu">
+        {{ 'Skip to main navigation'|t }}
+    </a>
+</div>
+{{ rcs_templates }}
+{{ page_top }}
+{{ page }}
+{{ page_bottom }}
+<js-bottom-placeholder token="{{ placeholder_token|raw }}">
+</body>
+{% if inline_css %}
+  <style>
+    {{ inline_css }}
+  </style>
+{% endif %}
+{% if inline_js %}
+  <script>
+    {{ inline_js }}
+  </script>
+{% endif %}
+</html>

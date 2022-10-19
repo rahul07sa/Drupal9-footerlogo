@@ -1,0 +1,13 @@
+name: 'Alshaya Performance Optimisations'
+type: module
+core: 8.x
+core_version_requirement: ^8 || ^9
+package: Alshaya Performance
+description: 'Contains all code related to performance improvement.'
+
+dependencies:
+  - memcache:memcache
+  - queue_unique:queue_unique
+  - sessions_expire:sessions_expire
+  - cache_tags_cleanup:cache_tags_cleanup
+  - alshaya_config:alshaya_config

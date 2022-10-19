@@ -1,0 +1,315 @@
+.block-alshaya-algolia-react-autocomplete {
+  @include breakpoint($only-mobile) {
+    visibility: hidden;
+    top: 3.125rem;
+    padding: 0;
+    box-shadow: none;
+
+    html[lang=ar] & {
+      padding: 0;
+      top: 3.6875rem;
+    }
+  }
+
+  @include breakpoint($only-tablet) {
+    bottom: -3.25rem;
+    visibility: hidden;
+
+    &.show-algolia-search-bar {
+      visibility: visible;
+    }
+  }
+
+  &.clear-icon {
+    #alshaya-algolia-autocomplete .react-autosuggest__input {
+      padding-#{$right}: 2.5rem;
+
+      @include breakpoint($desktop) {
+        padding-#{$right}: 4rem;
+      }
+    }
+
+    @include breakpoint($only-tablet) {
+      &.show-algolia-search-bar {
+        .algolia-search-cleartext-icon {
+          opacity: 1;
+          visibility: visible;
+        }
+      }
+    }
+
+    @include breakpoint($only-mobile) {
+      &.show-algolia-search-bar {
+        .algolia-search-cleartext-icon {
+          opacity: 1;
+          visibility: visible;
+        }
+      }
+    }
+  }
+
+  .algolia-search-cleartext-icon {
+    #{$right}: 0.5rem;
+
+    @include breakpoint($only-mobile) {
+      top: 0.75rem;
+    }
+
+    @include breakpoint($tablet) {
+      #{$right}: 0.3rem;
+    }
+
+    @include breakpoint($desktop) {
+      #{$right}: 2rem;
+    }
+  }
+
+  .react-autosuggest__container .algolia-search-back-icon {
+    color: $algolia-search-clear-text-icon;
+
+    @include breakpoint($only-mobile) {
+      top: 0.75rem;
+      #{$left}: 0;
+    }
+
+    &::before {
+      font-size: 2rem;
+    }
+  }
+
+  #alshaya-algolia-autocomplete {
+    width: 100%;
+    padding: 0;
+
+    @include breakpoint($desktop) {
+      width: 14rem;
+      padding: 0 0.75rem 0 0;
+      margin-bottom: 0.375rem;
+    }
+
+    .react-autosuggest__input {
+      padding-top: 0.65625rem;
+      border-radius: 0;
+
+      @include breakpoint($only-mobile) {
+        margin: 0;
+        width: 100%;
+        border-width: 0 0 0.0625rem !important;
+        border-color: $algolia-auto-complete-border !important;
+      }
+
+      @include breakpoint($upto-desktop) {
+        height: 3.5rem;
+        border: 0.5rem solid $algolia-input-box-shadow;
+        line-height: 1.25rem;
+        padding-#{$left}: 3rem !important;
+      }
+
+      @include breakpoint($desktop) {
+        height: 2.5rem;
+        border: 0.0625rem solid $algolia-auto-complete-border;
+      }
+
+      &::placeholder {
+        font-size: 0.875rem;
+        line-height: 1.4375rem;
+        color: $algolia-input-placeholder-text;
+        text-transform: capitalize;
+      }
+    }
+
+    .ais-InstantSearch__root form {
+      @include breakpoint($tablet) {
+        box-shadow: 0 0.5px 0 0 rgba(0, 0, 0, 0.24);
+      }
+
+      @include breakpoint($desktop) {
+        box-shadow: none;
+      }
+    }
+
+    .react-autosuggest__container {
+      &::before {
+        background-color: transparent;
+        height: auto;
+        width: auto;
+      }
+
+      &::after {
+        content: '';
+        background: $primary_search_btn_icon url('../../../imgs/assets/search.svg') 10px 7px no-repeat;
+        background-position: center;
+        display: block;
+        width: 2.625rem;
+        height: 2.375rem;
+
+        @include breakpoint($only-mobile) {
+          top: 0.5rem;
+          #{$right}: unset;
+          #{$left}: 0;
+          opacity: 1;
+          transition: opacity 0.2s;
+        }
+
+        @include breakpoint($only-tablet) {
+          top: 0.5rem;
+          #{$right}: unset;
+          #{$left}: -0.5rem;
+          opacity: 1;
+          transition: opacity 0.2s;
+        }
+
+        @include breakpoint($desktop) {
+          border: none;
+          text-indent: -9999px;
+          top: 50%;
+          transform: translateY(-50%);
+          #{$right}: 0;
+
+          html[lang=ar] & {
+            transform: translateY(-50%) rotate(90deg);
+          }
+        }
+      }
+
+      &--open {
+        .react-autosuggest__input {
+          @include breakpoint($tablet) {
+            border-radius: 0;
+          }
+
+          @include breakpoint($only-tablet) {
+            border-bottom: 0.5rem solid $algolia-input-box-shadow;
+          }
+
+          @include breakpoint($desktop) {
+            border-bottom: 0.0625rem solid $algolia-auto-complete-border;
+          }
+        }
+      }
+
+      .trending-title {
+        color: $algolia-trending-title-text;
+        font-family: $bbw-bold;
+        text-transform: capitalize;
+        padding: 0.625rem !important;
+      }
+
+      .react-autosuggest__suggestion .aa-suggestion {
+        &:hover {
+          background-color: $algolia-search-suggestion-hover-bg;
+        }
+
+        .suggested-text {
+          padding: 0.625rem !important;
+        }
+      }
+
+      #top-results {
+        .alshaya_search_mainimage {
+          @include breakpoint($only-mobile) {
+            height: 15.5rem;
+          }
+        }
+      }
+    }
+
+    .react-autosuggest__suggestions-container {
+      &--open {
+        margin-top: 0;
+        border: 1px solid $algolia-auto-complete-border;
+        box-shadow: none;
+        border-radius: 0;
+
+        @include breakpoint($only-mobile) {
+          border: none;
+        }
+
+        @include breakpoint($only-tablet) {
+          border: none;
+          border-bottom: 1px solid $algolia-auto-complete-border;
+        }
+
+        @include breakpoint($desktop) {
+          border-top: none;
+        }
+      }
+    }
+  }
+
+  &.focused {
+    #alshaya-algolia-autocomplete {
+      .react-autosuggest__container {
+        &::after {
+          @include breakpoint($upto-desktop) {
+            opacity: 0;
+          }
+        }
+
+        .react-autosuggest__input {
+          @include breakpoint($only-tablet) {
+            padding-#{$left}: 0.7rem !important;
+          }
+        }
+      }
+    }
+  }
+}
+
+body {
+  &:not(.no-sticky-algolia-search-bar) {
+    @include breakpoint($upto-desktop) {
+      margin-top: 7.875rem;
+    }
+
+    html[lang=ar] & {
+      @include breakpoint($upto-desktop) {
+        margin-top: 7.875rem;
+      }
+    }
+
+    .block-alshaya-algolia-react-autocomplete {
+      @include breakpoint($only-mobile) {
+        padding: 0;
+      }
+    }
+  }
+
+  &.no-sticky-algolia-search-bar {
+    .block-alshaya-algolia-react-autocomplete {
+      &.show-algolia-search-bar {
+        @include breakpoint($only-mobile) {
+          top: -0.25rem;
+        }
+      }
+    }
+  }
+
+  &.frontpage:not(.Sticky-algolia-search) {
+    #alshaya-algolia-autocomplete {
+      .react-autosuggest__input {
+        @include breakpoint($only-mobile) {
+          border-top: 0.0625rem solid $algolia-auto-complete-border !important;
+        }
+      }
+    }
+
+    .mobile--search {
+      @include breakpoint($only-tablet) {
+        display: none;
+      }
+    }
+  }
+
+  &:not(.frontpage) {
+    .block-alshaya-algolia-react-autocomplete {
+      @include breakpoint($only-tablet) {
+        display: none !important;
+
+        &.show-algolia-search-bar {
+          display: block !important;
+        }
+      }
+    }
+  }
+}

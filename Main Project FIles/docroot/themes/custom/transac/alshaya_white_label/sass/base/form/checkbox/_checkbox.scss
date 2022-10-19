@@ -1,0 +1,37 @@
+input[type=checkbox] {
+  display: none;
+}
+
+input[type=checkbox] ~ label {
+  @include icon(checkboxempty);
+
+  &::before {
+    font-size: 1.5rem;
+
+    @include breakpoint($tablet) {
+      font-size: 1.125rem;
+    }
+  }
+}
+
+input[type=checkbox]:checked ~ label {
+  @include icon(checkboxfull);
+
+  &::before {
+    color: $primary_checkbox_filled;
+  }
+}
+
+// Fix for facets without translations.
+.c-facet {
+  input[type=checkbox] ~ label {
+    &::before {
+      float: $left;
+      position: relative;
+
+      @include breakpoint($only-mobile) {
+        font-size: 1.5rem;
+      }
+    }
+  }
+}

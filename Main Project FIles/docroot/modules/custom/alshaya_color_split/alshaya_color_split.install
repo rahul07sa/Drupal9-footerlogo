@@ -1,0 +1,94 @@
+<?php
+
+/**
+ * @file
+ * Contains hooks to be fired while enabling the module.
+ */
+
+use Drupal\alshaya_config\AlshayaConfigManager;
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add index for attr_style_code in acq_sku_field_data table.
+ */
+function alshaya_color_split_update_8004() {
+  _alshaya_color_split_attr_style_code_index();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add Arabic config for alshaya_color_split.settings.
+ */
+function alshaya_color_split_update_8003() {
+  \Drupal::languageManager()->getLanguageConfigOverride('ar', 'alshaya_color_split.settings')->set('color_label_cart_form', 'اللون')->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add field grouping_attributes in SKU entity.
+ */
+function alshaya_color_split_update_8002() {
+  alshaya_config_install_configs(['alshaya_acm_product.sku_base_fields'], 'alshaya_acm_product');
+  \Drupal::service('acq_sku.fields_manager')->addFields();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Re-index search for all products.
+ */
+function alshaya_color_split_update_8001() {
+  // Save acquia_search_index to flag all products for re-index.
+  _alshaya_search_api_reindex();
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_color_split_install() {
+  // Hide product color field from Form display.
+  $alshayaConfigManager = \Drupal::service('alshaya_config.manager');
+  $alshayaConfigManager->updateConfigs(['core.entity_form_display.node.acq_product.default'], 'acq_sku');
+
+  // Add style code attribute to SKU entity.
+  alshaya_config_install_configs(['alshaya_acm_product.sku_base_fields'], 'alshaya_acm_product');
+  \Drupal::service('acq_sku.fields_manager')->addFields();
+
+  // Update url alias for product nodes to append color label as suffix.
+  $alshayaConfigManager->updateConfigs(['pathauto.pattern.product_pathauto'], 'alshaya_acm_product', 'install', AlshayaConfigManager::MODE_REPLACE);
+
+  // Update Alshaya display settings to hide swatches.
+  $config = \Drupal::configFactory()->getEditable('alshaya_acm_product.display_settings');
+  $config->set('color_swatches', FALSE);
+  $config->save();
+
+  // Add Arabic config for alshaya_color_split.settings.
+  \Drupal::languageManager()->getLanguageConfigOverride('ar', 'alshaya_color_split.settings')->set('color_label_cart_form', 'اللون')->save();
+}
+
+/**
+ * Implements hook_modules_installed().
+ */
+function alshaya_color_split_modules_installed($modules) {
+  if (in_array('alshaya_color_split', $modules)) {
+    _alshaya_color_split_attr_style_code_index();
+  }
+}
+
+/**
+ * Add index for 'attr_style_code' attribute if not exists.
+ */
+function _alshaya_color_split_attr_style_code_index() {
+  // Add index to 'attr_style_code' if not already added.
+  \Drupal::moduleHandler()->loadInclude('acq_sku', 'install');
+  $index = 'acq_sku__attr_style_code';
+  $data = _acq_sku_indexes()[$index];
+  if (!empty($data) && !\Drupal::database()->schema()->indexExists($data['table'], $index)) {
+    \Drupal::database()
+      ->schema()
+      ->addIndex($data['table'], $index, $data['fields'], $data['spec']);
+  }
+}

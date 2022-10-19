@@ -1,0 +1,14 @@
+name: 'Alshaya Arabic'
+description: 'Enables Arabic language in the site.'
+type: module
+core: 8.x
+core_version_requirement: ^8 || ^9
+package: Alshaya
+dependencies:
+  - drupal:block
+  - ctools:ctools
+  - drupal:language
+  - pathauto:pathauto
+  - drupal:system
+  - drupal:taxonomy
+  - drupal:views

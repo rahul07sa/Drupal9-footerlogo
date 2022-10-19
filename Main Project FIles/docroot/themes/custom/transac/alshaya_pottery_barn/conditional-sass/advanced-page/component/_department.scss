@@ -1,0 +1,47 @@
+.c-department {
+  @include breakpoint($tablet) {
+    margin-top: 0;
+  }
+
+  .c-category-list__title {
+    text-transform: uppercase;
+    font-weight: bold;
+    color: $secondary_link;
+
+    a {
+      color: $secondary_link;
+    }
+  }
+
+  .c-category-list__item {
+    text-transform: none;
+  }
+}
+
+.nodetype--advanced_page {
+  .c-department {
+    @include breakpoint($only-mobile) {
+      margin-top: 0.75rem;
+    }
+  }
+}
+
+.paragraph--type--product-carousel-category {
+  .crossell-title {
+    &.subtitle {
+      padding-#{$left}: 0;
+      font-size: 1.125rem;
+      font-weight: 300;
+
+      @include breakpoint($tablet) {
+        padding: 0 12%;
+        margin-bottom: 1.625rem;
+      }
+
+      @include breakpoint($desktop) {
+        padding: 0 5%;
+        margin-bottom: 1.625rem;
+      }
+    }
+  }
+}

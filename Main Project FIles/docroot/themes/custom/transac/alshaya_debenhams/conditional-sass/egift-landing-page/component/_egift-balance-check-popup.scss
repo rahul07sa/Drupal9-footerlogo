@@ -1,0 +1,42 @@
+.egift-landing-page {
+  .popup-content.egift-balance-check-content {
+    .egift-balance-check-form {
+      .egift-button {
+        @include button-brand;
+
+        font-family: $dh-semibold;
+
+        &:hover {
+          background: $primary_brand_button;
+          border: none;
+          transition: none;
+        }
+      }
+    }
+
+    .egift-balance-response {
+      .egift-topup-btn-wrapper {
+        button {
+          @include button-brand;
+
+          font-family: $dh-semibold;
+
+          &:hover {
+            background: $primary_brand_button;
+            border: none;
+            transition: none;
+          }
+
+          &:last-child {
+            @include btn;
+
+            &:hover {
+              border: none;
+              transition: none;
+            }
+          }
+        }
+      }
+    }
+  }
+}

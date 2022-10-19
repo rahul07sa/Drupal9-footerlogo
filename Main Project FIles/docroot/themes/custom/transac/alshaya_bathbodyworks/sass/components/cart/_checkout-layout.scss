@@ -1,0 +1,33 @@
+.block-customer-service-block {
+  font-family: $alshaya-thin;
+
+  @include breakpoint($only-mobile) {
+    font-size: 0.875rem;
+  }
+
+  h3 {
+    text-transform: uppercase;
+    font-family: $alshaya-bold;
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+  }
+
+  p {
+    text-transform: none;
+    font-weight: normal;
+  }
+
+  p:last-child {
+    .light {
+      font-family: $alshaya-thin;
+    }
+  }
+}
+
+.path--cart {
+  .site-brand-home {
+    html[lang=ar] & {
+      max-width: 80.25rem !important;
+    }
+  }
+}

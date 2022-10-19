@@ -1,0 +1,48 @@
+alshaya_algolia_react.settings:
+  type: config_object
+  label: 'Alshaya Algolia React settings'
+  mapping:
+    attributes_to_sort_by_name:
+      type: sequence
+      label: 'Attributes to sort by name'
+      sequence:
+        type: string
+        label: 'Attribute'
+    local_storage_expire:
+      type: string
+      label: 'Expire time for localStorage.'
+    application_id:
+      type: string
+      label: 'Application id.'
+    search_api_key:
+      type: string
+      label: 'Search api key.'
+    hits:
+      type: integer
+      label: 'Number of results to show.'
+    top_results:
+      type: integer
+      label: 'Number of top results to show for autocomplete.'
+    items_per_page:
+      type: integer
+      label: 'Number of items to show for search results.'
+    hide_grid_toggle:
+      type: boolean
+      label: 'Grid toggle hide/show in srp/plp.'
+    top_facets_limit:
+      type: integer
+      label: 'Number of filters to show on srp/plp page top.'
+
+alshaya_algolia_react.product_frames:
+  type: config_object
+  label: 'Alshaya algolia react product frames configurations'
+  mapping:
+    product_frame:
+      type: boolean
+      label: 'Display frame around the teaser on all listing pages'
+    promotion_frame:
+      type: boolean
+      label: 'Display frame on promotion label on all listing pages'
+    product_title_trim:
+      type: boolean
+      label: 'Display trimmed product title on all listing pages'

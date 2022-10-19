@@ -1,0 +1,5 @@
+services:
+  logger.channel.alshaya_acm_knet:
+    class: Drupal\Core\Logger\LoggerChannel
+    factory: logger.factory:get
+    arguments: ['alshaya_acm_knet']

@@ -1,0 +1,419 @@
+<?php
+
+/**
+ * @file
+ * Install, uninstall, update function for alshaya_vs_transac.
+ */
+
+use Drupal\alshaya_config\AlshayaConfigManager;
+use Drupal\Core\Site\Settings;
+use Drupal\Component\Utility\Unicode;
+
+/**
+ * Implements hook_update_N().
+ *
+ * [6.3.0] Reindex to update the attributes.
+ */
+function alshaya_vs_transac_update_8017() {
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    [
+      'alshaya_acm_product.sku_base_fields',
+    ],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_MERGE
+  );
+  /** @var \Drupal\acq_sku\SKUFieldsManager $fieldsManager */
+  $fieldsManager = \Drupal::service('acq_sku.fields_manager');
+  $fieldsManager->resetBaseFields();
+  // Queue all products to re-index.
+  \Drupal::service('alshaya_acm_product.product_queue_utility')->queueAllProducts();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Change block region for Size Facet Block for VS Bra PLPs.
+ */
+function alshaya_vs_transac_update_8016() {
+  $block = \Drupal::entityTypeManager()->getStorage('block')
+    ->load('sizefacetblock');
+  $block->setRegion('content');
+  $block->setWeight('-50');
+  $block->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable grouping_attribute for api response.
+ */
+function alshaya_vs_transac_update_8015() {
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_color_split.settings'],
+    'alshaya_color_split',
+    'install',
+    $manager::MODE_RESAVE,
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable alshaya_mobile_app module.
+ */
+function alshaya_vs_transac_update_8014() {
+  \Drupal::service('module_installer')->install(['alshaya_mobile_app']);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * [5.14.0] Adds lining and coverage fields in sku base field existing config.
+ * [5.14.0] Reindex to update the processed node titles.
+ */
+function alshaya_vs_transac_update_8013() {
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    [
+      'alshaya_acm_product.sku_base_fields',
+    ],
+    'alshaya_vs_transac',
+    'override',
+    AlshayaConfigManager::MODE_ADD_MISSING
+  );
+
+  \Drupal::service('acq_sku.fields_manager')->addFields();
+
+  \Drupal::service('alshaya_acm_product.product_queue_utility')->queueAllProducts();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable Dynamic yield module.
+ */
+function alshaya_vs_transac_update_8012() {
+  \Drupal::service('module_installer')->install(['dynamic_yield']);
+  // Set env specific Section ID for DY scripts.
+  /** @var \Drupal\alshaya_acm\AlshayaAcmConfigCheck $config_check */
+  $config_check = \Drupal::service('alshaya_acm.config_check');
+  $config_check->checkConfig(TRUE, 'dynamic_yield.settings');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable catalog restructuring.
+ */
+function alshaya_vs_transac_update_8011() {
+  \Drupal::service('module_installer')->install(['alshaya_color_split']);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update meta variables.
+ */
+function alshaya_vs_transac_update_8010() {
+  _alshaya_vs_transac_save_metatag_translations();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update config for showing images of specific color product in listing.
+ * This is done when filtered by color.
+ */
+function alshaya_vs_transac_update_8009() {
+  \Drupal::configFactory()
+    ->getEditable('alshaya_acm_product.display_settings')
+    ->set('show_color_images_on_filter', 1)
+    ->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Save translations for meta tags.
+ */
+function alshaya_vs_transac_update_8008() {
+  $strings = [
+    'seo_brand_name' => [
+      'en' => "Victoria's Secret",
+      'ar' => 'فيكتوريا سيكريت',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update sort orders for size facet to match order in Magento.
+ */
+function alshaya_vs_transac_update_8007() {
+  $size_facets = [
+    'facets.facet.size',
+    'facets.facet.plp_size',
+    'facets.facet.promo_size',
+  ];
+
+  foreach ($size_facets as $config) {
+    \Drupal::configFactory()->getEditable($config)->save();
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable WhatsApp and Email in Sharethis.
+ */
+function alshaya_vs_transac_update_8006() {
+  // Configure ShareThis defaults.
+  $configFactory = \Drupal::configFactory()->getEditable('sharethis.settings');
+  $services = $configFactory->get('service_option');
+  $services .= ",'WhatsApp:whatsapp','Email:email'";
+  $configFactory->set('service_option', $services);
+  // Save the changes.
+  $configFactory->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update the currency_code to DHS.
+ */
+function alshaya_vs_transac_update_8005() {
+  $country_code = Unicode::strtolower(Settings::get('country_code'));
+  if ($country_code === 'ae') {
+    \Drupal::configFactory()->getEditable('acq_commerce.currency')
+      ->set('currency_code', 'DHS')
+      ->save();
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Clear product cache.
+ */
+function alshaya_vs_transac_update_8004() {
+  /** @var \Drupal\pcb\Cache\PermanentDatabaseBackend $cache */
+  $cache = \Drupal::service('cache.alshaya_product');
+  $cache->deleteAllPermanent();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Change images mode to fallback for VS.
+ * Enable the module alshaya_vs_search.
+ */
+function alshaya_vs_transac_update_8003() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(
+    ['alshaya_acm_product.display_settings'],
+    'alshaya_acm_product',
+    'install',
+    AlshayaConfigManager::MODE_RESAVE
+  );
+
+  if (!(\Drupal::moduleHandler()->moduleExists('alshaya_vs_search'))) {
+    \Drupal::service('module_installer')->install(['alshaya_vs_search']);
+  }
+}
+
+/**
+ * Implements hook_post_update_NAME().
+ *
+ * Re-save index to create/remove index tables.
+ *
+ * We do this in post update hook as it doesn't work together with config update
+ * in normal hook_update.
+ */
+function alshaya_vs_transac_post_update_8001(&$sandbox) {
+  _alshaya_search_resave_indexes();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adding 'swatch: 0/1' key to the '*.sku_base_fields' for facets.
+ */
+function alshaya_vs_transac_update_8002() {
+  alshaya_config_install_configs(['alshaya_vs_transac.sku_base_fields'], 'alshaya_vs_transac');
+  /** @var \Drupal\acq_sku\SKUFieldsManager $sku_fields_manager */
+  $sku_fields_manager = \Drupal::service('acq_sku.fields_manager');
+  $sku_fields_manager->updateFieldMetaInfo('actual_color_label_code', ['swatch' => 1]);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add product_category field.
+ * Make color configurable.
+ * Stop indexing color and remove facets for it.
+ */
+function alshaya_vs_transac_update_8001() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+  $manager->updateConfigs(['alshaya_vs_transac.sku_base_fields'], 'alshaya_vs_transac');
+  /** @var \Drupal\acq_sku\SKUFieldsManager $sku_fields_manager */
+  $sku_fields_manager = \Drupal::service('acq_sku.fields_manager');
+  $sku_fields_manager->addFields();
+
+  /** @var \Drupal\acq_sku\SKUFieldsManager $fieldsManager */
+  $fieldsManager = \Drupal::service('acq_sku.fields_manager');
+  $fieldsManager->resetBaseFields();
+
+  // Re-save index configs to ensure overrides are taken into consideration.
+  alshaya_config_install_configs(['search_api.index.product'], 'alshaya_product');
+  alshaya_config_install_configs(['search_api.index.acquia_search_index'], 'alshaya_search');
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_vs_transac_install() {
+  // Enable and set alshaya_victoria_secret as default theme and set the site
+  // logo, favicon icon and email logo path.
+  _alshaya_master_initialize_brand_theme('alshaya_victoria_secret');
+
+  // Set store id - EN.
+  \Drupal::configFactory()->getEditable('acq_commerce.store')
+    ->set('store_id', Settings::get('store_id')['en'])
+    ->save();
+
+  // Translate store id in config.
+  \Drupal::languageManager()->getLanguageConfigOverride('ar', 'acq_commerce.store')
+    ->set('store_id', Settings::get('store_id')['ar'])
+    ->save();
+
+  // Save language prefix - EN.
+  \Drupal::configFactory()->getEditable('alshaya_api.settings')
+    ->set('magento_lang_prefix', Settings::get('magento_lang_prefix')['en'])
+    ->save();
+
+  // Save language prefix - AR.
+  \Drupal::languageManager()->getLanguageConfigOverride('ar', 'alshaya_api.settings')
+    ->set('magento_lang_prefix', Settings::get('magento_lang_prefix')['ar'])
+    ->save();
+
+  // Add string translations.
+  $strings = [
+    'Corporate Info' => [
+      'ar' => ' تعرفي إلينا ',
+    ],
+    'Customer care' => [
+      'ar' => ' خدمة الزبائن ',
+    ],
+    'Connect with us' => [
+      'ar' => ' تواصلي معنا ',
+    ],
+    'Store Includes' => [
+      'ar' => 'المحل يشمل',
+    ],
+    'I would like to receive exclusive deals from Victoria\'s Secret' => [
+      'ar' => 'أرغب في استلام عروض حصرية من فيكتورياز سيكريت',
+    ],
+    'seo_brand_name' => [
+      'en' => "Victoria's Secret",
+      'ar' => 'فيكتوريا سيكريت',
+    ],
+  ];
+  alshaya_i18n_save_translations($strings);
+
+  \Drupal::languageManager()->getLanguageConfigOverride('ar', 'alshaya_stores_finder.settings')
+    ->set('marker.label_position', alshaya_stores_finder_marker_label_position_ar())
+    ->save();
+
+  $view_store_finder = \Drupal::languageManager()->getLanguageConfigOverride('ar', 'views.view.stores_finder');
+  $view_store_finder->set('display.attachment_1.display_options.fields.field_brand.label', 'المحل يشمل');
+  $view_store_finder->set('display.page_1.display_options.fields.field_brand.label', 'المحل يشمل');
+  $view_store_finder->set('display.page_3.display_options.fields.field_brand.label', 'المحل يشمل');
+  $view_store_finder->save();
+
+  $field_brand = \Drupal::languageManager()->getLanguageConfigOverride('ar', 'field.field.node.store.field_brand');
+  $field_brand->set('label', 'المحل يشمل');
+  $field_brand->save();
+
+  $field_newsletter = \Drupal::languageManager()->getLanguageConfigOverride('ar', 'field.field.user.user.field_subscribe_newsletter');
+  $field_newsletter->set('label', 'أرغب في استلام عروض حصرية من فيكتورياز سيكريت');
+  $field_newsletter->save();
+  // Enable super category feature and menu block with config factory.
+  // Placing config in "override" folder won't work here. As we have an event
+  // subscriber written for config save, which will always override the value
+  // from the config placed in override folder and that will not allow drush
+  // command, for super category feature, to execute properly.
+  /** @var \Drupal\alshaya_super_category\AlshayaSuperCategoryManager $super_category_feature*/
+  $super_category_feature = \Drupal::service('alshaya_super_category.super_category_feature_manager');
+  $super_category_feature->enableSuperCategory();
+
+  // Configure ShareThis defaults.
+  $configFactory = \Drupal::configFactory()->getEditable('sharethis.settings');
+  $services = $configFactory->get('service_option');
+  $services .= ",'WhatsApp:whatsapp','Email:email'";
+  $configFactory->set('service_option', $services);
+  // Save the changes.
+  $configFactory->save();
+
+  // Install metatag translations.
+  _alshaya_vs_transac_save_metatag_translations();
+}
+
+/**
+ * Get translations of metatag.
+ */
+function _alshaya_vs_transac_save_metatag_translations() {
+  $strings = [
+    'alshaya_seo_sale_title_prefix' => [
+      'en' => '[alshaya_seo:super_category]',
+      'ar' => '[alshaya_seo:super_category]',
+    ],
+    'alshaya_seo_sale_title_suffix' => [
+      'en' => 'Sale and Offers',
+      'ar' => 'العروض والخصومات',
+    ],
+    'alshaya_seo_sale_text_before_cod' => [
+      'en' => 'Get the best prices.',
+      'ar' => 'الحصول على أفضل الأسعار في [alshaya_seo:country].',
+    ],
+    'alshaya_seo_sale_desc_start' => [
+      'en' => 'Get cool and comfortable Victorias Secret [alshaya_seo:super_category] sale and offers',
+      'ar' => 'الحصول على فيكتوريا سيكريت [alshaya_seo:super_category] صفقات على الانترنت والخصومات ',
+    ],
+    'alshaya_seo_desc_start' => [
+      'en' => 'Shop cool and comfortable Victorias Secret [alshaya_seo:super_category] [term:name] products',
+      'ar' => 'شراء مجموعة كبيرة ومريحة ',
+    ],
+    'alshaya_seo_sale_keywords' => [
+      'en' => 'Shop [alshaya_seo:super_category] [term:name] sale Online, Shop [term:name] sale in [alshaya_seo:country], Shop [alshaya_seo:super_category] [term:name] sale Collection',
+      'ar' => 'Shop [alshaya_seo:super_category] [term:name] sale Online, Shop [term:name] sale in [alshaya_seo:country], Shop [alshaya_seo:super_category] [term:name] sale Collection',
+    ],
+    'alshaya_seo_keywords' => [
+      'en' => 'Shop [alshaya_seo:super_category] [term:name] Online, Shop [term:name] in [alshaya_seo:country], Shop [alshaya_seo:super_category] [term:name] Collection, [alshaya_seo:term_cities]',
+      'ar' => 'متجر [term:parent:name][term:name] [alshaya_seo:brand_name]، متجر [alshaya_seo:brand_name] من [term:name] على الانترنت، متجر [term:name] من [alshaya_seo:brand_name]، وشراء [term:parent:name] مجموعة [term:name] على الانترنت، [alshaya_seo:term_cities]، متجر [alshaya_seo:super_category] [term:name] على الانترنت في [alshaya_seo:country]',
+    ],
+    'alshaya_seo_super_category_prefix' => [
+      'en' => "Victoria's Secret",
+      'ar' => "ﭬيكتوريا سيكريت",
+    ],
+    'alshaya_seo_super_category_prefix @term' => [
+      'en' => "Victoria's Secret @term",
+      'ar' => "ﭬيكتوريا سيكريت @term",
+    ],
+    'Collection Online' => [
+      'en' => 'Online',
+    ],
+    'Collection for @parent Online' => [
+      'en' => 'for @parent Online',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}

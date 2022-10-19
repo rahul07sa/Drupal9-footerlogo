@@ -1,0 +1,133 @@
+<?php
+
+/**
+ * @file
+ * Contains install, update, uninstall hooks for alshaya_product_options module.
+ */
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update alshaya_brand_carousel settings.
+ */
+function alshaya_product_options_update_8007() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+
+  $manager->updateConfigs(
+     ['alshaya_brand_carousel.settings'],
+     'alshaya_product_options'
+   );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Create new field (Swatch original image) for product options taxonomy.
+ */
+function alshaya_product_options_update_8006() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+
+  $manager->updateConfigs(
+    [
+      'field.storage.taxonomy_term.field_attribute_swatch_org_image',
+      'field.field.taxonomy_term.sku_product_option.field_attribute_swatch_org_image',
+      'alshaya_product_options.settings',
+      'alshaya_brand_carousel.settings',
+    ],
+    'alshaya_product_options'
+  );
+
+  $manager->updateConfigs(
+    [
+      'core.entity_view_display.taxonomy_term.sku_product_option.default',
+      'core.entity_form_display.taxonomy_term.sku_product_option.default',
+    ],
+    'acq_sku'
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update alias pattern for sku_product_option vocabulary.
+ */
+function alshaya_product_options_update_8005() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+
+  $manager->updateConfigs(
+    ['pathauto.pattern.sku_product_option'],
+    'alshaya_product_options'
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable aliases for sku_product_option vocabulary.
+ */
+function alshaya_product_options_update_8004() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+
+  $manager->updateConfigs(
+    ['pathauto.pattern.sku_product_option'],
+    'alshaya_product_options'
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Delete all the caches for product options.
+ */
+function alshaya_product_options_update_8003() {
+  \Drupal::service('cache.product_options')->deleteAllPermanent();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add config for module settings.
+ */
+function alshaya_product_options_update_8002() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+
+  $manager->updateConfigs(
+    ['alshaya_product_options.settings'],
+    'alshaya_product_options'
+  );
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Create new fields for product options taxonomy.
+ */
+function alshaya_product_options_update_8001() {
+  /** @var \Drupal\alshaya_config\AlshayaConfigManager $manager */
+  $manager = \Drupal::service('alshaya_config.manager');
+
+  $manager->updateConfigs(
+    [
+      'field.storage.taxonomy_term.field_attribute_size_chart',
+      'field.field.taxonomy_term.sku_product_option.field_attribute_size_chart',
+      'field.storage.taxonomy_term.field_attribute_size_chart_label',
+      'field.field.taxonomy_term.sku_product_option.field_attribute_size_chart_label',
+      'field.storage.taxonomy_term.field_attribute_size_group',
+      'field.field.taxonomy_term.sku_product_option.field_attribute_size_group',
+    ],
+    'alshaya_product_options'
+  );
+
+  $manager->updateConfigs(
+    [
+      'core.entity_view_display.taxonomy_term.sku_product_option.default',
+      'core.entity_form_display.taxonomy_term.sku_product_option.default',
+    ],
+    'acq_sku'
+  );
+}

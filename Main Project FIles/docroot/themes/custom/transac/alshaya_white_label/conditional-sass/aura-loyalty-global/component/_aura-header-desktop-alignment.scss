@@ -1,0 +1,82 @@
+body.aura-enabled {
+  // This is only needed in desktop to align all blocks in same.
+  @include breakpoint($desktop) {
+    .region__menu-secondary {
+      > div,
+      > nav {
+        line-height: 1;
+        height: 1.5rem;
+      }
+
+      #block-account-menu a {
+        line-height: 1;
+      }
+
+      #block-welcomeuser h3 {
+        height: 100%;
+        display: inline-flex;
+        align-items: center;
+      }
+
+      .aura-header-waiting-wrapper {
+        .spc-loading-container {
+          height: 1.5rem;
+
+          .spc-loader {
+            background-position: center !important;
+          }
+        }
+      }
+    }
+  }
+
+  @include breakpoint($upto-desktop) {
+    ul.menu--one__list.menu__list,
+    .c-my-account-nav {
+      top: rem(60);
+    }
+
+    .toggle--sign {
+      .one {
+        flex: auto;
+        height: rem(60);
+
+        &.shop {
+          align-items: center;
+          display: inline-flex;
+          justify-content: center;
+          line-height: 1;
+          width: rem(120);
+        }
+      }
+
+      .account,
+      .account--logged_in {
+        &.one {
+          width: calc(100% - 7.5rem);
+
+          .aura-logo-points {
+            align-items: center;
+            display: flex;
+            margin-top: rem(3);
+
+            .aura-logo {
+              display: inline-flex;
+              margin-#{$right}: rem(10);
+              max-width: 100%;
+
+              svg {
+                height: rem(22);
+                width: auto;
+              }
+            }
+
+            .account-points {
+              padding-top: 0;
+            }
+          }
+        }
+      }
+    }
+  }
+}

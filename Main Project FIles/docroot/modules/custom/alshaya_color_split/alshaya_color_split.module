@@ -1,0 +1,477 @@
+<?php
+
+/**
+ * @file
+ * Hook Implementations needed for alshaya_color_split module.
+ */
+
+use Drupal\acq_commerce\SKUInterface;
+use Drupal\acq_sku\Entity\SKU;
+use Drupal\acq_sku\Plugin\AcquiaCommerce\SKUType\Configurable;
+use Drupal\alshaya_acm_product\SkuManager;
+use Drupal\alshaya_color_split\AlshayaColorSplitConfig;
+use Drupal\alshaya_color_split\AlshayaColorSplitManager;
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_preprocess_html().
+ */
+function alshaya_color_split_preprocess_html(&$variables) {
+  $variables['#attached']['drupalSettings']['psudo_attribute'] = AlshayaColorSplitManager::PSEUDO_COLOR_ATTRIBUTE_CODE;
+}
+
+/**
+ * Implements hook_acq_sku_configurable_product_configurations_alter().
+ */
+function alshaya_color_split_acq_sku_configurable_product_configurations_alter(array &$configurations, SKU $sku) {
+  if (!SkuManager::$colorSplitMergeChildren) {
+    return;
+  }
+
+  $attribute_code_color_id = AlshayaColorSplitConfig::get('attribute_code_color_id');
+
+  // If we do not have any value for style code or we have
+  // color already set, we do no further processing.
+  if (isset($configurations[$attribute_code_color_id])) {
+    return;
+  }
+
+  $langcode = $sku->language()->getId();
+  $cid = implode(':', [
+    $sku->id(),
+    $langcode,
+  ]);
+
+  $cache = \Drupal::cache('alshaya_product_configurations')->get($cid);
+
+  if (isset($cache, $cache->data)) {
+    $configurations = $cache->data;
+    return;
+  }
+
+  /** @var \Drupal\alshaya_color_split\AlshayaColorSplitManager $manager */
+  $manager = \Drupal::service('alshaya_color_split.manager');
+  $variants = $manager->getProductsInStyle($sku);
+
+  if (empty($variants)) {
+    return;
+  }
+
+  // Ensure configurable value id is used as key in values.
+  foreach ($configurations as $code => $configuration) {
+    if (empty($configuration['values'])) {
+      continue;
+    }
+    $values = $configuration['values'];
+    $configurations[$code]['values'] = [];
+    foreach ($values as $value) {
+      $configurations[$code]['values'][$value['value_id']] = $value;
+    }
+  }
+
+  foreach ($variants as $variant) {
+    // Don't process / skip  if simple sku as simple skus don't
+    // have `field_configurable_attributes` field.
+    if ($variant->getType() == 'simple') {
+      continue;
+    }
+
+    // phpcs:ignore
+    $variant_configurations = unserialize($variant->get('field_configurable_attributes')->getString());
+
+    foreach ($variant_configurations as $variant_configurable) {
+      if (empty($configurations[$variant_configurable['code']])) {
+        $configurations[$variant_configurable['code']] = $variant_configurable;
+        $configurations[$variant_configurable['code']]['values'] = [];
+      }
+
+      foreach ($variant_configurable['values'] as $value) {
+        $configurations[$variant_configurable['code']]['values'][$value['value_id']] = $value;
+      }
+    }
+  }
+
+  $attribute_code_color_label = AlshayaColorSplitConfig::get('attribute_code_color_label');
+
+  $colors = [];
+  $children = Configurable::getChildren($sku);
+  foreach ($children as $child) {
+    $attributes = $child->get('attributes')->getValue();
+    $attributes = array_column($attributes, 'value', 'key');
+    $colors[$attributes[$attribute_code_color_id]] = [
+      'label' => $child->get($attribute_code_color_label)->getString(),
+      'value_id' => $attributes[$attribute_code_color_id],
+    ];
+  }
+
+  if (empty($colors)) {
+    return;
+  }
+
+  $configurations = [
+    'color' => [
+      'attribute_id' => AlshayaColorSplitManager::PSEUDO_COLOR_ATTRIBUTE_CODE,
+      'code' => $attribute_code_color_id,
+      'label' => AlshayaColorSplitConfig::get('color_label_cart_form'),
+      'position' => -1,
+      'values' => $colors,
+    ],
+  ] + $configurations;
+
+  \Drupal::cache('alshaya_product_configurations')->set($cid, $configurations, Cache::PERMANENT, $sku->getCacheTags());
+}
+
+/**
+ * Implements hook_acq_sku_configurable_variants_alter().
+ */
+function alshaya_color_split_acq_sku_configurable_variants_alter(array &$children, SKU $sku) {
+  if (!SkuManager::$colorSplitMergeChildren) {
+    return;
+  }
+
+  /** @var \Drupal\alshaya_color_split\AlshayaColorSplitManager $manager */
+  $manager = \Drupal::service('alshaya_color_split.manager');
+
+  $variants = $manager->getProductsInStyle($sku);
+  if (empty($variants)) {
+    return;
+  }
+
+  $children = [];
+
+  /** @var \Drupal\acq_sku\AcquiaCommerce\SKUPluginBase $plugin */
+  foreach ($variants as $variant) {
+    $variant_children = Configurable::getChildSkus($variant);
+    foreach ($variant_children as $child_sku_code) {
+      $child = SKU::loadFromSku($child_sku_code, $sku->language()->getId());
+      if (!($child instanceof SKU)) {
+        continue;
+      }
+
+      $children[$child->getSku()] = $child;
+    }
+  }
+}
+
+/**
+ * Implements hook_acq_sku_configurable_cart_options_alter().
+ */
+function alshaya_color_split_acq_sku_configurable_cart_options_alter(array &$options, SKU $sku) {
+  /** @var \Drupal\alshaya_acm_product\SkuManager $skuManager */
+  $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+
+  if ($skuManager->fetchStyleCode($sku)) {
+    foreach ($options as $index => $option) {
+      if ($option['option_id'] == AlshayaColorSplitManager::PSEUDO_COLOR_ATTRIBUTE_CODE) {
+        unset($options[$index]);
+        break;
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_acq_sku_indexes_alter().
+ */
+function alshaya_color_split_acq_sku_indexes_alter(array &$indexes) {
+  $indexes['acq_sku__attr_style_code'] = [
+    'table' => 'acq_sku_field_data',
+    'fields' => [
+      ['attr_style_code', 10],
+    ],
+    'spec' => [
+      'fields' => [
+        'attr_style_code' => [
+          'type' => 'varchar',
+          'length' => 255,
+          'default' => '',
+        ],
+      ],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter().
+ */
+function alshaya_color_split_form_sku_base_form_alter(&$form, FormStateInterface $form_state) {
+  // Sanity check.
+  if (empty($form['sku_id'])) {
+    return;
+  }
+
+  /** @var \Drupal\alshaya_acm_product\SkuManager $skuManager */
+  $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+
+  // Load SKU entity.
+  $sku = $skuManager->loadSkuById((int) $form['sku_id']['#value']);
+
+  // Grouping here is done only for simple products.
+  if (!($sku instanceof SKU) || $sku->bundle() !== 'simple') {
+    return;
+  }
+
+  /** @var \Drupal\alshaya_color_split\AlshayaColorSplitManager $manager */
+  $manager = \Drupal::service('alshaya_color_split.manager');
+  $grouping_attribute = $manager->getGroupingAttribute($sku);
+  $products_in_style = $manager->getProductsInStyle($sku);
+  if (empty($grouping_attribute) || empty($products_in_style)) {
+    return;
+  }
+  $options = [];
+  foreach ($products_in_style as $variant) {
+    $options[$variant->getSku()] = $variant->get('attr_' . $grouping_attribute)->getString();
+  }
+
+  // Allow providing translations for custom configurable field label.
+  // phpcs:ignore
+  $label = t($grouping_attribute, ['context' => 'configurable_attribute']);
+
+  $form['variants_in_group'] = [
+    '#title' => $label,
+    '#type' => 'select',
+    '#options' => $options,
+    '#default_value' => $sku->getSku(),
+    '#empty_value' => '',
+    '#empty_option' => t('Select @title', ['@title' => $label]),
+    '#attributes' => [
+      'class' => ['form-item-configurable-swatch'],
+      'data-default-title' => $label,
+    ],
+    '#weight' => -1,
+  ];
+
+  // To show grouped products with swatch on PDP.
+  $grouping_attribute_with_swatch = \Drupal::config('alshaya_color_split.settings')->get('process_swatch_for_grouping_attributes');
+  if ($grouping_attribute_with_swatch) {
+    $manager->alterGroupAttributeFormItem($form['variants_in_group'], $options, $grouping_attribute);
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_view().
+ */
+function alshaya_color_split_node_view(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, $view_mode) {
+  if (($entity->bundle() !== 'acq_product')) {
+    return;
+  }
+
+  if (in_array($view_mode, ['modal', 'full', 'matchback', 'matchback_mobile'])) {
+    /** @var \Drupal\alshaya_acm_product\SkuManager $skuManager */
+    $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+    $sku = $skuManager->getSkuForNode($entity);
+    $sku = !empty($sku) ? SKU::loadFromSku($sku) : NULL;
+
+    // If not able to load SKU return.
+    if (!($sku instanceof SKU)) {
+      return;
+    }
+
+    /** @var \Drupal\alshaya_color_split\AlshayaColorSplitManager $manager */
+    $manager = \Drupal::service('alshaya_color_split.manager');
+    $product_in_style = $manager->getProductsInStyle($sku);
+
+    // If no products in style or empty style code, return.
+    if (empty($product_in_style)) {
+      return;
+    }
+
+    // Do the processing here for simple product.
+    if ($sku->bundle() === 'simple') {
+      $grouping_attribute = $manager->getGroupingAttribute($sku);
+      if (empty($grouping_attribute)) {
+        return;
+      }
+
+      /** @var \Drupal\alshaya_acm_product\Service\SkuInfoHelper $skuInfo */
+      $skuInfo = \Drupal::service('alshaya_acm_product.sku_info');
+
+      $context = ($view_mode === 'full') ? 'pdp' : 'modal';
+      $settingsKey = 'productInfo';
+
+      if (($view_mode === 'matchback' || $view_mode === 'matchback_mobile')) {
+        $settingsKey = $view_mode;
+        $context = 'matchback';
+      }
+
+      $pdp_layout = $skuManager->getPdpLayout($entity, $context ?? 'pdp');
+      foreach ($product_in_style as $variant) {
+        $group[$variant->getSku()] = $skuInfo->getVariantInfo($variant, $pdp_layout);
+      }
+
+      $build['#attached']['library'][] = 'alshaya_color_split/grouped_simple';
+      $build['#attached']['drupalSettings'][$settingsKey][$sku->getSku()]['group'] = $group ?? [];
+    }
+    elseif ($sku->bundle() === 'configurable') {
+      $build['#attached']['library'][] = 'alshaya_color_split/grouped_configurable';
+    }
+  }
+}
+
+/**
+ * Implements hook_sku_variant_info_alter().
+ */
+function alshaya_color_split_sku_variant_info_alter(array &$variant, SKUInterface $child, ?SKUInterface $parent) {
+  /** @var \Drupal\alshaya_color_split\AlshayaColorSplitManager $manager */
+  $manager = \Drupal::service('alshaya_color_split.manager');
+
+  /** @var \Drupal\alshaya_acm_product\SkuManager $skuManager */
+  $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+
+  // Do nothing for free gifts.
+  if ($skuManager->isSkuFreeGift($child)) {
+    return;
+  }
+
+  /** @var \Drupal\acq_sku\ProductInfoHelper $productInfoHelper */
+  $productInfoHelper = \Drupal::service('acq_sku.product_info_helper');
+
+  if (($parent instanceof SKUInterface) && $manager->fetchStyleCode($parent)) {
+    $parent_sku = $skuManager->getParentSkuBySku($child);
+    if ($parent_sku != NULL) {
+      $variant['parent_sku'] = $parent_sku->getSku();
+      $variant['color_attribute'] = AlshayaColorSplitConfig::get('attribute_code_color_id');
+    }
+    else {
+      return;
+    }
+  }
+  // Below condition is only for simple products.
+  elseif (empty($parent) && $manager->fetchStyleCode($child) && ($grouping_attribute = $manager->getGroupingAttribute($child))) {
+    $variant['color_attribute'] = $grouping_attribute;
+    $parent_sku = $child;
+    $grouping_attribute_with_swatch = \Drupal::config('alshaya_color_split.settings')->get('process_swatch_for_grouping_attributes');
+    if ($grouping_attribute_with_swatch && $manager->getGroupingAttributeValues($parent_sku)) {
+      $variant['grouping_options'][] = $manager->getGroupingAttributeValues($parent_sku);
+    }
+  }
+  else {
+    return;
+  }
+
+  $variant['title'] = $productInfoHelper->getTitle($parent_sku, 'pdp');
+
+  // Add language for all urls for language switcher block.
+  $node = $skuManager->getDisplayNode($parent_sku, FALSE);
+  if ($node) {
+    foreach (\Drupal::languageManager()->getLanguages() as $language) {
+      $variant['url'][$language->getId()] = $node->toUrl('canonical', [
+        'absolute' => FALSE,
+        'language' => $language,
+      ])->toString();
+    }
+  }
+
+  /** @var \Drupal\alshaya_acm_product\AlshayaRequestContextManager $requestContextManager */
+  $requestContextManager = \Drupal::service('alshaya_acm_product.context_manager');
+  $context = $requestContextManager->getContext();
+  /** @var \Drupal\alshaya_acm_promotion\AlshayaPromoLabelManager $promoLabelManager */
+  $promoLabelManager = \Drupal::service('alshaya_acm_promotion.label_manager');
+
+  $promotion_label = $promoLabelManager->getPromotionLabelForProductDetail($parent_sku, 'full', $context);
+
+  $variant['promotions'] = !empty($promotion_label['promotions'])
+    ? render($promotion_label['promotions'])
+    : '';
+
+  $variant['free_gift_promotions'] = !empty($promotion_label['free_gift_promotions'])
+    ? render($promotion_label['free_gift_promotions'])
+    : '';
+
+  $variant['color_value'] = $node ? $node->get('field_product_color')->getString() : '';
+}
+
+/**
+ * Implements hook_alshaya_mobile_app_product_exclude_linked_data_alter().
+ */
+function alshaya_color_split_alshaya_mobile_app_product_exclude_linked_data_alter(array &$data, SKUInterface $sku) {
+  if ($sku->bundle() !== 'simple') {
+    return;
+  }
+
+  /** @var \Drupal\alshaya_acm_product\SkuInfoHelper $sku_info_helper */
+  $sku_info_helper = \Drupal::service('alshaya_acm_product.sku_info');
+  /** @var \Drupal\alshaya_color_split\AlshayaColorSplitManager $manager */
+  $manager = \Drupal::service('alshaya_color_split.manager');
+
+  $grouping_attribute = $manager->getGroupingAttribute($sku);
+  $products_in_style = $manager->getProductsInStyle($sku);
+  $grouping_attribute_with_swatch = \Drupal::config('alshaya_color_split.settings')->get('process_swatch_for_grouping_attributes');
+
+  if (!empty($grouping_attribute) && !empty($products_in_style) && $grouping_attribute_with_swatch) {
+    foreach ($products_in_style as $grouped_sku) {
+      if (!isset($data['grouping_attribute_with_swatch'])) {
+        $data['grouping_attribute_with_swatch'] = $grouping_attribute_with_swatch;
+      }
+      $data['grouped_variants'][] = $grouped_sku;
+      $data['grouped_variants'][$grouped_sku->getSku()]['attributes'] = $sku_info_helper->getAttributes($grouped_sku);
+      $manager->addAttributeSwatchData($data['grouped_variants'][$grouped_sku->getSku()], $grouping_attribute);
+    }
+  }
+}
+
+/**
+ * Implements hook_alshaya_spc_order_sku_details_alter().
+ */
+function alshaya_color_split_alshaya_spc_order_sku_details_alter(array &$data, SKUInterface $sku) {
+  /** @var \Drupal\alshaya_color_split\AlshayaColorSplitManager $manager */
+  $manager = \Drupal::service('alshaya_color_split.manager');
+  $grouping_attribute_with_swatch = \Drupal::config('alshaya_color_split.settings')->get('process_swatch_for_grouping_attributes');
+  if ($grouping_attribute_with_swatch && $manager->getGroupingAttributeValues($sku)) {
+    $data['options'][] = $manager->getGroupingAttributeValues($sku);
+  }
+}
+
+/**
+ * Implements hook_alshaya_acm_customer_order_details_alter().
+ */
+function alshaya_color_split_alshaya_acm_customer_order_details_alter(array &$order) {
+  if (!isset($order['items']) || empty($order['items'])) {
+    return;
+  }
+
+  /** @var \Drupal\alshaya_color_split\AlshayaColorSplitManager $manager */
+  $manager = \Drupal::service('alshaya_color_split.manager');
+  $grouping_attribute_with_swatch = \Drupal::config('alshaya_color_split.settings')->get('process_swatch_for_grouping_attributes');
+  if ($grouping_attribute_with_swatch) {
+    foreach ($order['items'] as $key => $item) {
+      if (isset($item['sku']) && !empty($item['sku'])) {
+        $sku = SKU::loadFromSku($item['sku']);
+        if ($sku instanceof SKUInterface) {
+          $grouping_attribute_value = $manager->getGroupingAttributeValues($sku);
+          if ($grouping_attribute_value) {
+            $order['items'][$key]['attributes'][] = $grouping_attribute_value;
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_pathauto_alias_alter().
+ */
+function alshaya_color_split_pathauto_alias_alter(&$alias, array $context) {
+  if ($context['module'] != 'node' || $context['bundle'] != 'acq_product') {
+    return;
+  }
+
+  // Remove - appering before .html in pdp url.
+  if (str_contains($alias, '-.html')) {
+    $alias = str_replace('-.html', '.html', $alias);
+  }
+}
+
+/**
+ * Implements hook_alshaya_search_algolia_object_alter().
+ */
+function alshaya_color_split_alshaya_search_algolia_object_alter(array &$object) {
+  /** @var \Drupal\alshaya_acm_product\SkuManager $sku_manager */
+  $sku = SKU::loadFromSku($object['sku'], $object['search_api_language']);
+  /** @var \Drupal\alshaya_color_split\AlshayaColorSplitManager $manager */
+  $manager = \Drupal::service('alshaya_color_split.manager');
+  $object['attr_style_code'] = $manager->fetchStyleCode($sku);
+}

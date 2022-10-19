@@ -1,0 +1,36 @@
+#edit-billing-address,
+.checkout-login,
+.c-add-address,
+.alias--cart-checkout-payment,
+.c-address-book {
+  .form-actions {
+    .form-submit {
+      @extend %btn;
+
+      font-size: 0.875rem;
+    }
+  }
+
+  .address-book-address,
+  .profile-form {
+    .form-actions {
+      .cancel-button {
+        color: $content_link_color;
+        font-size: 0.875rem;
+      }
+
+      .form-submit {
+        font-size: 0.875rem;
+        font-weight: bold;
+      }
+    }
+  }
+}
+
+.c-address-book {
+  .block-system > a {
+    @include breakpoint($desktop) {
+      min-width: 10.625rem;
+    }
+  }
+}

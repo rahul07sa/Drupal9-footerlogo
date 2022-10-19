@@ -1,0 +1,22 @@
+.c-breadcrumb {
+  background: none;
+
+  ol {
+    padding: 0.675rem 1.5rem;
+  }
+
+  li {
+    text-transform: none;
+
+    &:last-of-type {
+      a {
+        font-family: $vs-bold;
+        font-weight: normal;
+      }
+    }
+
+    &::after {
+      content: '/';
+    }
+  }
+}

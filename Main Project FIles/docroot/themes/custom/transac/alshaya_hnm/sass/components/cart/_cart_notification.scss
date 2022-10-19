@@ -1,0 +1,101 @@
+#cart_notification,
+#static_minicart_notification {
+  top: 3rem;
+  #{$right}: -0.3rem;
+
+  @include breakpoint($tablet) {
+    top: 2rem;
+    #{$right}: -0.375rem;
+  }
+
+  @include breakpoint($desktop) {
+    top: 2.8rem;
+  }
+
+  &.has--notification::before {
+    content: unset;
+  }
+
+  .notification,
+  .error {
+    border: none;
+    box-shadow: none;
+
+    img {
+      margin-bottom: 0.4375rem;
+    }
+
+    .col-2 {
+      color: $minicart_notification_text;
+      font-weight: normal;
+
+      .name {
+        font-size: 0.8125rem;
+        color: $minicart_notification_name;
+      }
+
+      a {
+        @include arabic-letter-spacing;
+
+        width: 7.38rem;
+        margin-top: 0.8125rem;
+        line-height: 32px;
+        text-align: center;
+        background: $minicart_notification_bg;
+        border: 1px solid $minicart_notification_border;
+        text-transform: uppercase;
+        color: $minicart_notification_text;
+        font-weight: normal;
+        letter-spacing: 1px;
+        font-size: 0.8125rem;
+
+        html[lang=ar] & {
+          width: auto;
+        }
+      }
+
+      .sub-text {
+        display: inline-block;
+        margin-top: 0.375rem;
+        font-size: 0.6875rem;
+      }
+
+      .qty-label {
+        font-family: $hnm-regular;
+        color: $primary_minicart_quantity_bg;
+        font-size: 0.6875rem;
+      }
+
+      .qty {
+        color: $primary_minicart_quantity_bg;
+        font-size: 0.6875rem;
+        margin-#{$left}: 0.25rem;
+
+        html[lang=ar] & {
+          margin-left: 0.25rem;
+        }
+      }
+    }
+
+    .matchback-notification-qty,
+    .matchback-prod-added-text {
+      @include breakpoint($tablet) {
+        display: none;
+      }
+    }
+  }
+}
+
+html[lang=ar] {
+  #cart_notification,
+  #static_minicart_notification {
+    @include breakpoint($tablet) {
+      top: 2rem;
+      #{$right}: -0.375rem;
+    }
+
+    @include breakpoint($desktop) {
+      top: 2.8rem;
+    }
+  }
+}

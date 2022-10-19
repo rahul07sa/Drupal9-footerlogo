@@ -1,0 +1,43 @@
+.acq-content-product {
+  .gallery-wrapper {
+    @include breakpoint($only-tablet) {
+      padding-bottom: 2rem;
+    }
+  }
+
+  .special--price .price {
+    color: $pdp_product_special_price;
+  }
+
+  .form-item-configurables-size .selected-text {
+    color: $pdp_size_selected_text;
+  }
+
+  .content__title_wrapper {
+    html[lang=ar] & {
+      line-height: 1.5;
+    }
+  }
+
+  .cloudzoom__thumbnails__image {
+    outline: transparent;
+  }
+}
+
+article[gtm-sku-type="simple"] {
+  .acq-content-product-modal {
+    .basic-details-wrapper {
+      .field--name-field-skus {
+        .form-item.form-type-select.form-item-quantity {
+          float: $left;
+        }
+
+        button.edit-add-to-cart {
+          @include breakpoint($only-tablet) {
+            margin-top: 1.5rem;
+          }
+        }
+      }
+    }
+  }
+}

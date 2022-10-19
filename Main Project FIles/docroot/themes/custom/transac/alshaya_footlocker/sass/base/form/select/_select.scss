@@ -1,0 +1,13 @@
+.select2-dropdown {
+  border-color: $primary_dropdown_option_border;
+}
+
+.form-type-select {
+  &::after {
+    color: $plp_facet_dropdown_icon;
+
+    @include breakpoint ($desktop) {
+      display: none;
+    }
+  }
+}

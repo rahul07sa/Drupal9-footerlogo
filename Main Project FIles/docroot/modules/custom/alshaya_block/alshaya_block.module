@@ -1,0 +1,143 @@
+<?php
+
+/**
+ * @file
+ * Functions around blocks.
+ */
+
+use Drupal\block\Entity\Block;
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function alshaya_block_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'themes_installed') {
+    // We don't want the blocks to be copied from one theme to another using
+    // the default block_theme_initialize() as it change.
+    unset($implementations['block']);
+  }
+}
+
+/**
+ * Implements hook_themes_installed().
+ */
+function alshaya_block_themes_installed($theme_list) {
+  $theme_info = \Drupal::service('theme_handler')->listInfo();
+  // For each newly enabled theme, we check if there is already a theme of this
+  // type (amp/non_transac/transac) enabled. If so, we move the blocks from
+  // this already installed theme to the newly installed one.
+  foreach ($theme_list as $theme) {
+    // We only move blocks for custom themes.
+    if (isset($theme_info[$theme])
+      && strpos($theme_info[$theme]->getPathname(), '/custom/')
+      && \Drupal::service('theme_handler')->hasUi($theme)
+      && !empty($theme_info[$theme]->info['alshaya_theme_type'])
+      && !empty($source_theme = \Drupal::service('alshaya_custom.utility')->getThemeByThemeType($theme_info[$theme]->info['alshaya_theme_type'], [$theme]))
+    ) {
+      alshaya_block_move_blocks_theme_to_theme($theme, $source_theme);
+    }
+  }
+}
+
+/**
+ * Move the blocks from one theme to another.
+ *
+ * Because of the block ID unicity constraint, we can't simply duplicate the
+ * blocks from one theme to another. This function moves the block from one
+ * theme to another and keep the region's configuration.
+ *
+ * @see block_theme_initialize()
+ */
+function alshaya_block_move_blocks_theme_to_theme($target_theme, $source_theme = NULL) {
+  $source_theme = empty($source_theme) ? \Drupal::config('system.theme')->get('default') : $source_theme;
+
+  $default_theme_blocks = \Drupal::entityTypeManager()->getStorage('block')->loadByProperties(['theme' => $source_theme]);
+  foreach ($default_theme_blocks as $default_theme_block_id => $default_theme_block) {
+    $block = $default_theme_block->createDuplicateBlock($default_theme_block_id, $target_theme);
+
+    // We delete the block from the previous theme.
+    $default_theme_block->delete();
+
+    // We save the block on the new theme.
+    $block->save();
+  }
+}
+
+/**
+ * Utility function to delete blocks from a theme.
+ */
+function alshaya_block_delete_blocks(array $blocks, $theme = NULL) {
+  $theme = empty($theme) ? \Drupal::config('system.theme')->get('default') : $theme;
+
+  foreach ($blocks as $block_id) {
+    $block = \Drupal::entityTypeManager()
+      ->getStorage('block')
+      ->loadByProperties(['id' => $block_id, 'theme' => $theme]);
+
+    if (!empty($block)) {
+      $block = reset($block);
+      $block->delete();
+    }
+  }
+}
+
+/**
+ * Utility function to change the region of the block.
+ *
+ * @param array $block_params
+ *   An array of blocks with key and value pair as [block_id => region].
+ *
+ * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+ * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+ * @throws \Drupal\Core\Entity\EntityStorageException
+ */
+function alshaya_block_move_blocks(array $block_params) {
+  foreach ($block_params as $block_id => $region) {
+    $blocks = \Drupal::entityTypeManager()->getStorage('block')->loadByProperties(['id' => $block_id]);
+    if (!empty($blocks)) {
+      $block = reset($blocks);
+      if ($block instanceof Block) {
+        $block->setRegion($region);
+        $block->save();
+      }
+    }
+  }
+}
+
+/**
+ * Utility function to set visibility for node type.
+ *
+ * @param array $block_params
+ *   An array of blocks with key and value pair as [block_id => params].
+ */
+function alshaya_block_set_blocks_node_visibility(array $block_params) {
+  // Default visibility variable.
+  $visibility = [
+    'id' => 'entity_bundle:node',
+    'bundles' => [],
+    'context_mapping' => [
+      'node' => '@node.node_route_context:node',
+    ],
+    'negate' => FALSE,
+  ];
+  // Loop trough all the blocks.
+  foreach ($block_params as $block_id => $param) {
+    $blocks = \Drupal::entityTypeManager()->getStorage('block')->loadByProperties(['id' => $block_id]);
+    if (!empty($blocks)) {
+      $block = reset($blocks);
+
+      if ($block instanceof Block) {
+        // Set key same as array values.
+        $visibility_nodes = array_combine($param['bundles'], $param['bundles']);
+        // Add bundles for visibility.
+        $block_visibility = [
+          'bundles' => $visibility_nodes,
+          'negate' => $param['negate'] ?? FALSE,
+        ] + $visibility;
+
+        $block->setVisibilityConfig('entity_bundle:node', $block_visibility);
+        $block->save();
+      }
+    }
+  }
+}

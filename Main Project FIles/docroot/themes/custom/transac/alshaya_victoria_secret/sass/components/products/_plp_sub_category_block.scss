@@ -1,0 +1,166 @@
+.c-plp {
+  .c-products-list {
+    .term-header {
+      .term-title {
+        font-family: $vs-bentonsanscomp-medium;
+        line-height: normal;
+      }
+
+      .term-desc {
+        line-height: normal;
+      }
+    }
+  }
+
+  @include breakpoint($desktop) {
+    .filter-fixed-top .sticky-filter-wrapper {
+      transition: height 0.5s ease-in-out;
+    }
+  }
+
+  @include breakpoint($desktop) {
+    .filter-fixed-top {
+      #block-subcategoryblock {
+        top: 3.5rem !important;
+
+        .plp-subcategory-block {
+          margin-#{$left}: -14.625rem;
+        }
+      }
+    }
+
+    .sticky-filter-wrapper {
+      #block-subcategoryblock {
+        .header-sticky-filter & {
+          visibility: hidden;
+          opacity: 0;
+          top: 2.5rem;
+          transition: opacity 0.5s ease-in-out, visibility 0.5s ease-in-out;
+          position: absolute;
+          width: 100%;
+        }
+      }
+
+      &.show-sub-category {
+        height: 14rem;
+
+        .container-without-product {
+          top: 0;
+          display: flex;
+          flex-flow: row wrap;
+        }
+
+        #block-subcategoryblock {
+          text-align: center;
+          visibility: visible;
+          opacity: 1;
+          top: 3.5rem;
+
+          .plp-subcategory-block {
+            border-bottom: none;
+            max-width: 77.25rem;
+          }
+        }
+      }
+    }
+  }
+
+  @include breakpoint($only-mobile) {
+    #block-subcategoryblock {
+      top: 0;
+      transform: translateY(0);
+      transition: transform 0.5s ease-in-out;
+      background: $modal_bg;
+      width: 100%;
+      z-index: 1;
+
+      &.mobile-sticky-sub-category {
+        transform: translateY(8.5625rem);
+      }
+
+      .plp-subcategory-block {
+        .sub-category {
+          .sub-category-image {
+            width: 4.375rem;
+            height: 3.25rem;
+          }
+        }
+      }
+    }
+
+    .filter-fixed-top {
+      #block-subcategoryblock {
+        position: fixed;
+        z-index: 2;
+      }
+    }
+  }
+
+  @include breakpoint($only-tablet) {
+    .filter-fixed-top {
+      #block-subcategoryblock {
+        position: fixed;
+        background: $modal_bg;
+        width: 100%;
+        top: 3.2rem;
+        z-index: 1;
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity 0.5s ease-in-out, visibility 0.5s ease-in-out;
+
+        &.mobile-sticky-sub-category {
+          visibility: visible;
+          opacity: 1;
+        }
+      }
+    }
+  }
+}
+
+.alias--victorias-secret-shop-panties-styles {
+  &.subcategory-listing-enabled {
+    .block-alshaya-group-by-sub-category-page-title {
+      .sub-category-page-title-desc-wrapper {
+        &.center-aligned {
+          h1 {
+            font-family: $vspromo;
+            font-size: 3.75rem;
+            letter-spacing: 0.125rem;
+            color: $panty_guide_sub_cat_title;
+            line-height: 1;
+            margin-bottom: 0;
+            text-transform: uppercase;
+
+            @include breakpoint($only-tablet) {
+              font-size: 2.9375rem;
+            }
+
+            @include breakpoint($only-mobile) {
+              font-size: 2.125rem;
+            }
+          }
+
+          .sub-category-page-description {
+            font-family: $vs-bentonsans-regular;
+            letter-spacing: 0.0625rem;
+            padding-bottom: 1rem;
+            border-bottom: 0;
+            margin-bottom: 0;
+
+            @include breakpoint($upto-tablet) {
+              letter-spacing: 0.5px;
+            }
+
+            @include breakpoint($only-tablet) {
+              font-size: 0.75rem;
+            }
+
+            @include breakpoint($only-mobile) {
+              font-size: 0.5rem;
+            }
+          }
+        }
+      }
+    }
+  }
+}

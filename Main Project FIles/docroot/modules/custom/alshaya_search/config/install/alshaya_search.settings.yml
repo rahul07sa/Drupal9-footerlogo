@@ -1,0 +1,31 @@
+sort_options:
+  created: created
+  title: title
+  final_price: final_price
+use_brand_specific_core: true
+search_field_placeholder: 'search'
+sort_options_labels:
+  -
+    value: 'search_api_relevance ASC'
+    label: ''
+  -
+    value: 'search_api_relevance DESC'
+    label: 'Relevance'
+  -
+    value: 'title ASC'
+    label: 'Name A to Z'
+  -
+    value: 'title DESC'
+    label: 'Name Z to A'
+  -
+    value: 'final_price ASC'
+    label: 'Price Low to High'
+  -
+    value: 'final_price DESC'
+    label: 'Price High to Low'
+  -
+    value: 'created ASC'
+    label: ''
+  -
+    value: 'created DESC'
+    label: 'New In'

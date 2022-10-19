@@ -1,0 +1,89 @@
+<?php
+
+/**
+ * @file
+ * Alshaya email signup module file.
+ */
+
+use Drupal\block_content\Entity\BlockContent;
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter().
+ */
+function alshaya_email_signup_form_webform_submission_alshaya_email_signup_add_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  // Get the machine name from settings.
+  $block_machine_name = \Drupal::config('alshaya_email_signup.settings')->get('content_machine_name');
+
+  // Get the block id of block content using machine name.
+  $id = \Drupal::entityQuery('block_content')
+    ->condition('machine_name', $block_machine_name)
+    ->range(0, 1)
+    ->execute();
+  $block_id = !empty($id) ? array_shift($id) : NULL;
+
+  // Display default block content if the block_id exists.
+  if (!empty($block_id)) {
+    // Get the current lang code.
+    $lang = \Drupal::languageManager()->getCurrentLanguage()->getId();
+
+    $entity_manager = \Drupal::entityTypeManager();
+    // Load the block object from block id.
+    $block = $entity_manager->getStorage('block_content')->load($block_id);
+    // Render the block content view.
+    $build = $entity_manager->getViewBuilder('block_content')->view($block, 'full', $lang);
+
+    // Add the block title.
+    $build['info_block_title'] = [
+      '#prefix' => '<h2>',
+      '#plain_text' => BlockContent::load($block_id)->getTranslation($lang)->label(),
+      '#suffix' => '</h2>',
+      '#weight' => -1000,
+    ];
+
+    $form['info_block'] = [
+      '#type' => 'item',
+      '#markup' => \Drupal::getContainer()->get('renderer')->renderPlain($build),
+      '#weight' => -100,
+      '#prefix' => '<div class="form--content">',
+      '#suffix' => '</div>',
+    ];
+  }
+
+  $inputs = $form_state->getUserInput();
+  if (!empty($inputs) && !empty($inputs['http_referer'])) {
+    $form['elements']['http_referer']['#value'] = $inputs['http_referer'];
+  }
+
+  // Add terms and conditions suffix.
+  $form['elements']['first_name']['#prefix'] = '<div class="form__form-fields"><div class="input__container--half__wrapper">';
+  $form['elements']['last_name']['#suffix'] = '</div>';
+  $form['elements']['exclusive_deals']['#suffix'] = \Drupal::config('alshaya_user.settings')->get('terms_conditions.value') . '</div>';
+}
+
+/**
+ * Implements hook_form_Email_Signup_preprocess_element().
+ */
+function alshaya_email_signup_preprocess_form_element(&$form) {
+  // This should only run on frontend webform.
+  if (isset($form['element']['#webform']) && $form['element']['#webform'] == 'alshaya_email_signup') {
+    if ($form['name'] == 'first_name') {
+      $form['attributes']['class'][] = 'input__container input__container--half';
+    }
+    elseif ($form['name'] == 'last_name') {
+      $form['attributes']['class'][] = 'input__container input__container--half';
+    }
+  }
+}
+
+/**
+ * Implements hook_alshaya_i18n_onetime_translation_add().
+ */
+function alshaya_email_signup_alshaya_i18n_onetime_translation_add() {
+  // Set email signup form translation.
+  $contact_content = \Drupal::languageManager()->getLanguageConfigOverride('ar', 'webform.webform.alshaya_email_signup');
+  $contact_content->set('title', 'كن أول من يعرف');
+  $contact_content->set('elements', "first_name:\n  '#title': 'الاسم الأول'\nlast_name:\n  '#title': 'اسم العائلة'\nmobile_number:\n  '#title': 'رقم الجوال'\nemail:\n  '#title': 'عنوان البريد الإلكتروني'\nexclusive_deals:\n  '#title': 'أرغب في استلام عروض حصرية من .[site:name]'\n");
+  $contact_content->set('settings.confirmation_message', 'شكرا :)');
+  $contact_content->save();
+}

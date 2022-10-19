@@ -1,0 +1,29 @@
+.slug-banner-processed {
+  @include breakpoint($only-tablet) {
+    &.header--fixed {
+      margin-top: 4.375rem !important;
+    }
+
+    header {
+      .c-header__region {
+        margin: 0;
+        height: 4.375rem;
+        padding-top: 1.0625rem;
+      }
+
+      #block-cartminiblock,
+      .block-alshaya-react-mini-cart {
+        top: 1.75rem;
+      }
+    }
+  }
+
+  @include breakpoint($only-mobile) {
+    header {
+      .c-header__region {
+        margin: 0;
+        padding-top: 0.25rem;
+      }
+    }
+  }
+}

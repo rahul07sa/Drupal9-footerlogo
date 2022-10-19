@@ -1,0 +1,31 @@
+.magv2-pdp-popup-content {
+  &::before {
+    content: '';
+    position: fixed;
+    width: 100vw;
+    background-color: rgba(0, 0, 0, 0.48);
+    box-shadow: 0 9999px 0 9999px rgba(0, 0, 0, 0.5);
+    z-index: 7;
+    opacity: 0;
+    top: 0;
+    #{$left}: 0;
+    transition: opacity 300ms ease-in;
+  }
+}
+
+body {
+  &.overlay-desc,
+  &.overlay-crossel,
+  &.overlay-related-select,
+  &.ratings-reviews-overlay {
+    overflow: hidden;
+
+    .magv2-pdp-popup-content {
+      &::before {
+        opacity: 1;
+        height: 100%;
+        transition: opacity 300ms ease-in;
+      }
+    }
+  }
+}

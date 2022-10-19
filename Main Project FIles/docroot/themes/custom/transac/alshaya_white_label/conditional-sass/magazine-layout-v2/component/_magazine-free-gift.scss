@@ -1,0 +1,95 @@
+.magazine-layout-v2 {
+  .magv2-sidebar {
+    .free-gift-promo-wrapper.free-gift-promo-list {
+      .free-gift-title,
+      .coupon-code {
+        color: $magv2-free-gift;
+      }
+
+      span.coupon-code {
+        display: inline-block;
+      }
+    }
+  }
+
+  .ui-dialog {
+    .ui-dialog-titlebar-close {
+      background-color: $magv2-free-gift-modal-cross-icon;
+    }
+
+    .content--item-code {
+      color: $magv2-free-gift-modal-item-code;
+    }
+  }
+
+  &.free-gifts-modal-overlay {
+    .ui-dialog {
+      #drupal-modal {
+        .content__sidebar {
+          @include breakpoint($only-mobile) {
+            z-index: 3;
+          }
+        }
+      }
+    }
+  }
+
+  &.nodetype--acq_product {
+    .ui-dialog {
+      #drupal-modal {
+        #lightSlider {
+          &.pager-yes {
+            .slick-slide {
+              @include breakpoint($only-tablet) {
+                width: 6.3rem !important;
+                margin: 0 0.19rem;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .slider-position-bottom {
+    .cloudzoom {
+      .cloudzoom__thumbnails {
+        #lightSlider {
+          &.pager-yes {
+            .slick-arrow {
+              top: 50% !important;
+            }
+
+            .slick-prev {
+              @include icon(chevron#{$left}) {
+                color: $mothercare-black;
+                font-size: 1.875rem;
+              }
+            }
+
+            .slick-next {
+              @include icon(chevron#{$right}) {
+                color: $mothercare-black;
+                font-size: 1.875rem;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .mobilegallery {
+      .mobilegallery__thumbnails {
+        .slick-dots {
+          .slick-dots-container {
+            > li {
+              button {
+                display: none;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

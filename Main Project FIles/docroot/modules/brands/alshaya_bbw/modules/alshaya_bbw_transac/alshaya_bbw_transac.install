@@ -1,0 +1,339 @@
+<?php
+
+/**
+ * @file
+ * Install, uninstall, update function for alshaya_bbw_transac.
+ */
+
+use Drupal\Core\Site\Settings;
+use Drupal\search_api\Entity\Index;
+
+/**
+ * Implements hook_update_N().
+ *
+ * Queue all products for re-index because of title change.
+ */
+function alshaya_bbw_transac_update_8012() {
+  \Drupal::service('alshaya_acm_product.product_queue_utility')->queueAllProducts();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update config for enable_lhn_tree_search
+ * for sidebar visibility in search page.
+ * Queue items for acquia_search_index.
+ */
+function alshaya_bbw_transac_update_8011() {
+  $config = \Drupal::configFactory()->getEditable('alshaya_acm_product_category.settings');
+  $config->set('enable_lhn_tree_search', 1);
+  $config->save();
+  $index = \Drupal::entityTypeManager()->getStorage('search_api_index')->load('acquia_search_index');
+  $index->reindex();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable Dynamic yield module.
+ */
+function alshaya_bbw_transac_update_8010() {
+  \Drupal::service('module_installer')->install(['dynamic_yield']);
+  // Set env specific Section ID for DY scripts.
+  /** @var \Drupal\alshaya_acm\AlshayaAcmConfigCheck $config_check */
+  $config_check = \Drupal::service('alshaya_acm.config_check');
+  $config_check->checkConfig(TRUE, 'dynamic_yield.settings');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable alshaya_mobile_app module.
+ */
+function alshaya_bbw_transac_update_8009() {
+  \Drupal::service('module_installer')->install(['alshaya_mobile_app']);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update meta variables.
+ */
+function alshaya_bbw_transac_update_8008() {
+  _alshaya_bbw_transac_save_metatag_translations();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Save translations for meta tags.
+ */
+function alshaya_bbw_transac_update_8007() {
+  $strings = [
+    'seo_brand_name' => [
+      'en' => 'Bath and body works',
+      'ar' => 'باث اند بودي ووركس',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Enable WhatsApp and Email in Sharethis.
+ */
+function alshaya_bbw_transac_update_8006() {
+  // Configure ShareThis defaults.
+  $configFactory = \Drupal::configFactory()->getEditable('sharethis.settings');
+  $services = $configFactory->get('service_option');
+  $services .= ",'WhatsApp:whatsapp','Email:email'";
+  $configFactory->set('service_option', $services);
+  // Save the changes.
+  $configFactory->save();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Re-create all facets and facet blocks.
+ */
+function alshaya_bbw_transac_update_8005() {
+  alshaya_config_install_configs(['alshaya_acm_product.sku_base_fields'], 'alshaya_acm_product');
+  alshaya_config_install_configs(['alshaya_bbw_transac.sku_base_fields'], 'alshaya_bbw_transac');
+  _alshaya_search_api_refactor_sku_base_fields();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update image style of thumbnail on PDP page product zoom.
+ */
+function alshaya_bbw_transac_update_8004() {
+  alshaya_config_install_configs(['image.style.product_zoom_small_81x72'], 'alshaya_bbw_transac');
+}
+
+/**
+ * Implements hook_post_update_NAME().
+ *
+ * Re-save index to create required tables.
+ *
+ * We do this in post update hook as it doesn't work together with config update
+ * in normal hook_update.
+ */
+function alshaya_bbw_transac_post_update_8003(&$sandbox) {
+  _alshaya_search_resave_indexes();
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add Brand field and index it.
+ * Add Facet to required fields.
+ */
+function alshaya_bbw_transac_update_8003() {
+  $facet_configs = [
+    'facets.facet.fragrancecat',
+    'facets.facet.plp_fragrancecat',
+    'facets.facet.promotion_fragrancecat',
+    'facets.facet.collection1',
+    'facets.facet.plp_collection1',
+    'facets.facet.promotion_collection1',
+    'facets.facet.fragrancename',
+    'facets.facet.plp_fragrancename',
+    'facets.facet.promotion_fragrancename',
+  ];
+  alshaya_config_install_configs($facet_configs, 'alshaya_bbw_transac', 'install');
+
+  // Facet search to update config.
+  $facet_search_configs = [
+    'facets_summary.facets_summary.filter_bar',
+  ];
+  alshaya_config_install_configs($facet_search_configs, 'alshaya_search');
+
+  // Facet promotion to update config.
+  $facets_config_promotion = [
+    'facets_summary.facets_summary.filter_bar_promotions',
+  ];
+  alshaya_config_install_configs($facets_config_promotion, 'alshaya_acm_promotion', 'optional');
+
+  // Facet summary to update config.
+  $facet_summary_config = [
+    'facets_summary.facets_summary.filter_bar_plp',
+  ];
+  alshaya_config_install_configs($facet_summary_config, 'alshaya_product', 'optional');
+
+  // Facet new blocks.
+  $facet_block_configs = [
+    'block.block.fragrancecat',
+    'block.block.plpfragrancecat',
+    'block.block.promotionfragrancecat',
+    'block.block.collection1',
+    'block.block.plpcollection1',
+    'block.block.promotioncollection1',
+    'block.block.fragrancename',
+    'block.block.plpfragrancename',
+    'block.block.promotionfragrancename',
+  ];
+
+  // Create facet blocks & place them appropriately.
+  alshaya_config_install_configs($facet_block_configs, 'alshaya_bbw_transac', 'optional');
+
+  // Add new Brand field from the updated sku_base_fields config.
+  alshaya_config_install_configs(['alshaya_bbw_transac.sku_base_fields'], 'alshaya_bbw_transac');
+
+  \Drupal::service('acq_sku.fields_manager')->addFields();
+
+  // Update search indexes to index new Brand field.
+  alshaya_config_install_configs(['search_api.index.product'], 'alshaya_product');
+  alshaya_config_install_configs(['search_api.index.acquia_search_index'], 'alshaya_search');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Add index to newly added fields.
+ */
+function alshaya_bbw_transac_update_8002() {
+  // Invoke source config save for the override to be saved.
+  alshaya_config_install_configs(['search_api.index.product'], 'alshaya_product', 'install');
+  alshaya_config_install_configs(['search_api.index.acquia_search_index'], 'alshaya_search', 'install');
+
+  $alshaya_search_indexes = [
+    'product' => 'search_api.index.product',
+    'acquia_search_index' => 'search_api.index.acquia_search_index',
+  ];
+
+  foreach ($alshaya_search_indexes as $index_key => $search_index) {
+    // Load both index.
+    $index = Index::load($index_key);
+
+    // Re-index all items.
+    $index->reindex();
+
+    // Save index to reflect new form field.
+    $index->save();
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Install the new fields.
+ */
+function alshaya_bbw_transac_update_8001() {
+  alshaya_config_install_configs(['alshaya_bbw_transac.sku_base_fields'], 'alshaya_bbw_transac', 'install');
+
+  // Add base fields from the updated sku_base_fields config.
+  \Drupal::service('acq_sku.fields_manager')->addFields();
+}
+
+/**
+ * Implements hook_install().
+ */
+function alshaya_bbw_transac_install() {
+  // Enable sort options.
+  $sort_options = [
+    'created' => 'created',
+    'nid' => 'nid',
+    'name_1' => 'name_1',
+    'final_price' => 'final_price',
+  ];
+  $config = \Drupal::configFactory()->getEditable('alshaya_acm_product_position.settings');
+  $config->set('sort_options', $sort_options)->save();
+
+  \Drupal::moduleHandler()->loadInclude('alshaya_bbw_transac', 'inc', 'alshaya_bbw_transac.content');
+
+  // Enable and set bath_body_works as default theme.
+  \Drupal::service('theme_installer')->install(['alshaya_bathbodyworks'], TRUE);
+  \Drupal::configFactory()->getEditable('system.theme')->set('default', 'alshaya_bathbodyworks')->save();
+
+  // Set store id - EN.
+  \Drupal::configFactory()->getEditable('acq_commerce.store')
+    ->set('store_id', Settings::get('store_id')['en'])
+    ->save();
+
+  // Translate store id in config.
+  \Drupal::languageManager()->getLanguageConfigOverride('ar', 'acq_commerce.store')
+    ->set('store_id', Settings::get('store_id')['ar'])
+    ->save();
+
+  // Save language prefix - EN.
+  \Drupal::configFactory()->getEditable('alshaya_api.settings')
+    ->set('magento_lang_prefix', Settings::get('magento_lang_prefix')['en'])
+    ->save();
+
+  // Save language prefix - AR.
+  \Drupal::languageManager()->getLanguageConfigOverride('ar', 'alshaya_api.settings')
+    ->set('magento_lang_prefix', Settings::get('magento_lang_prefix')['ar'])
+    ->save();
+
+  // Configure ShareThis defaults.
+  $configFactory = \Drupal::configFactory()->getEditable('sharethis.settings');
+  $services = $configFactory->get('service_option');
+  $services .= ",'WhatsApp:whatsapp','Email:email'";
+  $configFactory->set('service_option', $services);
+  // Save the changes.
+  $configFactory->save();
+
+  $strings = [
+    'seo_brand_name' => [
+      'en' => 'Bath and body works',
+      'ar' => 'باث اند بودي ووركس',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+
+  // Install metatag translations.
+  _alshaya_bbw_transac_save_metatag_translations();
+}
+
+/**
+ * Get translations of metatag.
+ */
+function _alshaya_bbw_transac_save_metatag_translations() {
+  $strings = [
+    'alshaya_seo_sale_title_suffix' => [
+      'en' => ' - [current-date:html_year] Sale',
+      'ar' => '  - عروض [current-date:html_year]',
+    ],
+    'alshaya_seo_sale_text_before_cod' => [
+      'en' => '. Compare the latest [current-date:html_year] - [term:name] - packages at the best prices.',
+      'ar' => '. مقارنة - [term:name] - المجموعات الأكثر سعرا.',
+    ],
+    'alshaya_seo_sale_sno_suffix' => [
+      'en' => '- [term:name] -',
+      'ar' => '- [term:name] -',
+    ],
+    'alshaya_seo_sno_suffix' => [
+      'en' => '- [term:name] -',
+      'ar' => '- [term:name] -',
+    ],
+    'alshaya_seo_sale_desc_start' => [
+      'en' => 'Get exclusive and delightful [current-date:html_year] sale and offers',
+      'ar' => 'احصل على عروض [current-date:html_year] على المنتجات الحصرية',
+    ],
+    'alshaya_seo_desc_start' => [
+      'en' => 'Shop exclusive and delightful [term:name] products',
+      'ar' => 'شراء المنتجات الحصرية [term:name]',
+    ],
+    'alshaya_seo_sale_keywords' => [
+      'en' => '[term:name] sale, [term:name] promotions, [term:name], [term:name] sale in [alshaya_seo:country], [alshaya_seo:term_cities], [term:name] offers, [term:name] online offers, [term:name] online sale, [alshaya_seo:brand_name] [term:name] sale, [alshaya_seo:brand_name] [term:name] offers, [alshaya_seo:brand_name] [term:name] offers for , [alshaya_seo:brand_name] [term:name] sale[term:name] sale, [term:name] promotions, [term:name], [term:name] sale in [alshaya_seo:country], [alshaya_seo:term_cities], [term:name] offers, [term:name] online offers, [term:name] online sale, [alshaya_seo:brand_name] [term:name] sale, [alshaya_seo:brand_name] [term:name] offers, [alshaya_seo:brand_name] [term:name] offers, [alshaya_seo:brand_name] [term:name] sale, [alshaya_seo:brand_name] [term:name] sale',
+      'ar' => '[term:name] sale, [term:name] promotions, [term:name], [term:name] sale in [alshaya_seo:country], [alshaya_seo:term_cities], [term:name] offers, [term:name] online offers, [term:name] online sale, [alshaya_seo:brand_name] [term:name] sale, [alshaya_seo:brand_name] [term:name] offers, [alshaya_seo:brand_name] [term:name] offers for , [alshaya_seo:brand_name] [term:name] sale[term:name] sale, [term:name] promotions, [term:name], [term:name] sale in [alshaya_seo:country], [alshaya_seo:term_cities], [term:name] offers, [term:name] online offers, [term:name] online sale, [alshaya_seo:brand_name] [term:name] sale, [alshaya_seo:brand_name] [term:name] offers, [alshaya_seo:brand_name] [term:name] offers, [alshaya_seo:brand_name] [term:name] sale, [alshaya_seo:brand_name] [term:name] sale',
+    ],
+    'alshaya_seo_keywords' => [
+      'en' => 'Shop [term:name] Products Online, Shop [term:name] Online, Shop [term:name] Products in [alshaya_seo:country], Shop [term:name] Collection, [alshaya_seo:term_cities]',
+      'ar' => 'تسوق منتجات [term:name] اون لاين, تسوق مستلزمات [term:name] اون لاين, اشتري مستلزمات [term:name] من [alshaya_seo:brand_name], [alshaya_seo:term_cities], تسوق منتجات [term:name] اون لاين [alshaya_seo:country]',
+    ],
+    'Collection Online' => [
+      'en' => 'Products Online',
+    ],
+    'Collection for @parent Online' => [
+      'en' => 'Products for @parent Online',
+    ],
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}

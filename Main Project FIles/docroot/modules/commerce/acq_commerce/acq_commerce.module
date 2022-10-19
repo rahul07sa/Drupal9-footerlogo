@@ -1,0 +1,128 @@
+<?php
+
+/**
+ * @file
+ * Provides base hooks to the base Acquia Commerce connector.
+ */
+
+use Drupal\acq_commerce\Conductor\APIWrapper;
+
+/**
+ * Implements hook_page_attachments().
+ */
+function acq_commerce_page_attachments(array &$attachments) {
+  // Add CSS for the Commerce icon in the toolbar if the user has access to it.
+  $can_view_commerce_admin = \Drupal::currentUser()->hasPermission('access commerce administration pages');
+  $can_view_toolbar = \Drupal::currentUser()->hasPermission('access toolbar');
+  if ($can_view_commerce_admin && $can_view_toolbar) {
+    $attachments['#attached']['library'][] = 'acq_commerce/drupal.acq_commerce.toolbar';
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function acq_commerce_theme($existing, $type, $theme, $path) {
+  return [
+    'acq_commerce_price' => [
+      'variables' => [
+        'price' => '',
+        'currency_format' => '',
+        'currency_code_position' => '',
+      ],
+    ],
+  ];
+}
+
+/**
+ * Format price value with currency.
+ *
+ * Default template: acq-commerce-price.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - price: a price value.
+ */
+function template_preprocess_acq_commerce_price(array &$variables) {
+  static $config_data;
+
+  $current_language = \Drupal::languageManager()
+    ->getConfigOverrideLanguage()
+    ->getId();
+
+  if (empty($config_data[$current_language])) {
+    $config = \Drupal::configFactory()->get('acq_commerce.currency');
+    $config_data[$current_language]['currency_format'] = $config->get('currency_code');
+    $config_data[$current_language]['currency_code_position'] = $config->get('currency_code_position');
+    $config_data[$current_language]['decimal_points'] = $config->get('decimal_points');
+  }
+
+  $variables['currency_format'] = $config_data[$current_language]['currency_format'];
+  $variables['currency_code_position'] = $config_data[$current_language]['currency_code_position'];
+
+  $variables['price'] = acq_commerce_get_clean_price($variables['price']);
+  $variables['price'] = number_format($variables['price'], $config_data[$current_language]['decimal_points']);
+
+  // To invalidate the cache on currency config update.
+  $variables['#cache']['tags'][] = 'config:acq_commerce.currency';
+}
+
+/**
+ * Helper function to clean commerce price.
+ *
+ * For now we encounter only one issue - comma in price when value is more than
+ * thousand. We might encounter more issues later.
+ *
+ * @param mixed $price
+ *   Price received from commerce.
+ *
+ * @return mixed
+ *   Cleaned price value.
+ */
+function acq_commerce_get_clean_price($price) {
+  // Remove the comma coming from Commerce, we will add while formatting.
+  // Casting to float or using floatval stops at comma and doesn't return
+  // whole value.
+  // NumberFormatter.parse requires locale, we don't have expected value
+  // available anywhere in the system for now (kw_AR) so not using it.
+  return str_replace(',', '', $price);
+}
+
+/**
+ * Helper function to check if exception is related to API being down.
+ *
+ * @param \Exception $e
+ *   Exception object.
+ *
+ * @return bool
+ *   True if exception is related to API being down.
+ */
+function acq_commerce_is_exception_api_down_exception(\Exception $e) {
+  return acq_commerce_is_code_api_down_code($e->getCode());
+}
+
+/**
+ * Helper function to check if exception code is related to API being down.
+ *
+ * @param int $code
+ *   Exception code.
+ *
+ * @return bool
+ *   True if exception code is related to API being down.
+ */
+function acq_commerce_is_code_api_down_code($code) {
+  return ($code == APIWrapper::API_DOWN_ERROR_CODE);
+}
+
+/**
+ * Function to return global error message to be used when API is down.
+ *
+ * Not adding this to config or creating form, this can be updated using
+ * translation interface.
+ *
+ * @return string
+ *   Error message string.
+ */
+function acq_commerce_api_down_global_error_message() {
+  return t('Sorry, something went wrong and we are unable to process your request right now. Please try again later.')->render();
+}

@@ -1,10 +1,10 @@
-English block content:Lead the scene and keep it green. Keep green and keep our planet clean.
+Independent since 1906, we empower people through sport and craftsmanship to create positive change in communities around the world.
 
 English image is site-logo.svg (located at web/themes/img folder)
 
 
 
-German Block content: Führen Sie die Szene und halten Sie sie grün. Bleib grün und halte unseren Planeten sauber.
+Arabic block content: شركة مستقلة منذ عام 1906 لتمكين الجميع من خلال الرياضة والتصميم بحرفية، من أجل التغيير الإيجابي في المجتمعات حول العالم.
 
 Arabic image is site-logo-ar.svg (located at web/themes/img folder)
 

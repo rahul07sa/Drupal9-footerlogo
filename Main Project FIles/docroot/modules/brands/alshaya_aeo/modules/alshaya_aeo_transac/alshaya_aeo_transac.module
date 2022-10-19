@@ -1,0 +1,208 @@
+<?php
+
+/**
+ * @file
+ * Alshaya AEO transac module file.
+ */
+
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\acq_sku\Entity\SKU;
+
+/**
+ * Implements hook_ENTITY_TYPE_view().
+ */
+function alshaya_aeo_transac_node_view(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, $view_mode) {
+  if ($entity->bundle() == 'acq_product') {
+
+    if ($view_mode == 'full') {
+      /** @var \Drupal\alshaya_acm_product\SkuManager $skuManager */
+      $skuManager = \Drupal::service('alshaya_acm_product.skumanager');
+      $sku = $skuManager->getSkuForNode($entity);
+      $sku_entity = SKU::loadFromSku($sku);
+      if ($sku_entity instanceof SKU) {
+        $return = _alshaya_aeo_transac_get_product_description($sku_entity);
+        $build['short_desc'] = $return['short_desc'];
+        $build['description'] = $return['description'];
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_view().
+ */
+function alshaya_aeo_transac_acq_sku_view(array &$build, EntityInterface $sku_entity, EntityViewDisplayInterface $display, $view_mode) {
+  if ($view_mode == 'modal') {
+    $return = _alshaya_aeo_transac_get_product_description($sku_entity);
+    $build['short_desc'] = $return['short_desc'];
+    $build['description'] = $return['description'];
+  }
+}
+
+/**
+ * Get product description from SKU.
+ */
+function _alshaya_aeo_transac_get_product_description($sku_entity) {
+  $return = [];
+
+  if ($body = $sku_entity->get('attr_description')->getString()) {
+    $return['short_desc']['value'] = [
+      '#markup' => $body,
+    ];
+  }
+
+  $details = [];
+  $details['label'] = [
+    '#markup' => t('Details'),
+  ];
+  $details['value'] = [
+    "#theme" => 'item_list',
+    '#items' => [],
+  ];
+
+  if ($details1 = $sku_entity->get('attr_details1')->getString()) {
+    $details['value']['#items'][] = $details1;
+  }
+  if ($details2 = $sku_entity->get('attr_details2')->getString()) {
+    $details['value']['#items'][] = $details2;
+  }
+  if ($details3 = $sku_entity->get('attr_details3')->getString()) {
+    $details['value']['#items'][] = $details3;
+  }
+  if ($details4 = $sku_entity->get('attr_details4')->getString()) {
+    $details['value']['#items'][] = $details4;
+  }
+  if ($details5 = $sku_entity->get('attr_details5')->getString()) {
+    $details['value']['#items'][] = $details5;
+  }
+  if ($details6 = $sku_entity->get('attr_details6')->getString()) {
+    $details['value']['#items'][] = $details6;
+  }
+
+  if (!empty($details['value']['#items'])) {
+    $return['description'][] = $details;
+  }
+
+  $materials_care = [];
+  $materials_care['label'] = [
+    '#markup' => t('Materials & Care'),
+  ];
+  $materials_care['value'] = [
+    "#theme" => 'item_list',
+    '#items' => [],
+  ];
+
+  if ($materials_care1 = $sku_entity->get('attr_materials_care1')->getString()) {
+    $materials_care['value']['#items'][] = $materials_care1;
+  }
+  if ($materials_care2 = $sku_entity->get('attr_materials_care2')->getString()) {
+    $materials_care['value']['#items'][] = $materials_care2;
+  }
+  if ($materials_care3 = $sku_entity->get('attr_materials_care3')->getString()) {
+    $materials_care['value']['#items'][] = $materials_care3;
+  }
+  if ($materials_care4 = $sku_entity->get('attr_materials_care4')->getString()) {
+    $materials_care['value']['#items'][] = $materials_care4;
+  }
+
+  if (!empty($materials_care['value']['#items'])) {
+    $return['description'][] = $materials_care;
+  }
+
+  $size_fit = [];
+  $size_fit['label'] = [
+    '#markup' => t('Size & fit'),
+  ];
+  $size_fit['value'] = [
+    "#theme" => 'item_list',
+    '#items' => [],
+  ];
+
+  if ($size_fit1 = $sku_entity->get('attr_size_fit1')->getString()) {
+    $size_fit['value']['#items'][] = $size_fit1;
+  }
+  if ($size_fit2 = $sku_entity->get('attr_size_fit2')->getString()) {
+    $size_fit['value']['#items'][] = $size_fit2;
+  }
+  if ($size_fit3 = $sku_entity->get('attr_size_fit3')->getString()) {
+    $size_fit['value']['#items'][] = $size_fit3;
+  }
+  if ($size_fit4 = $sku_entity->get('attr_size_fit4')->getString()) {
+    $size_fit['value']['#items'][] = $size_fit4;
+  }
+
+  if (!empty($size_fit['value']['#items'])) {
+    $return['description'][] = $size_fit;
+  }
+
+  return $return;
+}
+
+/**
+ * Implements hook_alshaya_performance_preload_alter().
+ */
+function alshaya_aeo_transac_alshaya_performance_preload_alter(array &$preload) {
+  // WestElm's icon font comes from whitelabel.
+  $preload[] = [
+    'as' => 'font',
+    'href' => '/themes/custom/transac/alshaya_white_label/fonts/alshaya-icons.woff2?D7b5if',
+    'crossorigin' => 'crossorigin',
+    'type' => 'font/woff2',
+  ];
+}
+
+/**
+ * Implements hook_preprocess_html().
+ */
+function alshaya_aeo_transac_preprocess_html(&$variables) {
+  $config = \Drupal::config('alshaya_super_category.settings');
+  // Check super category feature status.
+  if (!$config->get('status')) {
+    return;
+  }
+
+  // Add class to body tag if super-category feature is enabled.
+  $variables['attributes']['class'][] = 'super-category-enabled';
+  // Add super category css library to show super catgeory menus.
+  $variables['#attached']['library'][] = 'alshaya_white_label/super-category';
+
+  // We need an additional class on body tag for showing search input field
+  // expanded when the current page is a super category home page except the
+  // site home page. For example, in AEO, we have two super categories for now
+  // i.e. Americal Eagle and Aerie so we need new class on Aerie home page only
+  // as Americal Eagle home page is set to site home page.
+  // Get the root or super categories.
+  /** @var \Drupal\alshaya_acm_product_category\ProductCategoryTree $product_category_tree */
+  $super_category_tree = \Drupal::service('alshaya_acm_product_category.product_category_tree');
+
+  // Get the product category term from the URL.
+  $term_from_route = $super_category_tree->getCategoryTermFromRoute();
+
+  // Get all root terms or super categories.
+  $super_categories = $super_category_tree->getCategoryRootTerms();
+
+  // Check if we have term from route exist in super/root category list and add
+  // a helper class for FE to update styles.
+  if (!empty($term_from_route) && $super_categories[$term_from_route->id()]) {
+    $variables['attributes']['class'][] = 'super-category-home';
+  }
+}
+
+/**
+ * Implements hook_alshaya_super_category_status_update().
+ */
+function alshaya_aeo_transac_alshaya_super_category_status_update($status, $default_parent, $path_alter) {
+  // Change branding block weight as per the design when super category feature
+  // gets on/off.
+  if ($status) {
+    $config = \Drupal::configFactory()->getEditable('block.block.branding');
+    $config->set('weight', -20);
+    $config->save();
+  }
+  else {
+    $config = \Drupal::configFactory()->getEditable('block.block.branding');
+    $config->set('weight', -32);
+    $config->save();
+  }
+}

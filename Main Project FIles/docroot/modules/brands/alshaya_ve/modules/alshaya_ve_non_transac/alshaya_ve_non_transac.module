@@ -1,0 +1,252 @@
+<?php
+
+/**
+ * @file
+ * Module file.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\Core\Asset\AttachedAssetsInterface;
+use Drupal\views\ViewExecutable;
+use Drupal\Core\StringTranslation\PluralTranslatableMarkup;
+
+/**
+ * Implements hook_views_pre_render().
+ */
+function alshaya_ve_non_transac_views_pre_render(ViewExecutable $view) {
+  if ($view->id() == 'non_transac_acquia_index_search' && $view->total_rows > 0) {
+    $format_plural = new PluralTranslatableMarkup($view->total_rows, '(1 result)', '(@count results)');
+    if (!empty($view->getExposedInput()['keywords'])) {
+      $view->setTitle(t('"@keyword" @results', [
+        '@keyword' => $view->getExposedInput()['keywords'],
+        '@results' => $format_plural,
+      ]));
+    }
+    else {
+      $view->setTitle(t('@results',
+        ['@results' => str_replace(['(', ')'], '', $format_plural)]));
+    }
+
+    foreach ($view->result as &$result) {
+      $result->search_api_excerpt = str_replace('… ', '', $result->search_api_excerpt);
+    }
+  }
+}
+
+/**
+ * Implements hook_element_info_alter().
+ */
+function alshaya_ve_non_transac_element_info_alter(array &$info) {
+  if (isset($info['mobile_number']['#process'])) {
+    $info['mobile_number']['#process'][] = '_alshaya_ve_non_transac_mobile_number_process';
+  }
+}
+
+/**
+ * Processor for the mobile number field to enable multi countries support.
+ */
+function _alshaya_ve_non_transac_mobile_number_process(array &$element, FormStateInterface $form_state) {
+  if ($form_state->getBuildInfo()['form_id'] == 'webform_submission_alshaya_contact_add_form' ||
+    $form_state->getBuildInfo()['form_id'] == 'webform_submission_alshaya_email_signup_add_form') {
+
+    $element['country-code']['#options'] = $element['#allowed_countries'];
+    if (!empty($form_state->getValue('mobile_number'))) {
+      $element['country-code']['#value'] = $form_state->getValue('mobile_number')['country'];
+    }
+  }
+
+  return $element;
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function alshaya_ve_non_transac_form_alter(array &$form, FormStateInterface $form_state, $form_id) {
+  if ($form_id == 'webform_submission_alshaya_contact_add_form') {
+    $form['actions']['submit']['#value'] = t('Send');
+  }
+
+  if ($form_id == 'webform_submission_alshaya_email_signup_add_form') {
+    $form['actions']['submit']['#value'] = t('Subscribe');
+  }
+
+  if ($form_id == 'views_exposed_form') {
+    if ($form['#id'] === 'views-exposed-form-stores-finder-page-1') {
+      $form['geolocation_geocoder_google_places_api']['#description'] = t('Please enter a valid area / city');
+      $hidden_class_map_list = '';
+      if (\Drupal::routeMatch()->getRouteName() == 'view.stores_finder.page_1') {
+        $hidden_class_map_list = 'hidden';
+      }
+
+      $form['map_view'] = [
+        '#markup' => '<a href="#" class="map-view-link block-store-finder-form__list-view icon-map ' . $hidden_class_map_list . ' ">' . t('Map View') . '</a>',
+        '#weight' => 8,
+      ];
+    }
+
+    if ($form['#id'] === 'views-exposed-form-stores-finder-page-2') {
+      $form['country']['#options']['All'] = t('Middle East');
+      $current_path = \Drupal::service('path.current')->getPath();
+      $countryName = NULL;
+      if (str_contains($current_path, '/store-finder')) {
+        $countryFieldValues = FieldStorageConfig::loadByName('node', 'field_store_country')->getSetting('allowed_values');
+        $filterCountry = \Drupal::request()->get('country');
+        if ($filterCountry && !empty($countryFieldValues[$filterCountry])) {
+          $countryName = $countryFieldValues[$filterCountry];
+        }
+        else {
+          $countryName = t('Middle East');
+        }
+      }
+      $form['country']['#title'] = t('Displaying stores in') . ' ' . $countryName;
+      $form['actions']['#attributes']['class'] = ['hidden'];
+      $form['retina_view'] = [
+        '#markup' => '<div class="retinal-photography"><span class="retinal-enabled-yes">' . t('Stores with retinal photography') . '</span></div>',
+        '#weight' => 2,
+      ];
+    }
+
+  }
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function alshaya_ve_non_transac_page_attachments(array &$attachments) {
+  // Attach store finder js only on store-finder pages.
+  $current_path = \Drupal::service('path.current')->getPath();
+  if (str_contains($current_path, '/store-finder')) {
+    $attachments['#attached']['drupalSettings']['geolocation']['geocoder']['googlePlacesAPI']['restrictions'] = ['country' => ''];
+    $countryFieldValues = FieldStorageConfig::loadByName('node', 'field_store_country')->getSetting('allowed_values');
+    unset($countryFieldValues['All']);
+    $attachments['#attached']['drupalSettings']['storeFinder'] = ['storeCountries' => array_keys($countryFieldValues)];
+    $attachments['#attached']['library'][] = 'alshaya_ve_non_transac/alshaya_ve_non_transac_store_finder';
+  }
+}
+
+/**
+ * Implements hook_alshaya_config_save_alter().
+ */
+function alshaya_ve_non_transac_alshaya_config_save_alter(array &$data, $config_name) {
+  if ($config_name == 'views.view.stores_finder') {
+    if (isset($data['display']['page_1']['display_options']['filters']['field_latitude_longitude_proximity'])) {
+      // Clean the country from plugin settings and add it on runtime as per
+      // user's detected country.
+      $data['display']['page_1']['display_options']['filters']['field_latitude_longitude_proximity']['expose']['geocoder_plugin_settings']['settings']['component_restrictions']['country'] = '';
+    }
+  }
+}
+
+/**
+ * Implements hook_alshaya_i18n_onetime_translation_add().
+ */
+function alshaya_ve_non_transac_alshaya_i18n_onetime_translation_add() {
+  // Save some translations.
+  $strings = [];
+
+  $strings['Retina photography'] = [
+    'ar' => 'صورة الشبكية',
+  ];
+
+  $strings['Middle East'] = [
+    'ar' => 'الشرق الأوسط',
+  ];
+
+  $strings['Kuwait'] = [
+    'ar' => 'الكويت',
+  ];
+
+  $strings['UAE'] = [
+    'ar' => 'الإمارات',
+  ];
+
+  $strings['KSA'] = [
+    'ar' => 'السعودية',
+  ];
+
+  $strings['Qatar'] = [
+    'ar' => 'قطر',
+  ];
+
+  $strings['Bahrain'] = [
+    'ar' => 'البحرين',
+  ];
+
+  $strings['Displaying stores in'] = [
+    'ar' => 'المنتجات المعروضة في المحلات',
+  ];
+
+  $strings['Area / City'] = [
+    'ar' => 'المنطقة / المدينة',
+  ];
+
+  $strings['Book an Appointment'] = [
+    'ar' => 'احجز موعد',
+  ];
+
+  $strings['Stores with retinal photography'] = [
+    'ar' => 'الفروع التي تقدم خدمة تصوير الشبكية',
+  ];
+
+  $strings['Map View'] = [
+    'ar' => 'عرض الخريطة',
+  ];
+
+  $strings['List of all Stores'] = [
+    'ar' => 'قائمة جميع الفروع',
+  ];
+
+  alshaya_i18n_save_translations($strings);
+}
+
+/**
+ * Implements hook_js_alter().
+ */
+function alshaya_ve_non_transac_js_alter(&$javascript, AttachedAssetsInterface $assets) {
+
+  // Swap out alshaya_store_finder.js to use it for Vision Express.
+  $javascript['modules/custom/alshaya_stores_finder/js/alshaya_store_finder.js']['data'] = drupal_get_path('module', 'alshaya_ve_non_transac') . '/js/alshaya_store_finder.override.js';
+}
+
+/**
+ * Implements hook_preprocess_views_view_field().
+ */
+function alshaya_ve_non_transac_preprocess_views_view_field__stores_finder__glossary_map_view__field_store_open_hours(&$variables) {
+  /** @var \Drupal\node\Entity\Node $node */
+  $node = $variables['row']->_entity;
+  $node = \Drupal::service('entity.repository')->getTranslationFromContext($node);
+  $output = $node->field_store_open_hours->view('default');
+  $variables['output'] = $output;
+}
+
+/**
+ * Implements hook_alshaya_performance_preload_alter().
+ */
+function alshaya_ve_non_transac_alshaya_performance_preload_alter(array &$preload) {
+  $alshaya_preload = [
+    'as' => 'font',
+    'href' => '/themes/custom/non_transac/vision_express/fonts/font-icons.woff2?2pxs5f',
+    'crossorigin' => 'crossorigin',
+    'type' => 'font/woff2',
+  ];
+  $site_preloads = [
+    'en' => [
+      $alshaya_preload,
+    ],
+    'ar' => [
+      [
+        'as' => 'font',
+        'href' => '/themes/custom/non_transac/vision_express/fonts/DroidArabicKufi.woff2',
+        'crossorigin' => 'crossorigin',
+        'type' => 'font/woff2',
+      ],
+      $alshaya_preload,
+    ],
+  ];
+  // Preloading fonts here.
+  $language = \Drupal::languageManager()->getCurrentLanguage()->getId();
+  if (isset($site_preloads[$language])) {
+    $preload = array_merge($site_preloads[$language], $preload);
+  }
+}

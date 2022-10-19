@@ -1,0 +1,18 @@
+.path--cart {
+  .free-gift-container {
+    @include breakpoint($only-mobile) {
+      top: 13.5rem;
+    }
+  }
+}
+
+.free-gift-detail-modal.ui-dialog-content {
+  article {
+    > a {
+      @include icon(chevrondown, after) {
+        font-size: 0.875rem;
+        line-height: inherit;
+      }
+    }
+  }
+}

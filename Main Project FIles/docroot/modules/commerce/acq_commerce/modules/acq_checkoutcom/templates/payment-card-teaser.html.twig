@@ -1,0 +1,11 @@
+<div class="saved-card">
+  <div class="name-number">
+    {% if card_info.maskedCC %}
+      <div class="card-number">{{ card_info.card_number_txt }}</div>
+    {% endif %}
+  </div>
+  <div class="actions">
+      <div class="label">{{ "expires on"|t }}</div>
+      <div class="card-expiry-date">{{ card_info.expirationDate }}</div>
+  </div>
+</div>

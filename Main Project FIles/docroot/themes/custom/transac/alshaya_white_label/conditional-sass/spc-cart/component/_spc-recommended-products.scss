@@ -1,0 +1,149 @@
+.spc-recommended-products {
+  position: relative;
+  background: white;
+  padding: 1.25rem;
+  padding-#{$right}: 0;
+
+  .block-content {
+    white-space: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    display: flex;
+    align-items: flex-start;
+
+    .spc-product-recommended-wrapper {
+      display: inline-block;
+      margin-#{$right}: 0.625rem;
+      scroll-snap-align: center;
+      min-width: 8.75rem;
+      max-width: 8.75rem;
+      position: relative;
+
+      html[lang=ar] & {
+        line-height: normal;
+      }
+
+      .recommended-product {
+        display: block;
+      }
+
+      .spc-product-recommended-image {
+        margin-bottom: 1.25rem;
+        min-height: 10.625rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .product-title {
+        font-size: 0.875rem;
+        text-align: center;
+        color: $spc-product-title;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        margin-bottom: 0.3125rem;
+      }
+
+      .spc-promotions {
+        white-space: normal;
+        text-align: center;
+        font-size: 0.75rem;
+
+        .promotion-label {
+          color: $spc-recommended-product-promotion;
+          margin: 0;
+          display: block;
+        }
+
+        &:not(:empty) {
+          margin-top: 0.3125rem;
+        }
+      }
+    }
+  }
+
+  .nav-next,
+  .nav-prev {
+    border: none;
+    background: none;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 0;
+  }
+
+  .nav-prev {
+    @include icon(chevron#{$left}) {
+      font-size: 4rem;
+      width: 3.75rem;
+      height: 3.75rem;
+      color: $spc-product-title;
+    }
+
+    #{$left}: -4.0625rem;
+  }
+
+  .nav-next {
+    @include icon(chevron#{$right}) {
+      font-size: 4rem;
+      width: 3.75rem;
+      height: 3.75rem;
+      color: $spc-product-title;
+    }
+
+    #{$right}: -4.0625rem;
+  }
+
+  .labels-container {
+    .label {
+      img {
+        max-width: 3.125rem !important;
+      }
+
+      &.top {
+        &-left {
+          @include breakpoint($only-tablet) {
+            #{$left}: 0.5rem;
+          }
+
+          @include breakpoint($desktop) {
+            #{$left}: 0.5rem;
+          }
+        }
+
+        &-right {
+          @include breakpoint($only-tablet) {
+            #{$right}: 0.5rem;
+          }
+
+          @include breakpoint($desktop) {
+            #{$right}: 0.5rem;
+          }
+        }
+      }
+
+      &.bottom {
+        &-left {
+          @include breakpoint($only-tablet) {
+            #{$left}: 0.5rem;
+          }
+
+          @include breakpoint($desktop) {
+            #{$left}: 0.5rem;
+          }
+        }
+
+        &-right {
+          @include breakpoint($only-tablet) {
+            #{$right}: 0.5rem;
+          }
+
+          @include breakpoint($desktop) {
+            #{$right}: 0.5rem;
+          }
+        }
+      }
+    }
+  }
+}
