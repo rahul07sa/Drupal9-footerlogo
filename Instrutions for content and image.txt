@@ -1,12 +1,12 @@
 English block content:Lead the scene and keep it green. Keep green and keep our planet clean.
 
-English image is green-logo.svg (located at web/themes/img folder)
+English image is site-logo.svg (located at web/themes/img folder)
 
 
 
 German Block content: Führen Sie die Szene und halten Sie sie grün. Bleib grün und halte unseren Planeten sauber.
 
-German image is green-de-logo.svg (located at web/themes/img folder)
+Arabic image is site-logo-ar.svg (located at web/themes/img folder)
 
 
-*note: Use seperate images for english and german translations.
+*note: Use seperate images for english and arabic translations.
